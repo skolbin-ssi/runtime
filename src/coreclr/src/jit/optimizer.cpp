@@ -146,15 +146,15 @@ void Compiler::optMarkLoopBlocks(BasicBlock* begBlk, BasicBlock* endBlk, bool ex
     noway_assert(begBlk->bbNum <= endBlk->bbNum);
     noway_assert(begBlk->isLoopHead());
     noway_assert(fgReachable(begBlk, endBlk));
+    noway_assert(!opts.MinOpts());
 
 #ifdef DEBUG
     if (verbose)
     {
-        printf("\nMarking loop L%02u", begBlk->bbLoopNum);
+        printf("\nMarking a loop from " FMT_BB " to " FMT_BB, begBlk->bbNum,
+               excludeEndBlk ? endBlk->bbPrev->bbNum : endBlk->bbNum);
     }
 #endif
-
-    noway_assert(!opts.MinOpts());
 
     /* Build list of backedges for block begBlk */
     flowList* backedgeList = nullptr;
@@ -327,11 +327,11 @@ void Compiler::optUnmarkLoopBlocks(BasicBlock* begBlk, BasicBlock* endBlk)
         {
             if (backEdgeCount > 0)
             {
-                printf("\nNot removing loop L%02u, due to an additional back edge", begBlk->bbLoopNum);
+                printf("\nNot removing loop at " FMT_BB ", due to an additional back edge", begBlk->bbNum);
             }
             else if (backEdgeCount == 0)
             {
-                printf("\nNot removing loop L%02u, due to no back edge", begBlk->bbLoopNum);
+                printf("\nNot removing loop at " FMT_BB ", due to no back edge", begBlk->bbNum);
             }
         }
 #endif
@@ -343,7 +343,7 @@ void Compiler::optUnmarkLoopBlocks(BasicBlock* begBlk, BasicBlock* endBlk)
 #ifdef DEBUG
     if (verbose)
     {
-        printf("\nUnmarking loop L%02u", begBlk->bbLoopNum);
+        printf("\nUnmarking loop at " FMT_BB, begBlk->bbNum);
     }
 #endif
 
@@ -651,14 +651,6 @@ void Compiler::optPrintLoopInfo(unsigned      loopInd,
 {
     noway_assert(lpHead);
 
-    //
-    // NOTE: we take "loopInd" as an argument instead of using the one
-    //       stored in begBlk->bbLoopNum because sometimes begBlk->bbLoopNum
-    //       has not be set correctly. For example, in optRecordLoop().
-    //       However, in most of the cases, loops should have been recorded.
-    //       Therefore the correct way is to call the Compiler::optPrintLoopInfo(unsigned lnum)
-    //       version of this method.
-    //
     printf("L%02u, from " FMT_BB, loopInd, lpFirst->bbNum);
     if (lpTop != lpFirst)
     {
@@ -1752,7 +1744,7 @@ public:
             return false;
         }
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
         // Disqualify loops where the first block of the loop is a finally target.
         // The main problem is when multiple loops share a 'first' block that is a finally
         // target and we canonicalize the loops by adding a new loop head. In that case, we
@@ -1767,7 +1759,7 @@ public:
             JITDUMP("Loop 'first' " FMT_BB " is a finally target. Rejecting loop.\n", first->bbNum);
             return false;
         }
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
         // Compact the loop (sweep through it and move out any blocks that aren't part of the
         // flow cycle), and find the exits.
@@ -4073,6 +4065,13 @@ void Compiler::fgOptWhileLoop(BasicBlock* block)
         return;
     }
 
+    // block can't be the scratch bb, since we prefer to keep flow
+    // out of the scratch bb as BBJ_ALWAYS or BBJ_NONE.
+    if (fgBBisScratch(block))
+    {
+        return;
+    }
+
     // It has to be a forward jump
     //  TODO-CQ: Check if we can also optimize the backwards jump as well.
     //
@@ -4257,8 +4256,10 @@ void Compiler::fgOptWhileLoop(BasicBlock* block)
     }
 
     // Flag the block that received the copy as potentially having an array/vtable
-    // reference if the block copied from did; this is a conservative guess.
-    if (auto copyFlags = bTest->bbFlags & (BBF_HAS_VTABREF | BBF_HAS_IDX_LEN))
+    // reference, nullcheck, object/array allocation if the block copied from did;
+    // this is a conservative guess.
+    if (auto copyFlags = bTest->bbFlags &
+                         (BBF_HAS_VTABREF | BBF_HAS_IDX_LEN | BBF_HAS_NULLCHECK | BBF_HAS_NEWOBJ | BBF_HAS_NEWARRAY))
     {
         block->bbFlags |= copyFlags;
     }
@@ -4361,8 +4362,6 @@ void Compiler::optOptimizeLayout()
             noway_assert(block->isLoopHead() == false);
             continue;
         }
-
-        assert(block->bbLoopNum == 0);
 
         if (compCodeOpt() != SMALL_CODE)
         {
@@ -4471,11 +4470,6 @@ void Compiler::optOptimizeLoops()
             if (foundBottom)
             {
                 loopNum++;
-#ifdef DEBUG
-                /* Mark the loop header as such */
-                assert(FitsIn<unsigned char>(loopNum));
-                top->bbLoopNum = (unsigned char)loopNum;
-#endif
 
                 /* Mark all blocks between 'top' and 'bottom' */
 
@@ -5553,7 +5547,7 @@ bool Compiler::optNarrowTree(GenTree* tree, var_types srct, var_types dstt, Valu
             /* Constants can usually be narrowed by changing their value */
             CLANG_FORMAT_COMMENT_ANCHOR;
 
-#ifndef _TARGET_64BIT_
+#ifndef TARGET_64BIT
             __int64 lval;
             __int64 lmask;
 
@@ -5626,14 +5620,14 @@ bool Compiler::optNarrowTree(GenTree* tree, var_types srct, var_types dstt, Valu
                     case TYP_USHORT:
                         imask = 0x0000FFFF;
                         break;
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
                     case TYP_INT:
                         imask = 0x7FFFFFFF;
                         break;
                     case TYP_UINT:
                         imask = 0xFFFFFFFF;
                         break;
-#endif // _TARGET_64BIT_
+#endif // TARGET_64BIT
                     default:
                         return false;
                 }
@@ -5643,7 +5637,7 @@ bool Compiler::optNarrowTree(GenTree* tree, var_types srct, var_types dstt, Valu
                     return false;
                 }
 
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
                 if (doit)
                 {
                     tree->gtType                = TYP_INT;
@@ -5653,7 +5647,7 @@ bool Compiler::optNarrowTree(GenTree* tree, var_types srct, var_types dstt, Valu
                         fgValueNumberTreeConst(tree);
                     }
                 }
-#endif // _TARGET_64BIT_
+#endif // TARGET_64BIT
 
                 return true;
 
@@ -6540,7 +6534,7 @@ void Compiler::optHoistThisLoop(unsigned lnum, LoopHoistContext* hoistCtxt)
     pLoopDsc->lpLoopVarCount     = VarSetOps::Count(this, loopVars);
     pLoopDsc->lpHoistedExprCount = 0;
 
-#ifndef _TARGET_64BIT_
+#ifndef TARGET_64BIT
     unsigned longVarsCount = VarSetOps::Count(this, lvaLongVars);
 
     if (longVarsCount > 0)
@@ -6561,7 +6555,7 @@ void Compiler::optHoistThisLoop(unsigned lnum, LoopHoistContext* hoistCtxt)
         pLoopDsc->lpLoopVarCount += VarSetOps::Count(this, loopLongVars);
         pLoopDsc->lpVarInOutCount += VarSetOps::Count(this, inOutLongVars);
     }
-#endif // !_TARGET_64BIT_
+#endif // !TARGET_64BIT
 
 #ifdef DEBUG
     if (verbose)
@@ -6663,7 +6657,7 @@ bool Compiler::optIsProfitableToHoistableTree(GenTree* tree, unsigned lnum)
         {
             availRegCount += CNT_CALLEE_TRASH_FLOAT - 1;
         }
-#ifdef _TARGET_ARM_
+#ifdef TARGET_ARM
         // For ARM each double takes two FP registers
         // For now on ARM we won't track singles/doubles
         // and instead just assume that we always have doubles.
@@ -6682,7 +6676,7 @@ bool Compiler::optIsProfitableToHoistableTree(GenTree* tree, unsigned lnum)
         {
             availRegCount += CNT_CALLEE_TRASH - 1;
         }
-#ifndef _TARGET_64BIT_
+#ifndef TARGET_64BIT
         // For our 32-bit targets Long types take two registers.
         if (varTypeIsLong(tree->TypeGet()))
         {
@@ -7212,7 +7206,7 @@ void Compiler::optHoistCandidate(GenTree* tree, unsigned lnum, LoopHoistContext*
     if (!varTypeIsFloating(tree->TypeGet()))
     {
         optLoopTable[lnum].lpHoistedExprCount++;
-#ifndef _TARGET_64BIT_
+#ifndef TARGET_64BIT
         // For our 32-bit targets Long types take two registers.
         if (varTypeIsLong(tree->TypeGet()))
         {
@@ -7621,7 +7615,7 @@ void Compiler::optComputeLoopSideEffects()
     }
 
     VarSetOps::AssignNoCopy(this, lvaFloatVars, VarSetOps::MakeEmpty(this));
-#ifndef _TARGET_64BIT_
+#ifndef TARGET_64BIT
     VarSetOps::AssignNoCopy(this, lvaLongVars, VarSetOps::MakeEmpty(this));
 #endif
 
@@ -7634,7 +7628,7 @@ void Compiler::optComputeLoopSideEffects()
             {
                 VarSetOps::AddElemD(this, lvaFloatVars, varDsc->lvVarIndex);
             }
-#ifndef _TARGET_64BIT_
+#ifndef TARGET_64BIT
             else if (varTypeIsLong(varDsc->lvType))
             {
                 VarSetOps::AddElemD(this, lvaLongVars, varDsc->lvVarIndex);
@@ -8335,7 +8329,7 @@ bool Compiler::optExtractArrIndex(GenTree* tree, ArrIndex* result, unsigned lhsN
     {
         return false;
     }
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
     if (index->gtOper != GT_CAST)
     {
         return false;
@@ -8935,7 +8929,7 @@ void Compiler::optOptimizeBools()
             {
                 continue;
             }
-#ifdef _TARGET_ARMARCH_
+#ifdef TARGET_ARMARCH
             // Skip the small operand which we cannot encode.
             if (varTypeIsSmall(c1->TypeGet()))
                 continue;

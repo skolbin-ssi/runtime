@@ -12,11 +12,30 @@ namespace System.Text.RegularExpressions.Tests
     public class RegexCultureTests
     {
         [Theory]
+        [InlineData("^aa$", "aA", "da-DK", RegexOptions.None, false)]
+        [InlineData("^aA$", "aA", "da-DK", RegexOptions.None, true)]
+        [InlineData("^aa$", "aA", "da-DK", RegexOptions.IgnoreCase, true)]
+        [InlineData("^aA$", "aA", "da-DK", RegexOptions.IgnoreCase, true)]
+        public void CharactersComparedOneByOne_AnchoredPattern(string pattern, string input, string culture, RegexOptions options, bool expected)
+        {
+            // Regex compares characters one by one.  If that changes, it could impact the behavior of
+            // a case like this, where these characters are not the same, but the strings compare
+            // as equal with the invariant culture (and some other cultures as well).
+            using (new ThreadCultureChange(culture))
+            {
+                foreach (RegexOptions compiled in new[] { RegexOptions.None, RegexOptions.Compiled })
+                {
+                    Assert.Equal(expected, new Regex(pattern, options | compiled).IsMatch(input));
+                }
+            }
+        }
+
+        [Theory]
         [InlineData(RegexOptions.None)]
         [InlineData(RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
         [InlineData(RegexOptions.Compiled)]
         [InlineData(RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-        public void CharactersComparedOneByOne(RegexOptions options)
+        public void CharactersComparedOneByOne_Invariant(RegexOptions options)
         {
             // Regex compares characters one by one.  If that changes, it could impact the behavior of
             // a case like this, where these characters are not the same, but the strings compare
@@ -24,11 +43,13 @@ namespace System.Text.RegularExpressions.Tests
             const string S1 = "\u00D6\u200D";
             const string S2 = "\u004F\u0308";
 
+            // Validate the chosen strings to make sure they compare the way we want to test via Regex
             Assert.False(S1[0] == S2[0]);
             Assert.False(S1[1] == S2[1]);
             Assert.StartsWith(S1, S2, StringComparison.InvariantCulture);
-            Assert.True(S1.Equals(S1, StringComparison.InvariantCulture));
+            Assert.True(S1.Equals(S2, StringComparison.InvariantCulture));
 
+            // Test varying lengths of strings to validate codegen changes that kick in at longer lengths
             foreach (int multiple in new[] { 1, 10, 100 })
             {
                 string pattern = string.Concat(Enumerable.Repeat(S1, multiple));
@@ -40,7 +61,7 @@ namespace System.Text.RegularExpressions.Tests
                 Assert.False(r.IsMatch(input));
                 Assert.True(r.IsMatch(pattern));
 
-                // Validate when it's not in the pattern, as it impacts "multi" matching.
+                // Validate when it's not at the beginning of the pattern, as it impacts "multi" matching.
                 r = new Regex("[abc]" + pattern, options);
                 Assert.False(r.IsMatch("a" + input));
                 Assert.True(r.IsMatch("a" + pattern));

@@ -19,8 +19,9 @@ namespace System.Text.RegularExpressions
         public readonly Hashtable CapNames;
         public readonly string[] CapsList;
         public readonly RegexOptions Options;
+        public readonly int MinRequiredLength;
 
-        internal RegexTree(RegexNode root, Hashtable caps, int[] capNumList, int capTop, Hashtable capNames, string[] capsList, RegexOptions options)
+        internal RegexTree(RegexNode root, Hashtable caps, int[] capNumList, int capTop, Hashtable capNames, string[] capsList, RegexOptions options, int minRequiredLength)
         {
             Root = root;
             Caps = caps;
@@ -29,11 +30,15 @@ namespace System.Text.RegularExpressions
             CapNames = capNames;
             CapsList = capsList;
             Options = options;
+            MinRequiredLength = minRequiredLength;
         }
 
 #if DEBUG
         [ExcludeFromCodeCoverage]
         public void Dump() => Root.Dump();
+
+        [ExcludeFromCodeCoverage]
+        public override string ToString() => Root.ToString();
 
         [ExcludeFromCodeCoverage]
         public bool Debug => (Options & RegexOptions.Debug) != 0;

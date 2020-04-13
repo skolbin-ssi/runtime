@@ -175,24 +175,6 @@ inline DWORD ArrayBase::GetNumComponents() const
     return m_NumComponents;
 }
 
-#ifndef DACCESS_COMPILE
-inline void ArrayBase::SetArrayMethodTable(MethodTable *pArrayMT)
-{
-    LIMITED_METHOD_CONTRACT;
-
-    SetMethodTable(pArrayMT
-                   DEBUG_ARG(TRUE));
-}
-
-inline void ArrayBase::SetArrayMethodTableForLargeObject(MethodTable *pArrayMT)
-{
-    LIMITED_METHOD_CONTRACT;
-
-    SetMethodTableForLargeObject(pArrayMT
-                                 DEBUG_ARG(TRUE));
-}
-#endif // !DACCESS_COMPILE
-
 inline /* static */ unsigned ArrayBase::GetDataPtrOffset(MethodTable* pMT)
 {
     LIMITED_METHOD_CONTRACT;
@@ -247,7 +229,7 @@ __forceinline BOOL Nullable::IsNullableForType(TypeHandle type, MethodTable* par
         return FALSE;
     if (!type.AsMethodTable()->HasInstantiation())            // shortcut, if it is not generic it can't be Nullable<T>
         return FALSE;
-	return Nullable::IsNullableForTypeHelper(type.AsMethodTable(), paramMT);
+    return Nullable::IsNullableForTypeHelper(type.AsMethodTable(), paramMT);
 }
 
 //===============================================================================
@@ -259,7 +241,7 @@ __forceinline BOOL Nullable::IsNullableForTypeNoGC(TypeHandle type, MethodTable*
         return FALSE;
     if (!type.AsMethodTable()->HasInstantiation())            // shortcut, if it is not generic it can't be Nullable<T>
         return FALSE;
-	return Nullable::IsNullableForTypeHelperNoGC(type.AsMethodTable(), paramMT);
+    return Nullable::IsNullableForTypeHelperNoGC(type.AsMethodTable(), paramMT);
 }
 
 //===============================================================================
@@ -314,9 +296,7 @@ inline void FindByRefPointerOffsetsInByRefLikeObject(PTR_MethodTable pMT, SIZE_T
     _ASSERTE(pMT != nullptr);
     _ASSERTE(pMT->IsByRefLike());
 
-    // TODO: TypedReference should ideally be implemented as a by-ref-like struct containing a ByReference<T> field,
-    // in which case the check for g_TypedReferenceMT below would not be necessary
-    if (pMT == g_TypedReferenceMT || pMT->HasSameTypeDefAs(g_pByReferenceClass))
+    if (pMT->HasSameTypeDefAs(g_pByReferenceClass))
     {
         processPointerOffset(baseOffset);
         return;

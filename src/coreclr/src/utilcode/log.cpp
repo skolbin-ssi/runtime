@@ -34,7 +34,7 @@
 static          DWORD        LogFlags                    = 0;
 static          CQuickWSTR   szLogFileName;
 static          HANDLE       LogFileHandle               = INVALID_HANDLE_VALUE;
-static volatile MUTEX_COOKIE LogFileMutex                = 0;
+static volatile HANDLE       LogFileMutex                = 0;
 static          DWORD        LogFacilityMask             = LF_ALL;
 static          DWORD        LogFacilityMask2            = 0;
 static          DWORD        LogVMLevel                  = LL_INFO100;
@@ -160,7 +160,7 @@ VOID EnterLogLock()
     if(LogFileMutex != 0)
     {
         DWORD status;
-        status = ClrWaitForMutex(LogFileMutex, INFINITE, FALSE);
+        status = WaitForSingleObjectEx(LogFileMutex, INFINITE, FALSE);
         _ASSERTE(WAIT_OBJECT_0 == status);
     }
 }
@@ -173,7 +173,7 @@ VOID LeaveLogLock()
     if(LogFileMutex != 0)
     {
         BOOL success;
-        success = ClrReleaseMutex(LogFileMutex);
+        success = ReleaseMutex(LogFileMutex);
         _ASSERTE(success);
     }
 }
@@ -186,11 +186,11 @@ VOID InitializeLogging()
     if (bLoggingInitialized)
         return;
 
-    MUTEX_COOKIE mutexCookie = ClrCreateMutex(NULL, FALSE, NULL);
-    _ASSERTE(mutexCookie != 0);
-    if (InterlockedCompareExchangeT(&LogFileMutex, mutexCookie, 0) != 0)
+    HANDLE mutex = WszCreateMutex(NULL, FALSE, NULL);
+    _ASSERTE(mutex != 0);
+    if (InterlockedCompareExchangeT(&LogFileMutex, mutex, 0) != 0)
     {
-        ClrCloseMutex(mutexCookie);
+        CloseHandle(mutex);
     }
 
     EnterLogLock();
@@ -340,7 +340,7 @@ VOID LogSpewAlwaysValist(const char *fmt, va_list args)
     // trashing your program...
     _ASSERTE((buflen < (DWORD) BUFFERSIZE) && "Log text is too long!") ;
 
-#if !PLATFORM_UNIX
+#if !TARGET_UNIX
     //convert NL's to CR NL to fixup notepad
     const int BUFFERSIZE2 = BUFFERSIZE + 500;
     char rgchBuffer2[BUFFERSIZE2];
@@ -361,7 +361,7 @@ VOID LogSpewAlwaysValist(const char *fmt, va_list args)
 
     buflen = (DWORD)(d - pBuffer2);
     pBuffer = pBuffer2;
-#endif // PLATFORM_UNIX
+#endif // TARGET_UNIX
 
     if (LogFlags & LOG_ENABLE_FILE_LOGGING && LogFileHandle != INVALID_HANDLE_VALUE)
     {
@@ -391,66 +391,30 @@ VOID LogSpew(DWORD facility, DWORD level, const char *fmt, ... )
 {
     STATIC_CONTRACT_WRAPPER;
 
-#ifdef SELF_NO_HOST
-    if (TRUE)
-#else //!SELF_NO_HOST
-    if (CanThisThreadCallIntoHost())
-#endif //!SELF_NO_HOST
-    {
-        va_list     args;
-        va_start(args, fmt);
-        LogSpewValist (facility, level, fmt, args);
-        va_end(args);
-    }
-    else
-    {
-        // Cannot acquire the required lock, as this would call back
-        // into the host.  Eat the log message.
-    }
+    va_list     args;
+    va_start(args, fmt);
+    LogSpewValist (facility, level, fmt, args);
+    va_end(args);
 }
 
 VOID LogSpew2(DWORD facility2, DWORD level, const char *fmt, ... )
 {
     STATIC_CONTRACT_WRAPPER;
 
-#ifdef SELF_NO_HOST
-    if (TRUE)
-#else //!SELF_NO_HOST
-    if (CanThisThreadCallIntoHost())
-#endif //!SELF_NO_HOST
-    {
-        va_list     args;
-        va_start(args, fmt);
-        LogSpew2Valist(facility2, level, fmt, args);
-        va_end(args);
-    }
-    else
-    {
-        // Cannot acquire the required lock, as this would call back
-        // into the host.  Eat the log message.
-    }
+    va_list     args;
+    va_start(args, fmt);
+    LogSpew2Valist(facility2, level, fmt, args);
+    va_end(args);
 }
 
 VOID LogSpewAlways (const char *fmt, ... )
 {
     STATIC_CONTRACT_WRAPPER;
 
-#ifdef SELF_NO_HOST
-    if (TRUE)
-#else //!SELF_NO_HOST
-    if (CanThisThreadCallIntoHost())
-#endif //!SELF_NO_HOST
-    {
-        va_list     args;
-        va_start(args, fmt);
-        LogSpewValist (LF_ALWAYS, LL_ALWAYS, fmt, args);
-        va_end(args);
-    }
-    else
-    {
-        // Cannot acquire the required lock, as this would call back
-        // into the host.  Eat the log message.
-    }
+    va_list     args;
+    va_start(args, fmt);
+    LogSpewValist (LF_ALWAYS, LL_ALWAYS, fmt, args);
+    va_end(args);
 }
 
 #endif // LOGGING

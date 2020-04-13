@@ -24,7 +24,7 @@ namespace System.Runtime.Loader
         internal static extern void InternalSetProfileRoot(string directoryPath);
 
         [DllImport(RuntimeHelpers.QCall, CharSet = CharSet.Unicode)]
-        internal static extern void InternalStartProfile(string profile, IntPtr ptrNativeAssemblyLoadContext);
+        internal static extern void InternalStartProfile(string? profile, IntPtr ptrNativeAssemblyLoadContext);
 
         [DllImport(RuntimeHelpers.QCall, CharSet = CharSet.Unicode)]
         private static extern void LoadFromPath(IntPtr ptrNativeAssemblyLoadContext, string? ilPath, string? niPath, ObjectHandleOnStack retAssembly);
@@ -67,7 +67,7 @@ namespace System.Runtime.Loader
             return loadedAssembly!;
         }
 
-#if !FEATURE_PAL
+#if TARGET_WINDOWS
         [DllImport(RuntimeHelpers.QCall, CharSet = CharSet.Unicode)]
         private static extern IntPtr LoadFromInMemoryModuleInternal(IntPtr ptrNativeAssemblyLoadContext, IntPtr hModule, ObjectHandleOnStack retAssembly);
 
@@ -154,8 +154,7 @@ namespace System.Runtime.Loader
                 if (ptrAssemblyLoadContext == IntPtr.Zero)
                 {
                     // If the load context is returned null, then the assembly was bound using the TPA binder
-                    // and we shall return reference to the active "Default" binder - which could be the TPA binder
-                    // or an overridden CLRPrivBinderAssemblyLoadContext instance.
+                    // and we shall return reference to the "Default" binder.
                     loadContextForAssembly = AssemblyLoadContext.Default;
                 }
                 else
@@ -174,7 +173,7 @@ namespace System.Runtime.Loader
         }
 
         // Start profile optimization for the specified profile name.
-        public void StartProfileOptimization(string profile)
+        public void StartProfileOptimization(string? profile)
         {
             InternalStartProfile(profile, _nativeAssemblyLoadContext);
         }

@@ -5,11 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace ReadyToRun.SuperIlc
 {
-
     /// <summary>
     /// Compiles assemblies using the Cross-Platform AOT compiler
     /// </summary>
@@ -17,11 +16,12 @@ namespace ReadyToRun.SuperIlc
     {
         public override CompilerIndex Index => CompilerIndex.CPAOT;
 
-        protected override string CompilerRelativePath => "crossgen2";
+        // Crossgen2 runs on top of corerun.
+        protected override string CompilerRelativePath => "";
 
-        protected override string CompilerFileName => "crossgen2".OSExeSuffix();
+        protected override string CompilerFileName => "corerun".AppendOSExeSuffix();
 
-        private List<string> _resolvedReferences;
+        private string Crossgen2Path => Path.Combine(_options.CoreRootDirectory.FullName, "crossgen2", "crossgen2.dll");
 
         public CpaotRunner(BuildOptions options, IEnumerable<string> referencePaths)
             : base(options, referencePaths)
@@ -31,6 +31,13 @@ namespace ReadyToRun.SuperIlc
                 options.DegreeOfParallelism = 2;
         }
 
+        public override ProcessParameters CompilationProcess(string outputFileName, IEnumerable<string> inputAssemblyFileNames)
+        {
+            ProcessParameters processParameters = base.CompilationProcess(outputFileName, inputAssemblyFileNames);
+            processParameters.Arguments = $"{Crossgen2Path} {processParameters.Arguments}";
+            return processParameters;
+        }
+
         protected override ProcessParameters ExecutionProcess(IEnumerable<string> modules, IEnumerable<string> folders, bool noEtw)
         {
             ProcessParameters processParameters = base.ExecutionProcess(modules, folders, noEtw);
@@ -38,10 +45,13 @@ namespace ReadyToRun.SuperIlc
             return processParameters;
         }
 
-        protected override IEnumerable<string> BuildCommandLineArguments(string assemblyFileName, string outputFileName)
+        protected override IEnumerable<string> BuildCommandLineArguments(IEnumerable<string> assemblyFileNames, string outputFileName)
         {
             // The file to compile
-            yield return assemblyFileName;
+            foreach (string inputAssembly in assemblyFileNames)
+            {
+                yield return inputAssembly;
+            }
 
             // Output
             yield return $"-o:{outputFileName}";
@@ -64,38 +74,56 @@ namespace ReadyToRun.SuperIlc
                 yield return "--inputbubble";
             }
 
+            if (_options.Composite)
+            {
+                yield return "--composite";
+            }
+
             if (_options.Crossgen2Parallelism != 0)
             {
                 yield return $"--parallelism={_options.Crossgen2Parallelism}";
             }
 
-            foreach (var reference in ComputeManagedAssemblies.GetManagedAssembliesInFolder(Path.GetDirectoryName(assemblyFileName)))
+            string frameworkFolder = "";
+            if (_options.Framework || _options.UseFramework)
             {
-                yield return $"-r:{reference}";
+                frameworkFolder = GetOutputPath(_options.CoreRootDirectory.FullName);
+                foreach (string frameworkRef in ResolveReferences(new string[] { frameworkFolder }, 'r'))
+                {
+                    yield return frameworkRef;
+                }
             }
 
-            if (_resolvedReferences == null)
+            StringComparer pathComparer = (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            HashSet<string> uniqueFolders = new HashSet<string>(pathComparer);
+
+            foreach (string assemblyFileName in assemblyFileNames)
             {
-                _resolvedReferences = ResolveReferences();
+                uniqueFolders.Add(Path.GetDirectoryName(assemblyFileName));
             }
 
-            foreach (string asmRef in _resolvedReferences)
+            uniqueFolders.UnionWith(_referenceFolders);
+            uniqueFolders.Remove(frameworkFolder);
+
+            foreach (string reference in ResolveReferences(uniqueFolders, _options.Composite ? 'u' : 'r'))
             {
-                yield return asmRef;
+                yield return reference;
             }
         }
 
-        private List<string> ResolveReferences()
+        private IEnumerable<string> ResolveReferences(IEnumerable<string> folders, char referenceOption)
         {
-            List<string> references = new List<string>();
-            foreach (var referenceFolder in _referenceFolders)
+            foreach (string referenceFolder in folders)
             {
-                foreach (var reference in ComputeManagedAssemblies.GetManagedAssembliesInFolder(referenceFolder))
+                foreach (string reference in ComputeManagedAssemblies.GetManagedAssembliesInFolder(referenceFolder))
                 {
-                    references.Add($"-r:{reference}");
+                    string simpleName = Path.GetFileNameWithoutExtension(reference);
+                    if (!FrameworkExclusion.Exclude(simpleName, Index, out string reason))
+                    {
+                        yield return $"-{referenceOption}:{reference}";
+                    }
                 }
             }
-            return references;
         }
     }
 }

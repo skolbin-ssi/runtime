@@ -284,7 +284,7 @@ namespace System.Runtime.Loader
 
             // Attempt to load the assembly, using the same ordering as static load, in the current load context.
             StackCrawlMark stackMark = StackCrawlMark.LookForMyCaller;
-            return Assembly.Load(assemblyName, ref stackMark, this);
+            return RuntimeAssembly.InternalLoad(assemblyName, ref stackMark, this);
         }
 #endif
 
@@ -364,7 +364,7 @@ namespace System.Runtime.Loader
             byte[]? arrSymbols = null;
             if (assemblySymbols != null)
             {
-                var iSymbolLength = (int)assemblySymbols.Length;
+                int iSymbolLength = (int)assemblySymbols.Length;
                 arrSymbols = new byte[iSymbolLength];
 
                 assemblySymbols.Read(arrSymbols, 0, iSymbolLength);

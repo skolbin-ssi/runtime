@@ -52,7 +52,7 @@ namespace System.Globalization.Tests
             AssertExtensions.Throws<ArgumentException>("name", () => new RegionInfo(name));
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows))]
         public void CurrentRegion()
         {
             using (new ThreadCultureChange("en-US"))
@@ -63,9 +63,24 @@ namespace System.Globalization.Tests
             }
         }
 
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsWindows))]
+        public void TestCurrentRegion()
+        {
+            RemoteExecutor.Invoke(() =>
+            {
+                RegionInfo ri = RegionInfo.CurrentRegion;
+                CultureInfo.CurrentCulture.ClearCachedData(); // clear the current region cached data
+
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ja-JP");
+
+                // Changing the current culture shouldn't affect the default current region as we get it from Windows settings.
+                Assert.Equal(ri.TwoLetterISORegionName, RegionInfo.CurrentRegion.TwoLetterISORegionName);
+            }).Dispose();
+        }
+
         [Theory]
         [InlineData("en-US", "United States")]
-        [OuterLoop("May fail on machines with multiple language packs installed")] // https://github.com/dotnet/corefx/issues/39177
+        [OuterLoop("May fail on machines with multiple language packs installed")] // see https://github.com/dotnet/runtime/issues/30132
         public void DisplayName(string name, string expected)
         {
             using (new ThreadCultureChange(null, new CultureInfo(name)))
@@ -169,7 +184,7 @@ namespace System.Globalization.Tests
 
         [Theory]
         [MemberData(nameof(Equals_TestData))]
-        public void Equals(RegionInfo regionInfo1, object obj, bool expected)
+        public void EqualsTest(RegionInfo regionInfo1, object obj, bool expected)
         {
             Assert.Equal(expected, regionInfo1.Equals(obj));
             Assert.Equal(regionInfo1.GetHashCode(), regionInfo1.GetHashCode());

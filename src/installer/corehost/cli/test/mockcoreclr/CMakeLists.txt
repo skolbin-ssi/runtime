@@ -10,12 +10,11 @@ set(SOURCES
     ./mockcoreclr.cpp
 )
 
-if(WIN32)
+if(CLR_CMAKE_TARGET_WIN32)
     list(APPEND SOURCES
         mockcoreclr.def)
 endif()
 
 include(../testlib.cmake)
 
-install(TARGETS mockcoreclr DESTINATION corehost_test)
-install_symbols(mockcoreclr corehost_test)
+install_with_stripped_symbols(mockcoreclr TARGETS corehost_test)

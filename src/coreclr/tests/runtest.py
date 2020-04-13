@@ -637,9 +637,9 @@ def call_msbuild(args):
     if g_verbose:
         command += ["/verbosity:diag"]
 
-    command += ["/p:__BuildOS=%s" % args.host_os,
-                "/p:__BuildArch=%s" % args.arch,
-                "/p:__BuildType=%s" % args.build_type,
+    command += ["/p:TargetOS=%s" % args.host_os,
+                "/p:TargetArchitecture=%s" % args.arch,
+                "/p:Configuration=%s" % args.build_type,
                 "/p:__LogsDir=%s" % args.logs_dir]
 
     print(" ".join(command))
@@ -801,7 +801,6 @@ def preserve_coredump_file(coredump_name, root_storage_location="/tmp/coredumps_
     if os.path.isfile(coredump_name) and not os.listdir(storage_location):
         print("Copying coredump file %s to %s" % (coredump_name, storage_location))
         shutil.copy2(coredump_name, storage_location)
-        # TODO: Support uploading to dumpling
 
 def inspect_and_delete_coredump_file(host_os, arch, coredump_name):
     """ Prints information from the specified coredump and creates a backup of it
@@ -825,9 +824,7 @@ def inspect_and_delete_coredump_files(host_os, arch, test_location):
         test_location (String)   : the folder under which to search for coredumps
     """
     # This function prints some basic information from core files in the current
-    # directory and deletes them immediately. Based on the state of the system, it may
-    # also upload a core file to the dumpling service.
-    # (see preserve_core_file).
+    # directory and deletes them immediately.
     
     # Depending on distro/configuration, the core files may either be named "core"
     # or "core.<PID>" by default. We will read /proc/sys/kernel/core_uses_pid to 
@@ -1023,7 +1020,7 @@ def setup_args(args):
                                       "Unsupported configuration: %s.\nSupported configurations: %s" % (corrected_build_type, ", ".join(coreclr_setup_args.valid_build_types)))
 
     if coreclr_setup_args.test_location is not None and coreclr_setup_args.test_location != normal_location:
-        print ("Error, msbuild currently expects tests in artifacts/tests/...")
+        print("Error, msbuild currently expects tests in {} (got test_location {})".format(normal_location, coreclr_setup_args.test_location))
         raise Exception("Error, msbuild currently expects tests in artifacts/tests/...")
 
     coreclr_setup_args.verify(args,
@@ -1253,7 +1250,7 @@ if sys.version_info.major < 3:
         return unicode(s, "utf-8")
 else:
     def to_unicode(s):
-        return str(s, "utf-8")
+        return s
 
 def find_test_from_name(host_os, test_location, test_name):
     """ Given a test's name return the location on disk
@@ -1391,6 +1388,7 @@ def parse_test_results(args):
             print("It could also mean there was a problem logging. Please run the tests again.")
             return
 
+    print("Analyzing {}".format(test_run_location))
     assemblies = xml.etree.ElementTree.parse(test_run_location).getroot()
 
     tests = defaultdict(lambda: None)
@@ -1531,10 +1529,10 @@ def print_summary(tests):
             test_output = item["test_output"]
 
             # XUnit results are captured as escaped characters.
-            test_output = test_output.replace("\\r", "\r")
-            test_output = test_output.replace("\\n", "\n")
-            test_output = test_output.replace("/r", "\r")
-            test_output = test_output.replace("/n", "\n")
+            #test_output = test_output.replace("\\r", "\r")
+            #test_output = test_output.replace("\\n", "\n")
+            #test_output = test_output.replace("/r", "\r")
+            #test_output = test_output.replace("/n", "\n")
 
             # Replace CR/LF by just LF; Python "print", below, will map as necessary on the platform.
             # If we don't do this, then Python on Windows will convert \r\n to \r\r\n on output.
@@ -1596,7 +1594,7 @@ def create_repro(args, env, tests):
     # Now that the repro_location exists under <runtime>/artifacts/repro
     # create wrappers which will simply run the test with the correct environment
     for test in failed_tests:
-        debug_env = DebugEnv(args.host_os, args.arch, args.build_type, args.env, args.core_root, args.runtime_repo_location, test)
+        debug_env = DebugEnv(args, env, test)
         debug_env.write_repro()
 
     print("Repro files written.")

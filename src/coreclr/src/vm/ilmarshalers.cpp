@@ -139,13 +139,20 @@ void ILDelegateMarshaler::EmitConvertContentsNativeToCLR(ILCodeStream* pslILEmit
     EmitLoadNativeValue(pslILEmit);
     pslILEmit->EmitLDTOKEN(pslILEmit->GetToken(m_pargs->m_pMT));
     pslILEmit->EmitCALL(METHOD__TYPE__GET_TYPE_FROM_HANDLE, 1, 1); // Type System.Type.GetTypeFromHandle(RuntimeTypeHandle handle)
-    pslILEmit->EmitCALL(METHOD__MARSHAL__GET_DELEGATE_FOR_FUNCTION_POINTER, 2, 1); // Delegate System.Marshal.GetDelegateForFunctionPointer(IntPtr p, Type t)
-    EmitStoreManagedValue(pslILEmit);
 
+    // COMPAT: There is a subtle difference between argument and field marshaling with Delegate types.
+    // During field marshaling, the plain Delegate type can be used even though that type doesn't
+    // represent a concrete type. Argument marshaling doesn't permit this so we use the public
+    // API which will validate that Delegate isn't directly used.
     if (IsFieldMarshal(m_dwMarshalFlags))
     {
-        // Field marshalling of delegates supports marshalling back null from native code.
-        // Parameter and return value marshalling does not.
+        // Delegate System.Marshal.GetDelegateForFunctionPointerInternal(IntPtr p, Type t)
+        pslILEmit->EmitCALL(METHOD__MARSHAL__GET_DELEGATE_FOR_FUNCTION_POINTER_INTERNAL, 2, 1);
+        EmitStoreManagedValue(pslILEmit);
+
+        // Field marshaling of delegates supports marshaling back null from native code.
+        // COMPAT: Parameter and return value marshalling does not marshal back a null value.
+        //    e.g. `extern static void SetNull(ref Action f);` <- f will not be null on return.
         ILCodeLabel* pFinishedLabel = pslILEmit->NewCodeLabel();
         pslILEmit->EmitBR(pFinishedLabel);
         pslILEmit->EmitLabel(pNullLabel);
@@ -155,6 +162,9 @@ void ILDelegateMarshaler::EmitConvertContentsNativeToCLR(ILCodeStream* pslILEmit
     }
     else
     {
+        // Delegate System.Marshal.GetDelegateForFunctionPointer(IntPtr p, Type t)
+        pslILEmit->EmitCALL(METHOD__MARSHAL__GET_DELEGATE_FOR_FUNCTION_POINTER, 2, 1);
+        EmitStoreManagedValue(pslILEmit);
         pslILEmit->EmitLabel(pNullLabel);
     }
 
@@ -3497,7 +3507,7 @@ MarshalerOverrideStatus ILBlittableValueClassWithCopyCtorMarshaler::ArgumentOver
             pslIL->EmitLDARG(argidx);
             pslIL->EmitCALL(pslIL->GetToken(pargs->mm.m_pDtor), 1, 0);
         }
-#ifdef _TARGET_X86_
+#ifdef TARGET_X86
         pslIL->SetStubTargetArgType(&locDesc);              // native type is the value type
         pslILDispatch->EmitLDLOC(dwNewValueTypeLocal);      // we load the local directly
 #else
@@ -4515,7 +4525,7 @@ void MngdNativeArrayMarshaler::DoClearNativeContents(MngdNativeArrayMarshaler* p
 
         if (pMarshaler != NULL && pMarshaler->ClearOleArray != NULL)
         {
-            pMarshaler->ClearOleArray((BASEARRAYREF*)pManagedHome, *pNativeHome, cElements, pThis->m_pElementMT, pThis->m_pManagedMarshaler);
+            pMarshaler->ClearOleArray(*pNativeHome, cElements, pThis->m_pElementMT, pThis->m_pManagedMarshaler);
         }
     }
 }
@@ -4733,15 +4743,13 @@ FCIMPL3(void, MngdFixedArrayMarshaler::ClearNativeContents, MngdFixedArrayMarsha
 {
     FCALL_CONTRACT;
 
-    BASEARRAYREF arrayRef = (BASEARRAYREF)*pManagedHome;
-
-    HELPER_METHOD_FRAME_BEGIN_1(arrayRef);
+    HELPER_METHOD_FRAME_BEGIN_0();
 
     const OleVariant::Marshaler* pMarshaler = OleVariant::GetMarshalerForVarType(pThis->m_vt, FALSE);
 
     if (pMarshaler != NULL && pMarshaler->ClearOleArray != NULL)
     {
-        pMarshaler->ClearOleArray(&arrayRef, pNativeHome, pThis->m_cElements, pThis->m_pElementMT, pThis->m_pManagedElementMarshaler);
+        pMarshaler->ClearOleArray(pNativeHome, pThis->m_cElements, pThis->m_pElementMT, pThis->m_pManagedElementMarshaler);
     }
 
     HELPER_METHOD_FRAME_END();

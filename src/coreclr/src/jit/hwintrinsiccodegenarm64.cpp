@@ -35,7 +35,7 @@ struct HWIntrinsic final
     bool IsTableDriven() const
     {
         // TODO-Arm64-Cleanup - make more categories to the table-driven framework
-        bool isTableDrivenCategory = (category != HW_Category_Special) && (category != HW_Category_Helper);
+        bool isTableDrivenCategory = category != HW_Category_Helper;
         bool isTableDrivenFlag = !HWIntrinsicInfo::GeneratesMultipleIns(id) && !HWIntrinsicInfo::HasSpecialCodegen(id);
 
         return isTableDrivenCategory && isTableDrivenFlag;
@@ -156,7 +156,14 @@ void CodeGen::genHWIntrinsic(GenTreeHWIntrinsic* node)
     {
         emitSize = EA_SIZE(node->gtSIMDSize);
         opt      = genGetSimdInsOpt(emitSize, intrin.baseType);
+
+        if ((opt == INS_OPTS_1D) && (intrin.category == HW_Category_SimpleSIMD))
+        {
+            opt = INS_OPTS_NONE;
+        }
     }
+
+    const bool isRMW = node->isRMWHWIntrinsic(compiler);
 
     genConsumeHWIntrinsicOperands(node);
 
@@ -172,10 +179,27 @@ void CodeGen::genHWIntrinsic(GenTreeHWIntrinsic* node)
                 break;
 
             case 2:
-                GetEmitter()->emitIns_R_R_R(ins, emitSize, targetReg, op1Reg, op2Reg, opt);
+                if (isRMW)
+                {
+                    assert(targetReg != op2Reg);
+
+                    if (targetReg != op1Reg)
+                    {
+                        GetEmitter()->emitIns_R_R(INS_mov, emitSize, targetReg, op1Reg);
+                    }
+                    GetEmitter()->emitIns_R_R(ins, emitSize, targetReg, op2Reg, opt);
+                }
+                else
+                {
+                    GetEmitter()->emitIns_R_R_R(ins, emitSize, targetReg, op1Reg, op2Reg, opt);
+                }
                 break;
 
             case 3:
+                assert(isRMW);
+                assert(targetReg != op2Reg);
+                assert(targetReg != op3Reg);
+
                 if (targetReg != op1Reg)
                 {
                     GetEmitter()->emitIns_R_R(INS_mov, emitSize, targetReg, op1Reg);
@@ -235,6 +259,10 @@ void CodeGen::genHWIntrinsic(GenTreeHWIntrinsic* node)
         switch (intrin.id)
         {
             case NI_AdvSimd_BitwiseSelect:
+                // Even though BitwiseSelect is an RMW intrinsic per se, we don't want to mark it as such
+                // since we can handle all possible allocation decisions for targetReg.
+                assert(!isRMW);
+
                 if (targetReg == op1Reg)
                 {
                     GetEmitter()->emitIns_R_R_R(INS_bsl, emitSize, targetReg, op2Reg, op3Reg, opt);
@@ -254,15 +282,6 @@ void CodeGen::genHWIntrinsic(GenTreeHWIntrinsic* node)
                 }
                 break;
 
-            case NI_Aes_Decrypt:
-            case NI_Aes_Encrypt:
-                if (targetReg != op1Reg)
-                {
-                    GetEmitter()->emitIns_R_R(INS_mov, emitSize, targetReg, op1Reg);
-                }
-                GetEmitter()->emitIns_R_R(ins, emitSize, targetReg, op2Reg, opt);
-                break;
-
             case NI_Crc32_ComputeCrc32:
             case NI_Crc32_ComputeCrc32C:
             case NI_Crc32_Arm64_ComputeCrc32:
@@ -273,15 +292,31 @@ void CodeGen::genHWIntrinsic(GenTreeHWIntrinsic* node)
             case NI_AdvSimd_CompareLessThan:
             case NI_AdvSimd_CompareLessThanOrEqual:
             case NI_AdvSimd_Arm64_CompareLessThan:
+            case NI_AdvSimd_Arm64_CompareLessThanScalar:
             case NI_AdvSimd_Arm64_CompareLessThanOrEqual:
+            case NI_AdvSimd_Arm64_CompareLessThanOrEqualScalar:
                 GetEmitter()->emitIns_R_R_R(ins, emitSize, targetReg, op2Reg, op1Reg, opt);
                 break;
 
             case NI_AdvSimd_AbsoluteCompareLessThan:
             case NI_AdvSimd_AbsoluteCompareLessThanOrEqual:
             case NI_AdvSimd_Arm64_AbsoluteCompareLessThan:
+            case NI_AdvSimd_Arm64_AbsoluteCompareLessThanScalar:
             case NI_AdvSimd_Arm64_AbsoluteCompareLessThanOrEqual:
+            case NI_AdvSimd_Arm64_AbsoluteCompareLessThanOrEqualScalar:
                 GetEmitter()->emitIns_R_R_R(ins, emitSize, targetReg, op2Reg, op1Reg, opt);
+                break;
+
+            case NI_AdvSimd_FusedMultiplyAddScalar:
+            case NI_AdvSimd_FusedMultiplyAddNegatedScalar:
+            case NI_AdvSimd_FusedMultiplySubtractNegatedScalar:
+            case NI_AdvSimd_FusedMultiplySubtractScalar:
+                assert(opt == INS_OPTS_NONE);
+                GetEmitter()->emitIns_R_R_R_R(ins, emitSize, targetReg, op2Reg, op3Reg, op1Reg);
+                break;
+
+            case NI_AdvSimd_Store:
+                GetEmitter()->emitIns_R_R(ins, emitSize, op2Reg, op1Reg, opt);
                 break;
 
             default:

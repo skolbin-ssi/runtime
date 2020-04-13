@@ -25,6 +25,8 @@
 #undef min
 #undef max
 
+#include <algorithm>
+
 #if HAVE_SYS_TIME_H
  #include <sys/time.h>
 #else
@@ -130,7 +132,7 @@ FOR_ALL_NUMA_FUNCTIONS
 
 #endif // HAVE_NUMA_H
 
-#if defined(_ARM_) || defined(_ARM64_)
+#if defined(HOST_ARM) || defined(HOST_ARM64)
 #define SYSCONF_GET_NUMPROCS _SC_NPROCESSORS_CONF
 #else
 #define SYSCONF_GET_NUMPROCS _SC_NPROCESSORS_ONLN
@@ -478,6 +480,7 @@ uint32_t GCToOSInterface::GetCurrentProcessorNumber()
     assert(processorNumber != -1);
     return processorNumber;
 #else
+    assert(false); // This method is expected to be called only if CanGetCurrentProcessorNumber is true
     return 0;
 #endif
 }
@@ -871,7 +874,7 @@ size_t GCToOSInterface::GetCacheSizePerLogicalCpu(bool trueSize)
     size_t maxSize, maxTrueSize;
     maxSize = maxTrueSize = GetLogicalProcessorCacheSizeFromOS(); // Returns the size of the highest level processor cache
 
-#if defined(_ARM64_)
+#if defined(HOST_ARM64)
     // Bigger gen0 size helps arm64 targets
     maxSize = maxTrueSize * 3;
 #endif
@@ -953,7 +956,7 @@ uint32_t GCToOSInterface::GetCurrentProcessCpuCount()
 //  non zero if it has succeeded, 0 if it has failed
 size_t GCToOSInterface::GetVirtualMemoryLimit()
 {
-#ifdef BIT64
+#ifdef HOST_64BIT
     // There is no API to get the total virtual address space size on
     // Unix, so we use a constant value representing 128TB, which is
     // the approximate size of total user virtual address space on

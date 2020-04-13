@@ -29,11 +29,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"[\d-[13579]]+", "\x066102468\x0660", RegexOptions.ECMAScript, new string[] { "02468" } };
             yield return new object[] { null, @"[\d-[13579]]+", "\x066102468\x0660", RegexOptions.None, new string[] { "\x066102468\x0660" } };
 
-            yield return new object[] { null, @"[\w-[b-y]]+", "bbbaaaABCD09zzzyyy", RegexOptions.None, new string[] { "aaaABCD09zzz" } };
-
-            yield return new object[] { null, @"[\w-[b-y]]+", "bbbaaaABCD09zzzyyy", RegexOptions.None, new string[] { "aaaABCD09zzz" } };
-            yield return new object[] { null, @"[\w-[b-y]]+", "bbbaaaABCD09zzzyyy", RegexOptions.None, new string[] { "aaaABCD09zzz" } };
-
             yield return new object[] { null, @"[\p{Ll}-[ae-z]]+", "aaabbbcccdddeee", RegexOptions.None, new string[] { "bbbcccddd" } };
             yield return new object[] { null, @"[\p{Nd}-[2468]]+", "20135798", RegexOptions.None, new string[] { "013579" } };
 
@@ -164,7 +159,6 @@ namespace System.Text.RegularExpressions.Tests
 
             // Character Class Substraction
             yield return new object[] { null, @"[abcd\-d-[bc]]+", "bbbaaa---dddccc", RegexOptions.None, new string[] { "aaa---ddd" } };
-            yield return new object[] { null, @"[abcd\-d-[bc]]+", "bbbaaa---dddccc", RegexOptions.None, new string[] { "aaa---ddd" } };
             yield return new object[] { null, @"[^a-f-[\x00-\x60\u007B-\uFFFF]]+", "aaafffgggzzz{{{", RegexOptions.None, new string[] { "gggzzz" } };
             yield return new object[] { null, @"[\[\]a-f-[[]]+", "gggaaafff]]][[[", RegexOptions.None, new string[] { "aaafff]]]" } };
             yield return new object[] { null, @"[\[\]a-f-[]]]+", "gggaaafff[[[]]]", RegexOptions.None, new string[] { "aaafff[[[" } };
@@ -189,7 +183,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"[\0- [bc]+", "!!!\0\0\t\t  [[[[bbbcccaaa", RegexOptions.None, new string[] { "\0\0\t\t  [[[[bbbccc" } };
             yield return new object[] { null, "[[abcd]-[bc]]+", "a-b]", RegexOptions.None, new string[] { "a-b]" } };
             yield return new object[] { null, "[-[e-g]+", "ddd[[[---eeefffggghhh", RegexOptions.None, new string[] { "[[[---eeefffggg" } };
-            yield return new object[] { null, "[-e-g]+", "ddd---eeefffggghhh", RegexOptions.None, new string[] { "---eeefffggg" } };
             yield return new object[] { null, "[-e-g]+", "ddd---eeefffggghhh", RegexOptions.None, new string[] { "---eeefffggg" } };
             yield return new object[] { null, "[a-e - m-p]+", "---a b c d e m n o p---", RegexOptions.None, new string[] { "a b c d e m n o p" } };
             yield return new object[] { null, "[^-[bc]]", "b] c] -] aaaddd]", RegexOptions.None, new string[] { "d]" } };
@@ -346,7 +339,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"(cat)(\176)", "hellocat~dogworld", RegexOptions.None, new string[] { "cat~", "cat", "~" } };
             yield return new object[] { null, @"(cat)(\400)", "hellocat\0dogworld", RegexOptions.None, new string[] { "cat\0", "cat", "\0" } };
             yield return new object[] { null, @"(cat)(\300)", "hellocat\u00C0dogworld", RegexOptions.None, new string[] { "cat\u00C0", "cat", "\u00C0" } };
-            yield return new object[] { null, @"(cat)(\300)", "hellocat\u00C0dogworld", RegexOptions.None, new string[] { "cat\u00C0", "cat", "\u00C0" } };
             yield return new object[] { null, @"(cat)(\477)", "hellocat\u003Fdogworld", RegexOptions.None, new string[] { "cat\u003F", "cat", "\u003F" } };
             yield return new object[] { null, @"(cat)(\777)", "hellocat\u00FFdogworld", RegexOptions.None, new string[] { "cat\u00FF", "cat", "\u00FF" } };
             yield return new object[] { null, @"(cat)(\7770)", "hellocat\u00FF0dogworld", RegexOptions.None, new string[] { "cat\u00FF0", "cat", "\u00FF0" } };
@@ -396,7 +388,7 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"(cat)(\cZ*)(dog)", "asdlkcat\u001adogiwod", RegexOptions.None, new string[] { "cat\u001adog", "cat", "\u001a", "dog" } };
             yield return new object[] { null, @"(cat)(\cz*)(dog)", "asdlkcat\u001adogiwod", RegexOptions.None, new string[] { "cat\u001adog", "cat", "\u001a", "dog" } };
 
-            if (!PlatformDetection.IsFullFramework) // missing fix for #26501
+            if (!PlatformDetection.IsNetFramework) // missing fix for https://github.com/dotnet/runtime/issues/24759
             {
                 yield return new object[] { null, @"(cat)(\c[*)(dog)", "asdlkcat\u001bdogiwod", RegexOptions.None, new string[] { "cat\u001bdog", "cat", "\u001b", "dog" } };
                 yield return new object[] { null, @"(cat)(\c[*)(dog)", "asdlkcat\u001Bdogiwod", RegexOptions.None, new string[] { "cat\u001Bdog", "cat", "\u001B", "dog" } };
@@ -645,8 +637,7 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"(cat){cat,dog}?", "cat{cat,dog}?", RegexOptions.None, new string[] { "cat{cat,dog}", "cat" } };
 
             // Atomic subexpressions
-            // Implicitly upgrading oneloop to be atomic
-            yield return new object[] { null, @"a*", "aaa", RegexOptions.None, new string[] { "aaa" } };
+            // Implicitly upgrading (or not) oneloop to be atomic
             yield return new object[] { null, @"a*b", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"a*b+", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"a*b+?", "aaab", RegexOptions.None, new string[] { "aaab" } };
@@ -661,20 +652,34 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"a*[bcd]+?", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"a*(?>[bcd]+)", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"a*[bcd]{1,3}", "aaab", RegexOptions.None, new string[] { "aaab" } };
+            yield return new object[] { null, @"a*([bcd]ab|[bef]cd){1,3}", "aaababecdcac", RegexOptions.ExplicitCapture, new string[] { "aaababecd" } };
+            yield return new object[] { null, @"a*([bcd]|[aef]){1,3}", "befb", RegexOptions.ExplicitCapture, new string[] { "bef" } }; // can't upgrade
             yield return new object[] { null, @"a*$", "aaa", RegexOptions.None, new string[] { "aaa" } };
             yield return new object[] { null, @"a*$", "aaa", RegexOptions.Multiline, new string[] { "aaa" } };
             yield return new object[] { null, @"a*\b", "aaa bbb", RegexOptions.None, new string[] { "aaa" } };
             yield return new object[] { null, @"a*\b", "aaa bbb", RegexOptions.ECMAScript, new string[] { "aaa" } };
             yield return new object[] { null, @"@*\B", "@@@", RegexOptions.None, new string[] { "@@@" } };
             yield return new object[] { null, @"@*\B", "@@@", RegexOptions.ECMAScript, new string[] { "@@@" } };
-            // Implicitly upgrading notoneloop to be atomic
+            yield return new object[] { null, @"(?:abcd*|efgh)i", "efghi", RegexOptions.None, new string[] { "efghi" } };
+            yield return new object[] { null, @"(?:abcd|efgh*)i", "efgi", RegexOptions.None, new string[] { "efgi" } };
+            yield return new object[] { null, @"(?:abcd|efghj{2,}|j[klm]o+)i", "efghjjjjji", RegexOptions.None, new string[] { "efghjjjjji" } };
+            yield return new object[] { null, @"(?:abcd|efghi{2,}|j[klm]o+)i", "efghiii", RegexOptions.None, new string[] { "efghiii" } };
+            yield return new object[] { null, @"(?:abcd|efghi{2,}|j[klm]o+)i", "efghiiiiiiii", RegexOptions.None, new string[] { "efghiiiiiiii" } };
+            yield return new object[] { null, @"a?ba?ba?ba?b", "abbabab", RegexOptions.None, new string[] { "abbabab" } };
+            yield return new object[] { null, @"a?ba?ba?ba?b", "abBAbab", RegexOptions.IgnoreCase, new string[] { "abBAbab" } };
+            // Implicitly upgrading (or not) notoneloop to be atomic
             yield return new object[] { null, @"[^b]*b", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"[^b]*b+", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"[^b]*b+?", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"[^b]*(?>b+)", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"[^b]*bac", "aaabac", RegexOptions.None, new string[] { "aaabac" } };
             yield return new object[] { null, @"[^b]*", "aaa", RegexOptions.None, new string[] { "aaa" } };
-            // Implicitly upgrading setloop to be atomic
+            yield return new object[] { null, @"(?:abc[^b]*|efgh)i", "efghi", RegexOptions.None, new string[] { "efghi" } }; // can't upgrade
+            yield return new object[] { null, @"(?:abcd|efg[^b]*)b", "efgb", RegexOptions.None, new string[] { "efgb" } };
+            yield return new object[] { null, @"(?:abcd|efg[^b]*)i", "efgi", RegexOptions.None, new string[] { "efgi" } }; // can't upgrade
+            yield return new object[] { null, @"[^a]?a[^a]?a[^a]?a[^a]?a", "baababa", RegexOptions.None, new string[] { "baababa" } };
+            yield return new object[] { null, @"[^a]?a[^a]?a[^a]?a[^a]?a", "BAababa", RegexOptions.IgnoreCase, new string[] { "BAababa" } };
+            // Implicitly upgrading (or not) setloop to be atomic
             yield return new object[] { null, @"[ac]*", "aaa", RegexOptions.None, new string[] { "aaa" } };
             yield return new object[] { null, @"[ac]*b", "aaab", RegexOptions.None, new string[] { "aaab" } };
             yield return new object[] { null, @"[ac]*b+", "aaab", RegexOptions.None, new string[] { "aaab" } };
@@ -697,20 +702,90 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { null, @"[@']*\B", "@@@", RegexOptions.None, new string[] { "@@@" } };
             yield return new object[] { null, @"[@']*\B", "@@@", RegexOptions.ECMAScript, new string[] { "@@@" } };
             yield return new object[] { null, @".*.", "@@@", RegexOptions.Singleline, new string[] { "@@@" } };
-            // Implicitly upgrading concat loops to be atomic
+            yield return new object[] { null, @"(?:abcd|efg[hij]*)h", "efgh", RegexOptions.None, new string[] { "efgh" } }; // can't upgrade
+            yield return new object[] { null, @"(?:abcd|efg[hij]*)ih", "efgjih", RegexOptions.None, new string[] { "efgjih" } }; // can't upgrade
+            yield return new object[] { null, @"(?:abcd|efg[hij]*)k", "efgjk", RegexOptions.None, new string[] { "efgjk" } };
+            yield return new object[] { null, @"[ace]?b[ace]?b[ace]?b[ace]?b", "cbbabeb", RegexOptions.None, new string[] { "cbbabeb" } };
+            yield return new object[] { null, @"[ace]?b[ace]?b[ace]?b[ace]?b", "cBbAbEb", RegexOptions.IgnoreCase, new string[] { "cBbAbEb" } };
+            yield return new object[] { null, @"a[^wz]*w", "abcdcdcdwz", RegexOptions.None, new string[] { "abcdcdcdw" } };
+            yield return new object[] { null, @"a[^wyz]*w", "abcdcdcdwz", RegexOptions.None, new string[] { "abcdcdcdw" } };
+            yield return new object[] { null, @"a[^wyz]*W", "abcdcdcdWz", RegexOptions.IgnoreCase, new string[] { "abcdcdcdW" } };
+            // Implicitly upgrading (or not) concat loops to be atomic
             yield return new object[] { null, @"(?:[ab]c[de]f)*", "", RegexOptions.None, new string[] { "" } };
             yield return new object[] { null, @"(?:[ab]c[de]f)*", "acdf", RegexOptions.None, new string[] { "acdf" } };
             yield return new object[] { null, @"(?:[ab]c[de]f)*", "acdfbcef", RegexOptions.None, new string[] { "acdfbcef" } };
             yield return new object[] { null, @"(?:[ab]c[de]f)*", "cdfbcef", RegexOptions.None, new string[] { "" } };
             yield return new object[] { null, @"(?:[ab]c[de]f)+", "cdfbcef", RegexOptions.None, new string[] { "bcef" } };
             yield return new object[] { null, @"(?:[ab]c[de]f)*", "bcefbcdfacfe", RegexOptions.None, new string[] { "bcefbcdf" } };
-            // Implicitly upgrading nested loops to be atomic
+            // Implicitly upgrading (or not) nested loops to be atomic
             yield return new object[] { null, @"(?:a){3}", "aaaaaaaaa", RegexOptions.None, new string[] { "aaa" } };
             yield return new object[] { null, @"(?:a){3}?", "aaaaaaaaa", RegexOptions.None, new string[] { "aaa" } };
             yield return new object[] { null, @"(?:a{2}){3}", "aaaaaaaaa", RegexOptions.None, new string[] { "aaaaaa" } };
             yield return new object[] { null, @"(?:a{2}?){3}?", "aaaaaaaaa", RegexOptions.None, new string[] { "aaaaaa" } };
             yield return new object[] { null, @"(?:(?:[ab]c[de]f){3}){2}", "acdfbcdfacefbcefbcefbcdfacdef", RegexOptions.None, new string[] { "acdfbcdfacefbcefbcefbcdf" } };
             yield return new object[] { null, @"(?:(?:[ab]c[de]f){3}hello){2}", "aaaaaacdfbcdfacefhellobcefbcefbcdfhellooooo", RegexOptions.None, new string[] { "acdfbcdfacefhellobcefbcefbcdfhello" } };
+            yield return new object[] { null, @"CN=(.*[^,]+).*", "CN=localhost", RegexOptions.Singleline, new string[] { "CN=localhost", "localhost" } };
+            // Nested atomic
+            yield return new object[] { null, @"(?>abc[def]gh(i*))", "123abceghiii456", RegexOptions.None, new string[] { "abceghiii", "iii" } };
+            yield return new object[] { null, @"(?>(?:abc)*)", "abcabcabc", RegexOptions.None, new string[] { "abcabcabc" } };
+
+            // Anchoring loops beginning with .* / .+
+            yield return new object[] { null, @".*", "", RegexOptions.None, new string[] { "" } };
+            yield return new object[] { null, @".*", "\n\n\n\n", RegexOptions.None, new string[] { "" } };
+            yield return new object[] { null, @".*", "\n\n\n\n", RegexOptions.Singleline, new string[] { "\n\n\n\n" } };
+            yield return new object[] { null, @".*[1a]", "\n\n\n\n1", RegexOptions.None, new string[] { "1" } };
+            yield return new object[] { null, @"(?s).*(?-s)[1a]", "1\n\n\n\n", RegexOptions.None, new string[] { "1" } };
+            yield return new object[] { null, @"(?s).*(?-s)[1a]", "\n\n\n\n1", RegexOptions.None, new string[] { "\n\n\n\n1" } };
+            yield return new object[] { null, @".*|.*|.*", "", RegexOptions.None, new string[] { "" } };
+            yield return new object[] { null, @".*123|abc", "abc\n123", RegexOptions.None, new string[] { "abc" } };
+            yield return new object[] { null, @".*123|abc", "abc\n123", RegexOptions.Singleline, new string[] { "abc\n123" } };
+            yield return new object[] { null, @".*", "\n", RegexOptions.None, new string[] { "" } };
+            yield return new object[] { null, @".*\n", "\n", RegexOptions.None, new string[] { "\n" } };
+            yield return new object[] { null, @".*", "\n", RegexOptions.Singleline, new string[] { "\n" } };
+            yield return new object[] { null, @".*\n", "\n", RegexOptions.Singleline, new string[] { "\n" } };
+            yield return new object[] { null, @".*", "abc", RegexOptions.None, new string[] { "abc" } };
+            yield return new object[] { null, @".*abc", "abc", RegexOptions.None, new string[] { "abc" } };
+            yield return new object[] { null, @".*abc|ghi", "ghi", RegexOptions.None, new string[] { "ghi" } };
+            yield return new object[] { null, @".*abc|.*ghi", "abcghi", RegexOptions.None, new string[] { "abc" } };
+            yield return new object[] { null, @".*abc|.*ghi", "bcghi", RegexOptions.None, new string[] { "bcghi" } };
+            yield return new object[] { null, @".*abc|.+c", " \n   \n   bc", RegexOptions.None, new string[] { "   bc" } };
+            yield return new object[] { null, @".*abc", "12345 abc", RegexOptions.None, new string[] { "12345 abc" } };
+            yield return new object[] { null, @".*abc", "12345\n abc", RegexOptions.None, new string[] { " abc" } };
+            yield return new object[] { null, @".*abc", "12345\n abc", RegexOptions.Singleline, new string[] { "12345\n abc" } };
+            yield return new object[] { null, @"(.*)abc\1", "\n12345abc12345", RegexOptions.Singleline, new string[] { "12345abc12345", "12345" } };
+            yield return new object[] { null, @".*\nabc", "\n123\nabc", RegexOptions.None, new string[] { "123\nabc" } };
+            yield return new object[] { null, @".*\nabc", "\n123\nabc", RegexOptions.Singleline, new string[] { "\n123\nabc" } };
+            yield return new object[] { null, @".*abc", "abc abc abc \nabc", RegexOptions.None, new string[] { "abc abc abc" } };
+            yield return new object[] { null, @".*abc", "abc abc abc \nabc", RegexOptions.Singleline, new string[] { "abc abc abc \nabc" } };
+            yield return new object[] { null, @".*?abc", "abc abc abc \nabc", RegexOptions.None, new string[] { "abc" } };
+            yield return new object[] { null, @"[^\n]*abc", "123abc\n456abc\n789abc", RegexOptions.None, new string[] { "123abc" } };
+            yield return new object[] { null, @"[^\n]*abc", "123abc\n456abc\n789abc", RegexOptions.Singleline, new string[] { "123abc" } };
+            yield return new object[] { null, @"[^\n]*abc", "123ab\n456abc\n789abc", RegexOptions.None, new string[] { "456abc" } };
+            yield return new object[] { null, @"[^\n]*abc", "123ab\n456abc\n789abc", RegexOptions.Singleline, new string[] { "456abc" } };
+            yield return new object[] { null, @".+", "a", RegexOptions.None, new string[] { "a" } };
+            yield return new object[] { null, @".+", "\nabc", RegexOptions.None, new string[] { "abc" } };
+            yield return new object[] { null, @".+", "\n", RegexOptions.Singleline, new string[] { "\n" } };
+            yield return new object[] { null, @".+", "\nabc", RegexOptions.Singleline, new string[] { "\nabc" } };
+            yield return new object[] { null, @".+abc", "aaaabc", RegexOptions.None, new string[] { "aaaabc" } };
+            yield return new object[] { null, @".+abc", "12345 abc", RegexOptions.None, new string[] { "12345 abc" } };
+            yield return new object[] { null, @".+abc", "12345\n abc", RegexOptions.None, new string[] { " abc" } };
+            yield return new object[] { null, @".+abc", "12345\n abc", RegexOptions.Singleline, new string[] { "12345\n abc" } };
+            yield return new object[] { null, @"(.+)abc\1", "\n12345abc12345", RegexOptions.Singleline, new string[] { "12345abc12345", "12345" } };
+
+            // Unanchored .*
+            yield return new object[] { null, @"\A\s*(?<name>\w+)(\s*\((?<arguments>.*)\))?\s*\Z", "Match(Name)", RegexOptions.None, new string[] { "Match(Name)", "(Name)", "Match", "Name" } };
+            yield return new object[] { null, @"\A\s*(?<name>\w+)(\s*\((?<arguments>.*)\))?\s*\Z", "Match(Na\nme)", RegexOptions.Singleline, new string[] { "Match(Na\nme)", "(Na\nme)", "Match", "Na\nme" } };
+            foreach (RegexOptions options in new[] { RegexOptions.None, RegexOptions.Singleline })
+            {
+                yield return new object[] { null, @"abcd.*", @"abcabcd", options, new string[] { "abcd" } };
+                yield return new object[] { null, @"abcd.*", @"abcabcde", options, new string[] { "abcde" } };
+                yield return new object[] { null, @"abcd.*", @"abcabcdefg", options, new string[] { "abcdefg" } };
+                yield return new object[] { null, @"abcd(.*)", @"ababcd", options, new string[] { "abcd", "" } };
+                yield return new object[] { null, @"abcd(.*)", @"aabcde", options, new string[] { "abcde", "e" } };
+                yield return new object[] { null, @"abcd(.*)", @"abcabcdefg", options, new string[] { "abcdefg", "efg" } };
+                yield return new object[] { null, @"abcd(.*)e", @"abcabcdefg", options, new string[] { "abcde", "" } };
+                yield return new object[] { null, @"abcd(.*)f", @"abcabcdefg", options, new string[] { "abcdef", "e" } };
+            }
 
             // Grouping Constructs Invalid Regular Expressions
             yield return new object[] { null, @"()", "cat", RegexOptions.None, new string[] { string.Empty, string.Empty } };

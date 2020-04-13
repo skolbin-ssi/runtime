@@ -40,7 +40,9 @@ namespace System.Collections.Immutable
         /// <summary>
         /// An empty (initialized) instance of <see cref="ImmutableArray{T}"/>.
         /// </summary>
-#pragma warning disable CA1825 // Array.Empty<T>() doesn't exist in all configurations
+#pragma warning disable CA1825
+        // Array.Empty<T>() doesn't exist in all configurations
+        // Switching to Array.Empty also has a non-negligible impact on the working set memory
         public static readonly ImmutableArray<T> Empty = new ImmutableArray<T>(new T[0]);
 #pragma warning restore CA1825
 
@@ -230,7 +232,7 @@ namespace System.Collections.Immutable
         {
             var self = this;
             self.ThrowNullRefIfNotInitialized();
-            Array.Copy(self.array!, 0, destination, 0, self.Length);
+            Array.Copy(self.array!, destination, self.Length);
         }
 
         /// <summary>

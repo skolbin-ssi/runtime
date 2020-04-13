@@ -9,7 +9,6 @@
 //         (c) 2002
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using Xunit;
 
 namespace System.Text.RegularExpressions.Tests
@@ -23,16 +22,16 @@ namespace System.Text.RegularExpressions.Tests
         [MemberData(nameof(RegexTestCasesWithOptions))]
         public void ValidateRegex(string pattern, RegexOptions options, string input, string expected)
         {
-            string result;
+            string result = "Fail.";
             try
             {
                 var re = new Regex(pattern, options);
-                int[] groupNums = re.GetGroupNumbers();
                 Match m = re.Match(input);
 
                 if (m.Success)
                 {
                     result = "Pass.";
+                    int[] groupNums = re.GetGroupNumbers();
                     for (int i = 0; i < m.Groups.Count; ++i)
                     {
                         int gid = groupNums[i];
@@ -45,12 +44,8 @@ namespace System.Text.RegularExpressions.Tests
                         }
                     }
                 }
-                else
-                {
-                    result = "Fail.";
-                }
             }
-            catch
+            catch (ArgumentException)
             {
                 result = "Error.";
             }
@@ -62,7 +57,7 @@ namespace System.Text.RegularExpressions.Tests
         {
             foreach (object[] obj in RegexTestCases())
             {
-                yield return new object[] { obj[0], (RegexOptions)obj[1], obj[2], obj[3] };
+                yield return new object[] { obj[0], obj[1], obj[2], obj[3] };
                 yield return new object[] { obj[0], RegexOptions.CultureInvariant | (RegexOptions)obj[1], obj[2], obj[3] };
                 yield return new object[] { obj[0], RegexOptions.Compiled | (RegexOptions)obj[1], obj[2], obj[3] };
                 yield return new object[] { obj[0], RegexOptions.Compiled | RegexOptions.CultureInvariant | (RegexOptions)obj[1], obj[2], obj[3] };
@@ -418,7 +413,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"(?<!c)b", RegexOptions.None, "ab", "Pass. Group[0]=(1,1)" };
             yield return new object[] { @"(?<!c)b", RegexOptions.None, "cb", "Fail." };
             yield return new object[] { @"(?<!c)b", RegexOptions.None, "b", "Pass. Group[0]=(0,1)" };
-            yield return new object[] { @"(?<!c)b", RegexOptions.None, "b", "Pass. Group[0]=(0,1)" };
             yield return new object[] { @"(?<%)b", RegexOptions.None, "-", "Error." };
             yield return new object[] { @"(?:..)*a", RegexOptions.None, "aba", "Pass. Group[0]=(0,3)" };
             yield return new object[] { @"(?:..)*?a", RegexOptions.None, "aba", "Pass. Group[0]=(0,1)" };
@@ -443,12 +437,10 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"((?i:a))b", RegexOptions.None, "aB", "Fail." };
             yield return new object[] { @"(?:(?-i)a)b", RegexOptions.IgnoreCase, "ab", "Pass. Group[0]=(0,2)" };
             yield return new object[] { @"((?-i)a)b", RegexOptions.IgnoreCase, "ab", "Pass. Group[0]=(0,2) Group[1]=(0,1)" };
-            yield return new object[] { @"(?:(?-i)a)b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2)" };
             yield return new object[] { @"((?-i)a)b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2) Group[1]=(0,1)" };
             yield return new object[] { @"(?:(?-i)a)b", RegexOptions.IgnoreCase, "Ab", "Fail." };
             yield return new object[] { @"((?-i)a)b", RegexOptions.IgnoreCase, "Ab", "Fail." };
             yield return new object[] { @"(?:(?-i)a)b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2)" };
-            yield return new object[] { @"((?-i)a)b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2) Group[1]=(0,1)" };
             yield return new object[] { @"(?:(?-i)a)b", RegexOptions.IgnoreCase, "AB", "Fail." };
             yield return new object[] { @"((?-i)a)b", RegexOptions.IgnoreCase, "AB", "Fail." };
             yield return new object[] { @"(?-i:a)b", RegexOptions.IgnoreCase, "ab", "Pass. Group[0]=(0,2)" };
@@ -457,8 +449,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"((?-i:a))b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2) Group[1]=(0,1)" };
             yield return new object[] { @"(?-i:a)b", RegexOptions.IgnoreCase, "Ab", "Fail." };
             yield return new object[] { @"((?-i:a))b", RegexOptions.IgnoreCase, "Ab", "Fail." };
-            yield return new object[] { @"(?-i:a)b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2)" };
-            yield return new object[] { @"((?-i:a))b", RegexOptions.IgnoreCase, "aB", "Pass. Group[0]=(0,2) Group[1]=(0,1)" };
             yield return new object[] { @"(?-i:a)b", RegexOptions.IgnoreCase, "AB", "Fail." };
             yield return new object[] { @"((?-i:a))b", RegexOptions.IgnoreCase, "AB", "Fail." };
             yield return new object[] { @"((?-i:a.))b", RegexOptions.IgnoreCase, "a\nB", "Fail." };
@@ -484,8 +474,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"((?m)^b)", RegexOptions.None, "a\nb\n", "Pass. Group[0]=(2,1) Group[1]=(2,1)" };
             yield return new object[] { @"\n((?m)^b)", RegexOptions.None, "a\nb\n", "Pass. Group[0]=(1,2) Group[1]=(2,1)" };
             yield return new object[] { @"((?s).)c(?!.)", RegexOptions.None, "a\nb\nc\n", "Pass. Group[0]=(3,2) Group[1]=(3,1)" };
-            yield return new object[] { @"((?s).)c(?!.)", RegexOptions.None, "a\nb\nc\n", "Pass. Group[0]=(3,2) Group[1]=(3,1)" };
-            yield return new object[] { @"((?s)b.)c(?!.)", RegexOptions.None, "a\nb\nc\n", "Pass. Group[0]=(2,3) Group[1]=(2,2)" };
             yield return new object[] { @"((?s)b.)c(?!.)", RegexOptions.None, "a\nb\nc\n", "Pass. Group[0]=(2,3) Group[1]=(2,2)" };
             yield return new object[] { @"^b", RegexOptions.None, "a\nb\nc\n", "Fail." };
             yield return new object[] { @"()^b", RegexOptions.None, "a\nb\nc\n", "Fail." };
@@ -512,23 +500,16 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"^(?=(a+?))\1ab", RegexOptions.None, "aaab", "Fail." };
             yield return new object[] { @"(\w+:)+", RegexOptions.None, "one:", "Pass. Group[0]=(0,4) Group[1]=(0,4)" };
             yield return new object[] { @"$(?<=^(a))", RegexOptions.None, "a", "Pass. Group[0]=(1,0) Group[1]=(0,1)" };
-            yield return new object[] { @"(?=(a+?))(\1ab)", RegexOptions.None, "aaab", "Pass. Group[0]=(1,3) Group[1]=(1,1) Group[2]=(1,3)" };
-            yield return new object[] { @"^(?=(a+?))\1ab", RegexOptions.None, "aaab", "Fail." };
             yield return new object[] { @"([\w:]+::)?(\w+)$", RegexOptions.None, "abcd:", "Fail." };
             yield return new object[] { @"([\w:]+::)?(\w+)$", RegexOptions.None, "abcd", "Pass. Group[0]=(0,4) Group[1]= Group[2]=(0,4)" };
             yield return new object[] { @"([\w:]+::)?(\w+)$", RegexOptions.None, "xy:z:::abcd", "Pass. Group[0]=(0,11) Group[1]=(0,7) Group[2]=(7,4)" };
             yield return new object[] { @"^[^bcd]*(c+)", RegexOptions.None, "aexycd", "Pass. Group[0]=(0,5) Group[1]=(4,1)" };
             yield return new object[] { @"(a*)b+", RegexOptions.None, "caab", "Pass. Group[0]=(1,3) Group[1]=(1,2)" };
-            yield return new object[] { @"([\w:]+::)?(\w+)$", RegexOptions.None, "abcd:", "Fail." };
-            yield return new object[] { @"([\w:]+::)?(\w+)$", RegexOptions.None, "abcd", "Pass. Group[0]=(0,4) Group[1]= Group[2]=(0,4)" };
-            yield return new object[] { @"([\w:]+::)?(\w+)$", RegexOptions.None, "xy:z:::abcd", "Pass. Group[0]=(0,11) Group[1]=(0,7) Group[2]=(7,4)" };
-            yield return new object[] { @"^[^bcd]*(c+)", RegexOptions.None, "aexycd", "Pass. Group[0]=(0,5) Group[1]=(4,1)" };
             yield return new object[] { @"(>a+)ab", RegexOptions.None, "aaab", "Fail." };
             yield return new object[] { @"(?>a+)b", RegexOptions.None, "aaab", "Pass. Group[0]=(0,4)" };
             yield return new object[] { @"([[:]+)", RegexOptions.None, "a:[b]:", "Pass. Group[0]=(1,2) Group[1]=(1,2)" };
             yield return new object[] { @"([[=]+)", RegexOptions.None, "a=[b]=", "Pass. Group[0]=(1,2) Group[1]=(1,2)" };
             yield return new object[] { @"([[.]+)", RegexOptions.None, "a.[b].", "Pass. Group[0]=(1,2) Group[1]=(1,2)" };
-            yield return new object[] { @"[a[:]b[:c]", RegexOptions.None, "abc", "Pass. Group[0]=(0,3)" };
             yield return new object[] { @"[a[:]b[:c]", RegexOptions.None, "abc", "Pass. Group[0]=(0,3)" };
             yield return new object[] { @"((?>a+)b)", RegexOptions.None, "aaab", "Pass. Group[0]=(0,4) Group[1]=(0,4)" };
             yield return new object[] { @"(?>(a+))b", RegexOptions.None, "aaab", "Pass. Group[0]=(0,4) Group[1]=(0,3)" };
@@ -847,7 +828,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"(?<!c)b", RegexOptions.RightToLeft, "ab", "Pass. Group[0]=(1,1)" };
             yield return new object[] { @"(?<!c)b", RegexOptions.RightToLeft, "cb", "Fail." };
             yield return new object[] { @"(?<!c)b", RegexOptions.RightToLeft, "b", "Pass. Group[0]=(0,1)" };
-            yield return new object[] { @"(?<!c)b", RegexOptions.RightToLeft, "b", "Pass. Group[0]=(0,1)" };
             yield return new object[] { @"a(?=d).", RegexOptions.RightToLeft, "adabad", "Pass. Group[0]=(4,2)" };
             yield return new object[] { @"a(?=c|d).", RegexOptions.RightToLeft, "adabad", "Pass. Group[0]=(4,2)" };
             yield return new object[] { @"ab*c", RegexOptions.RightToLeft, "abc", "Pass. Group[0]=(0,3)" };
@@ -1035,7 +1015,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"^(((?<foo>\()[^()]*)+((?<bar-foo>\))[^()]*)+)+(?(foo)(?!))$", RegexOptions.None, "((a(b))c))","Fail." };
             yield return new object[] { @"^(((?<foo>\()[^()]*)+((?<bar-foo>\))[^()]*)+)+(?(foo)(?!))$", RegexOptions.None, ")(","Fail." };
             yield return new object[] { @"^(((?<foo>\()[^()]*)+((?<bar-foo>\))[^()]*)+)+(?(foo)(?!))$", RegexOptions.None, "((a((b))c)","Fail." };
-            yield return new object[] { @"b", RegexOptions.RightToLeft, "babaaa", "Pass. Group[0]=(2,1)" };
             yield return new object[] { @"^((\[(?<NAME>[^\]]+)\])|(?<NAME>[^\.\[\]]+))$", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, "[n]", "Pass. Group[0]=(0,3) Group[1]=(1,1)" };
             yield return new object[] { @"^((\[(?<NAME>[^\]]+)\])|(?<NAME>[^\.\[\]]+))$", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, "n", "Pass. Group[0]=(0,1) Group[1]=(0,1)" };
             yield return new object[] { @"^((\[(?<NAME>[^\]]+)\])|(?<NAME>[^\.\[\]]+))$", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, "n[i]e", "Fail." };
@@ -1064,7 +1043,7 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"a{1,2147483647}", RegexOptions.None, "a", "Pass. Group[0]=(0,1)" };
             yield return new object[] { @"^((\[(?<NAME>[^\]]+)\])|(?<NAME>[^\.\[\]]+))$", RegexOptions.None, "[a]", "Pass. Group[0]=(0,3) Group[1]=(0,3) Group[2]=(0,3) Group[3]=(1,1)" };
 
-            //// Ported from https://github.com/mono/mono/blob/0f2995e95e98e082c7c7039e17175cf2c6a00034/mcs/class/System/Test/System.Text.RegularExpressions/RegexMatchTests.cs
+            // Ported from https://github.com/mono/mono/blob/0f2995e95e98e082c7c7039e17175cf2c6a00034/mcs/class/System/Test/System.Text.RegularExpressions/RegexMatchTests.cs
             yield return new object[] { @"(a)(b)(c)", RegexOptions.ExplicitCapture, "abc", "Pass. Group[0]=(0,3)" };
             yield return new object[] { @"(a)(?<1>b)(c)", RegexOptions.ExplicitCapture, "abc", "Pass. Group[0]=(0,3) Group[1]=(1,1)" };
             yield return new object[] { @"(a)(?<2>b)(c)", RegexOptions.None, "abc", "Pass. Group[0]=(0,3) Group[1]=(0,1) Group[2]=(1,1)(2,1)" };
@@ -1092,7 +1071,6 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"(?<=a+?)(?:a)*bc", RegexOptions.None, "aabc", "Pass. Group[0]=(1,3)" };
             yield return new object[] { @"(?<=a*?)(?:a)*bc", RegexOptions.None, "aabc", "Pass. Group[0]=(0,4)" };
             yield return new object[] { @"(?<=a{1,5}?)(?:a)*bc", RegexOptions.None, "aabc", "Pass. Group[0]=(1,3)" };
-            yield return new object[] { @"(?<=a{1}?)(?:a)*bc", RegexOptions.None, "aabc", "Pass. Group[0]=(1,3)" };
             yield return new object[] { @"(?<=a{1}?)(?:a)*bc", RegexOptions.None, "aabc", "Pass. Group[0]=(1,3)" };
             yield return new object[] { @"(?<!a+)(?:a)*bc", RegexOptions.None, "aabc", "Pass. Group[0]=(0,4)" };
             yield return new object[] { @"(?<!a*)(?:a)*bc", RegexOptions.None, "aabc", "Fail." };

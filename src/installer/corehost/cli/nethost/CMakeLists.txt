@@ -13,10 +13,9 @@ include_directories(../fxr)
 set(SOURCES
     nethost.cpp
     ../fxr_resolver.cpp
-    ../fxr/fx_ver.cpp
 )
 
-if(WIN32)
+if(CLR_CMAKE_TARGET_WIN32)
     list(APPEND SOURCES
         Exports.def)
 endif()
@@ -28,6 +27,5 @@ add_definitions(-DFEATURE_LIBHOST=1)
 add_definitions(-DNETHOST_EXPORT)
 
 install(FILES nethost.h DESTINATION corehost)
-install(TARGETS nethost DESTINATION corehost)
 install(TARGETS libnethost DESTINATION corehost)
-install_symbols(nethost corehost)
+install_with_stripped_symbols(nethost TARGETS corehost)

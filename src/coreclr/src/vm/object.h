@@ -87,7 +87,7 @@ class ArgDestination;
 
 struct RCW;
 
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
 #define OBJHEADER_SIZE      (sizeof(DWORD) /* m_alignpad */ + sizeof(DWORD) /* m_SyncBlockValue */)
 #else
 #define OBJHEADER_SIZE      sizeof(DWORD) /* m_SyncBlockValue */
@@ -96,7 +96,7 @@ struct RCW;
 #define OBJECT_SIZE         TARGET_POINTER_SIZE /* m_pMethTab */
 #define OBJECT_BASESIZE     (OBJHEADER_SIZE + OBJECT_SIZE)
 
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
 #define ARRAYBASE_SIZE      (OBJECT_SIZE /* m_pMethTab */ + sizeof(DWORD) /* m_NumComponents */ + sizeof(DWORD) /* pad */)
 #else
 #define ARRAYBASE_SIZE      (OBJECT_SIZE /* m_pMethTab */ + sizeof(DWORD) /* m_NumComponents */)
@@ -149,33 +149,17 @@ class Object
         m_pMethTab = pMT;
     }
 
-    VOID SetMethodTable(MethodTable *pMT
-                        DEBUG_ARG(BOOL bAllowArray = FALSE))
+    VOID SetMethodTable(MethodTable *pMT)
     {
-        LIMITED_METHOD_CONTRACT;
-        m_pMethTab = pMT;
-
-#ifdef _DEBUG
-        if (!bAllowArray)
-        {
-            AssertNotArray();
-        }
-#endif // _DEBUG
+        WRAPPER_NO_CONTRACT;
+        RawSetMethodTable(pMT);
     }
 
-    VOID SetMethodTableForLargeObject(MethodTable *pMT
-                                      DEBUG_ARG(BOOL bAllowArray = FALSE))
+    VOID SetMethodTableForUOHObject(MethodTable *pMT)
     {
-        // This function must be used if the allocation occurs on the large object heap, and the method table might be a collectible type
         WRAPPER_NO_CONTRACT;
+        // This function must be used if the allocation occurs on a UOH heap, and the method table might be a collectible type
         ErectWriteBarrierForMT(&m_pMethTab, pMT);
-
-#ifdef _DEBUG
-        if (!bAllowArray)
-        {
-            AssertNotArray();
-        }
-#endif // _DEBUG
     }
 #endif //!DACCESS_COMPILE
 
@@ -477,16 +461,6 @@ class Object
 
  private:
     VOID ValidateInner(BOOL bDeep, BOOL bVerifyNextHeader, BOOL bVerifySyncBlock);
-
-#ifdef _DEBUG
-    void AssertNotArray()
-    {
-        if (m_pMethTab->IsArray())
-        {
-            _ASSERTE(!"ArrayBase::SetArrayMethodTable/ArrayBase::SetArrayMethodTableForLargeObject should be used for arrays");
-        }
-    }
-#endif // _DEBUG
 };
 
 /*
@@ -547,8 +521,8 @@ class ArrayBase : public Object
     friend class GCHeap;
     friend class CObjectHeader;
     friend class Object;
-    friend OBJECTREF AllocateSzArray(MethodTable *pArrayMT, INT32 length, GC_ALLOC_FLAGS flags, BOOL bAllocateInLargeHeap);
-    friend OBJECTREF AllocateArrayEx(MethodTable *pArrayMT, INT32 *pArgs, DWORD dwNumArgs, GC_ALLOC_FLAGS flags, BOOL bAllocateInLargeHeap);
+    friend OBJECTREF AllocateSzArray(MethodTable *pArrayMT, INT32 length, GC_ALLOC_FLAGS flags);
+    friend OBJECTREF AllocateArrayEx(MethodTable *pArrayMT, INT32 *pArgs, DWORD dwNumArgs, GC_ALLOC_FLAGS flags);
     friend FCDECL2(Object*, JIT_NewArr1VC_MP_FastPortable, CORINFO_CLASS_HANDLE arrayMT, INT_PTR size);
     friend FCDECL2(Object*, JIT_NewArr1OBJ_MP_FastPortable, CORINFO_CLASS_HANDLE arrayMT, INT_PTR size);
     friend class JIT_TrialAlloc;
@@ -560,9 +534,9 @@ private:
     // Object::GetSize() looks at m_NumComponents even though it may not be an array (the
     // values is shifted out if not an array, so it's ok).
     DWORD       m_NumComponents;
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
     DWORD       pad;
-#endif // _TARGET_64BIT_
+#endif // TARGET_64BIT
 
     SVAL_DECL(INT32, s_arrayBoundsZero); // = 0
 
@@ -575,20 +549,15 @@ public:
     // type is stored in the array or not
     inline TypeHandle GetArrayElementTypeHandle() const;
 
-        // Get the CorElementType for the elements in the array.  Avoids creating a TypeHandle
+    // Get the CorElementType for the elements in the array.  Avoids creating a TypeHandle
     inline CorElementType GetArrayElementType() const;
 
     inline unsigned GetRank() const;
 
-        // Total element count for the array
+    // Total element count for the array
     inline DWORD GetNumComponents() const;
 
-#ifndef DACCESS_COMPILE
-    inline void SetArrayMethodTable(MethodTable *pArrayMT);
-    inline void SetArrayMethodTableForLargeObject(MethodTable *pArrayMT);
-#endif // !DACCESS_COMPILE
-
-        // Get pointer to elements, handles any number of dimensions
+    // Get pointer to elements, handles any number of dimensions
     PTR_BYTE GetDataPtr(BOOL inGC = FALSE) const {
         LIMITED_METHOD_CONTRACT;
         SUPPORTS_DAC;
@@ -620,7 +589,7 @@ public:
         return(GetMethodTable()->IsMultiDimArray());
     }
 
-        // Get pointer to the begining of the bounds (counts for each dim)
+        // Get pointer to the beginning of the bounds (counts for each dim)
         // Works for any array type
     PTR_INT32 GetBoundsPtr() const {
         WRAPPER_NO_CONTRACT;
@@ -699,7 +668,7 @@ class PtrArray : public ArrayBase
 {
     friend class GCHeap;
     friend class ClrDataAccess;
-    friend OBJECTREF AllocateArrayEx(MethodTable *pArrayMT, INT32 *pArgs, DWORD dwNumArgs, DWORD flags, BOOL bAllocateInLargeHeap);
+    friend OBJECTREF AllocateArrayEx(MethodTable *pArrayMT, INT32 *pArgs, DWORD dwNumArgs, DWORD flags);
     friend class JIT_TrialAlloc;
     friend class CheckAsmOffsets;
 
@@ -1537,9 +1506,9 @@ NOINLINE AssemblyBaseObject* GetRuntimeAssemblyHelper(LPVOID __me, DomainAssembl
 // AssemblyLoadContextBaseObject
 // This class is the base class for AssemblyLoadContext
 //
-#if defined(_TARGET_X86_) && !defined(FEATURE_PAL)
+#if defined(TARGET_X86) && !defined(TARGET_UNIX)
 #include "pshpack4.h"
-#endif // defined(_TARGET_X86_) && !defined(FEATURE_PAL)
+#endif // defined(TARGET_X86) && !defined(TARGET_UNIX)
 class AssemblyLoadContextBaseObject : public Object
 {
     friend class MscorlibBinder;
@@ -1548,7 +1517,7 @@ class AssemblyLoadContextBaseObject : public Object
     // READ ME:
     // Modifying the order or fields of this object may require other changes to the
     //  classlib class definition of this object.
-#ifdef _TARGET_64BIT_
+#ifdef TARGET_64BIT
     OBJECTREF     _unloadLock;
     OBJECTREF     _resovlingUnmanagedDll;
     OBJECTREF     _resolving;
@@ -1558,7 +1527,7 @@ class AssemblyLoadContextBaseObject : public Object
     int64_t       _id; // On 64-bit platforms this is a value type so it is placed after references and pointers
     DWORD         _state;
     CLR_BOOL      _isCollectible;
-#else // _TARGET_64BIT_
+#else // TARGET_64BIT
     int64_t       _id; // On 32-bit platforms this 64-bit value type is larger than a pointer so JIT places it first
     OBJECTREF     _unloadLock;
     OBJECTREF     _resovlingUnmanagedDll;
@@ -1568,7 +1537,7 @@ class AssemblyLoadContextBaseObject : public Object
     INT_PTR       _nativeAssemblyLoadContext;
     DWORD         _state;
     CLR_BOOL      _isCollectible;
-#endif // _TARGET_64BIT_
+#endif // TARGET_64BIT
 
   protected:
     AssemblyLoadContextBaseObject() { LIMITED_METHOD_CONTRACT; }
@@ -1577,9 +1546,9 @@ class AssemblyLoadContextBaseObject : public Object
   public:
     INT_PTR GetNativeAssemblyLoadContext() { LIMITED_METHOD_CONTRACT; return _nativeAssemblyLoadContext; }
 };
-#if defined(_TARGET_X86_) && !defined(FEATURE_PAL)
+#if defined(TARGET_X86) && !defined(TARGET_UNIX)
 #include "poppack.h"
-#endif // defined(_TARGET_X86_) && !defined(FEATURE_PAL)
+#endif // defined(TARGET_X86) && !defined(TARGET_UNIX)
 
 // AssemblyNameBaseObject
 // This class is the base class for assembly names

@@ -44,11 +44,6 @@ namespace System.Net.Sockets
             return thisObj.Create(address);
         }
 
-        internal static IPEndPoint Snapshot(this IPEndPoint thisObj)
-        {
-            return new IPEndPoint(thisObj.Address.Snapshot(), thisObj.Port);
-        }
-
         private static Internals.SocketAddress GetInternalSocketAddress(System.Net.SocketAddress address)
         {
             var result = new Internals.SocketAddress(address.Family, address.Size);
@@ -60,7 +55,7 @@ namespace System.Net.Sockets
             return result;
         }
 
-        private static System.Net.SocketAddress GetNetSocketAddress(Internals.SocketAddress address)
+        internal static System.Net.SocketAddress GetNetSocketAddress(Internals.SocketAddress address)
         {
             var result = new System.Net.SocketAddress(address.Family, address.Size);
             for (int index = 0; index < address.Size; index++)

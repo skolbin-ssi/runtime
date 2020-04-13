@@ -34,7 +34,7 @@
 #include <corcompile.h>
 #endif
 
-#ifdef FEATURE_PAL
+#ifdef TARGET_UNIX
 #include "resourcestring.h"
 #define NATIVE_STRING_RESOURCE_NAME dasm_rc
 DECLARE_NATIVE_STRING_RESOURCE_TABLE(NATIVE_STRING_RESOURCE_NAME);
@@ -249,7 +249,7 @@ WCHAR* RstrW(unsigned id)
         default:
             break;
     }
-#ifdef FEATURE_PAL
+#ifdef TARGET_UNIX
     LoadNativeStringResource(NATIVE_STRING_RESOURCE_TABLE(NATIVE_STRING_RESOURCE_NAME),id, buff, cchBuff, NULL);
 #else
     _ASSERTE(g_hResources != NULL);
@@ -3824,7 +3824,7 @@ lDone: ;
                 }
                 else
                 {
-                    sprintf_s(szString,SZSTRING_SIZE, "INVALID METHOD ADDRESS: 0x%8.8X (RVA: 0x%8.8X)",(size_t)newTarget,dwTargetRVA);
+                    sprintf_s(szString,SZSTRING_SIZE, "INVALID METHOD ADDRESS: 0x%8.8zX (RVA: 0x%8.8X)",(size_t)newTarget,dwTargetRVA);
                     printError(GUICookie,szString);
                 }
             }
@@ -4987,7 +4987,7 @@ void DumpVTables(IMAGE_COR20_HEADER *CORHeader, void* GUICookie)
             }
             else
             {
-                sprintf_s(szString,SZSTRING_SIZE,"//         [0x%04x]            (0x%16x)", iSlot, VAL64(*(unsigned __int64 *) pSlot));
+                sprintf_s(szString,SZSTRING_SIZE,"//         [0x%04x]            (0x%16llx)", iSlot, VAL64(*(unsigned __int64 *) pSlot));
                 pSlot += sizeof(unsigned __int64);
             }
             printLine(GUICookie,szStr);
@@ -7694,7 +7694,7 @@ ReportAndExit:
             fSuccess = TRUE;
         }
         fSuccess = TRUE;
-#ifndef FEATURE_PAL
+#ifndef TARGET_UNIX
         if(g_pFile) // dump .RES file (if any), if not to console
         {
             WCHAR wzResFileName[2048], *pwc;

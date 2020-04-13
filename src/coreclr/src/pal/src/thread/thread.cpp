@@ -1666,7 +1666,10 @@ CorUnix::InternalSetThreadDescription(
 
     // Null terminate early.
     // pthread_setname_np only accepts up to 16 chars.
-    nameBuf[15] = '\0';
+    if (nameSize > 15)
+    {
+        nameBuf[15] = '\0';
+    }
 
     error = pthread_setname_np(pTargetThread->GetPThreadSelf(), nameBuf);
 
@@ -2623,7 +2626,7 @@ void *
 CPalThread::GetStackBase()
 {
     void* stackBase;
-#ifdef _TARGET_MAC64
+#ifdef TARGET_OSX
     // This is a Mac specific method
     stackBase = pthread_get_stackaddr_np(pthread_self());
 #else
@@ -2663,7 +2666,7 @@ void *
 CPalThread::GetStackLimit()
 {
     void* stackLimit;
-#ifdef _TARGET_MAC64
+#ifdef TARGET_OSX
     // This is a Mac specific method
     stackLimit = ((BYTE *)pthread_get_stackaddr_np(pthread_self()) -
                    pthread_get_stacksize_np(pthread_self()));
@@ -2808,7 +2811,7 @@ PAL_InjectActivation(
         palError = InjectActivationInternal(pTargetThread);
     }
 
-    if (palError == NO_ERROR)
+    if (palError != NO_ERROR)
     {
         pCurrentThread->SetLastError(palError);
     }

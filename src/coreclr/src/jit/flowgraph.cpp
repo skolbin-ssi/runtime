@@ -30,7 +30,7 @@ void Compiler::fgInit()
     fgFirstBBScratch = nullptr;
 
 #ifdef DEBUG
-    fgPrintInlinedMethods = JitConfig.JitPrintInlinedMethods() == 1;
+    fgPrintInlinedMethods = false;
 #endif // DEBUG
 
     /* We haven't yet computed the bbPreds lists */
@@ -65,6 +65,7 @@ void Compiler::fgInit()
     fgFirstBB        = nullptr;
     fgLastBB         = nullptr;
     fgFirstColdBlock = nullptr;
+    fgEntryBB        = nullptr;
 
 #if defined(FEATURE_EH_FUNCLETS)
     fgFirstFuncletBB  = nullptr;
@@ -419,23 +420,31 @@ BasicBlock* Compiler::fgNewBasicBlock(BBjumpKinds jumpKind)
     return block;
 }
 
-/*****************************************************************************
- *
- *  Ensures that fgFirstBB is a scratch BasicBlock that we have added.
- *  This can be used to add initialization code (without worrying
- *  about other blocks jumping to it).
- *
- *  Callers have to be careful that they do not mess up the order of things
- *  added to fgEnsureFirstBBisScratch in a way as to change semantics.
- */
-
+//------------------------------------------------------------------------
+// fgEnsureFirstBBisScratch: Ensure that fgFirstBB is a scratch BasicBlock
+//
+// Returns:
+//   Nothing. May allocate a new block and alter the value of fgFirstBB.
+//
+// Notes:
+//   This should be called before adding on-entry initialization code to
+//   the method, to ensure that fgFirstBB is not part of a loop.
+//
+//   Does nothing, if fgFirstBB is already a scratch BB. After calling this,
+//   fgFirstBB may already contain code. Callers have to be careful
+//   that they do not mess up the order of things added to this block and
+//   inadvertently change semantics.
+//
+//   We maintain the invariant that a scratch BB ends with BBJ_NONE or
+//   BBJ_ALWAYS, so that when adding independent bits of initialization,
+//   callers can generally append to the fgFirstBB block without worring
+//   about what code is there already.
+//
+//   Can be called at any time, and can be called multiple times.
+//
 void Compiler::fgEnsureFirstBBisScratch()
 {
-    // This method does not update predecessor lists and so must only be called before they are computed.
-    assert(!fgComputePredsDone);
-
     // Have we already allocated a scratch block?
-
     if (fgFirstBBisScratch())
     {
         return;
@@ -453,6 +462,15 @@ void Compiler::fgEnsureFirstBBisScratch()
             block->inheritWeight(fgFirstBB);
         }
 
+        // The first block has an implicit ref count which we must
+        // remove. Note the ref count could be greater that one, if
+        // the first block is not scratch and is targeted by a
+        // branch.
+        assert(fgFirstBB->bbRefs >= 1);
+        fgFirstBB->bbRefs--;
+
+        // The new scratch bb will fall through to the old first bb
+        fgAddRefPred(fgFirstBB, block);
         fgInsertBBbefore(fgFirstBB, block);
     }
     else
@@ -466,6 +484,9 @@ void Compiler::fgEnsureFirstBBisScratch()
 
     block->bbFlags |= (BBF_INTERNAL | BBF_IMPORTED);
 
+    // This new first BB has an implicit ref, and no others.
+    block->bbRefs = 1;
+
     fgFirstBBScratch = fgFirstBB;
 
 #ifdef DEBUG
@@ -476,6 +497,12 @@ void Compiler::fgEnsureFirstBBisScratch()
 #endif
 }
 
+//------------------------------------------------------------------------
+// fgFirstBBisScratch: Check if fgFirstBB is a scratch block
+//
+// Returns:
+//   true if fgFirstBB is a scratch block.
+//
 bool Compiler::fgFirstBBisScratch()
 {
     if (fgFirstBBScratch != nullptr)
@@ -497,6 +524,15 @@ bool Compiler::fgFirstBBisScratch()
     }
 }
 
+//------------------------------------------------------------------------
+// fgBBisScratch: Check if a given block is a scratch block.
+//
+// Arguments:
+//   block - block in question
+//
+// Returns:
+//   true if this block is the first block and is a scratch block.
+//
 bool Compiler::fgBBisScratch(BasicBlock* block)
 {
     return fgFirstBBisScratch() && (block == fgFirstBB);
@@ -1941,7 +1977,7 @@ void Compiler::fgComputeEnterBlocksSet()
         }
     }
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
     // TODO-ARM-Cleanup: The ARM code here to prevent creating retless calls by adding the BBJ_ALWAYS
     // to the enter blocks is a bit of a compromise, because sometimes the blocks are already reachable,
     // and it messes up DFS ordering to have them marked as enter block. We should prevent the
@@ -1957,7 +1993,7 @@ void Compiler::fgComputeEnterBlocksSet()
             BlockSetOps::AddElemD(this, fgEnterBlks, block->bbNext->bbNum);
         }
     }
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
 #ifdef DEBUG
     if (verbose)
@@ -2040,7 +2076,7 @@ bool Compiler::fgRemoveUnreachableBlocks()
             block->bbJumpKind = BBJ_THROW;
             block->bbSetRunRarely();
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
             // If this is a <BBJ_CALLFINALLY, BBJ_ALWAYS> pair, we have to clear BBF_FINALLY_TARGET flag on
             // the target node (of BBJ_ALWAYS) since BBJ_CALLFINALLY node is getting converted to a BBJ_THROW.
             if (bIsBBCallAlwaysPair)
@@ -2048,7 +2084,7 @@ bool Compiler::fgRemoveUnreachableBlocks()
                 noway_assert(block->bbNext->bbJumpKind == BBJ_ALWAYS);
                 fgClearFinallyTargetBit(block->bbNext->bbJumpDest);
             }
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
         }
         else
         {
@@ -2240,7 +2276,7 @@ void Compiler::fgDfsInvPostOrder()
     // an incoming edge into the block).
     assert(fgEnterBlksSetValid);
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
     //
     //    BlockSetOps::UnionD(this, startNodes, fgEnterBlks);
     //
@@ -3774,16 +3810,6 @@ bool Compiler::fgCreateGCPoll(GCPollType pollType, BasicBlock* block, Statement*
 
     addrTrap = info.compCompHnd->getAddrOfCaptureThreadGlobal(&pAddrOfCaptureThreadGlobal);
 
-#ifdef ENABLE_FAST_GCPOLL_HELPER
-    // I never want to split blocks if we've got two indirections here.
-    // This is a size trade-off assuming the VM has ENABLE_FAST_GCPOLL_HELPER.
-    // So don't do it when that is off
-    if (pAddrOfCaptureThreadGlobal != NULL)
-    {
-        pollType = GCPOLL_CALL;
-    }
-#endif // ENABLE_FAST_GCPOLL_HELPER
-
     // If the trap and address of thread global are null, make the call.
     if (addrTrap == nullptr && pAddrOfCaptureThreadGlobal == nullptr)
     {
@@ -3922,12 +3948,6 @@ bool Compiler::fgCreateGCPoll(GCPollType pollType, BasicBlock* block, Statement*
         //  4) Create a GT_EQ node that checks against g_TrapReturningThreads.  True jumps to Bottom,
         //  false falls through to poll.  Add this to the end of Top.  Top is now BBJ_COND.  Bottom is
         //  now a jump target
-        CLANG_FORMAT_COMMENT_ANCHOR;
-
-#ifdef ENABLE_FAST_GCPOLL_HELPER
-        // Prefer the fast gc poll helepr over the double indirection
-        noway_assert(pAddrOfCaptureThreadGlobal == nullptr);
-#endif
 
         GenTree* value; // The value of g_TrapReturningThreads
         if (pAddrOfCaptureThreadGlobal != nullptr)
@@ -4290,6 +4310,12 @@ bool Compiler::fgMayExplicitTailCall()
     if (info.compFlags & CORINFO_FLG_SYNCH)
     {
         // Caller is synchronized
+        return false;
+    }
+
+    if (opts.IsReversePInvoke())
+    {
+        // Reverse P/Invoke
         return false;
     }
 
@@ -4782,45 +4808,10 @@ void Compiler::fgFindJumpTargets(const BYTE* codeAddr, IL_OFFSET codeSize, Fixed
             }
             break;
 
-#if !defined(FEATURE_CORECLR)
-            case CEE_CALLI:
-
-                // CEE_CALLI should not be inlined if the call indirect target has a calling convention other than
-                // CORINFO_CALLCONV_DEFAULT. In the case where we have a no-marshal CALLI P/Invoke we end up calling
-                // the IL stub. We don't NGEN these stubs, so we'll have to JIT an IL stub for a trivial func.
-                // It's almost certainly a better choice to leave out the inline candidate so we can generate an inlined
-                // call frame.
-
-                // Consider skipping this bail-out for force inlines.
-                if (makeInlineObservations)
-                {
-                    if (codeAddr > codeEndp - sizeof(DWORD))
-                    {
-                        goto TOO_FAR;
-                    }
-
-                    CORINFO_SIG_INFO calliSig;
-                    eeGetSig(getU4LittleEndian(codeAddr), info.compScopeHnd, impTokenLookupContextHandle, &calliSig);
-
-                    if (calliSig.getCallConv() != CORINFO_CALLCONV_DEFAULT)
-                    {
-                        compInlineResult->Note(InlineObservation::CALLEE_UNSUPPORTED_OPCODE);
-
-                        // Fail fast if we're inlining
-                        if (isInlining)
-                        {
-                            assert(compInlineResult->IsFailure());
-                            return;
-                        }
-                    }
-                }
-                break;
-#endif // FEATURE_CORECLR
-
             case CEE_JMP:
                 retBlocks++;
 
-#if !defined(_TARGET_X86_) && !defined(_TARGET_ARM_)
+#if !defined(TARGET_X86) && !defined(TARGET_ARM)
                 if (!isInlining)
                 {
                     // We transform this into a set of ldarg's + tail call and
@@ -4831,7 +4822,7 @@ void Compiler::fgFindJumpTargets(const BYTE* codeAddr, IL_OFFSET codeSize, Fixed
                     info.compMaxStack = max(info.compMaxStack, info.compILargsCount);
                     break;
                 }
-#endif // !_TARGET_X86_ && !_TARGET_ARM_
+#endif // !TARGET_X86 && !TARGET_ARM
 
                 // If we are inlining, we need to fail for a CEE_JMP opcode, just like
                 // the list of other opcodes (for all platforms).
@@ -5177,16 +5168,19 @@ void Compiler::fgObserveInlineConstants(OPCODE opcode, const FgStack& stack, boo
     }
 }
 
-/*****************************************************************************
- *
- *  Finally link up the bbJumpDest of the blocks together
- */
+//------------------------------------------------------------------------
+// fgMarkBackwardJump: mark blocks indicating there is a jump backwards in
+//   IL, from a higher to lower IL offset.
+//
+// Arguments:
+//   targetBlock -- target of the jump
+//   sourceBlock -- source of the jump
 
-void Compiler::fgMarkBackwardJump(BasicBlock* startBlock, BasicBlock* endBlock)
+void Compiler::fgMarkBackwardJump(BasicBlock* targetBlock, BasicBlock* sourceBlock)
 {
-    noway_assert(startBlock->bbNum <= endBlock->bbNum);
+    noway_assert(targetBlock->bbNum <= sourceBlock->bbNum);
 
-    for (BasicBlock* block = startBlock; block != endBlock->bbNext; block = block->bbNext)
+    for (BasicBlock* block = targetBlock; block != sourceBlock->bbNext; block = block->bbNext)
     {
         if ((block->bbFlags & BBF_BACKWARD_JUMP) == 0)
         {
@@ -5194,6 +5188,8 @@ void Compiler::fgMarkBackwardJump(BasicBlock* startBlock, BasicBlock* endBlock)
             compHasBackwardJump = true;
         }
     }
+
+    targetBlock->bbFlags |= BBF_BACKWARD_JUMP_TARGET;
 }
 
 /*****************************************************************************
@@ -5553,22 +5549,14 @@ unsigned Compiler::fgMakeBasicBlocks(const BYTE* codeAddr, IL_OFFSET codeSize, F
 
                 if (tailCall)
                 {
-                    bool isCallPopAndRet = false;
-
                     // impIsTailCallILPattern uses isRecursive flag to determine whether ret in a fallthrough block is
                     // allowed. We don't know at this point whether the call is recursive so we conservatively pass
                     // false. This will only affect explicit tail calls when IL verification is not needed for the
                     // method.
                     bool isRecursive = false;
-                    if (!impIsTailCallILPattern(tailCall, opcode, codeAddr + sz, codeEndp, isRecursive,
-                                                &isCallPopAndRet))
+                    if (!impIsTailCallILPattern(tailCall, opcode, codeAddr + sz, codeEndp, isRecursive))
                     {
-#if !defined(FEATURE_CORECLR) && defined(_TARGET_AMD64_)
-                        BADCODE3("tail call not followed by ret or pop+ret", " at offset %04X",
-                                 (IL_OFFSET)(codeAddr - codeBegp));
-#else
                         BADCODE3("tail call not followed by ret", " at offset %04X", (IL_OFFSET)(codeAddr - codeBegp));
-#endif // !FEATURE_CORECLR && _TARGET_AMD64_
                     }
 
                     if (fgCanSwitchToOptimized() && fgMayExplicitTailCall())
@@ -5578,17 +5566,6 @@ unsigned Compiler::fgMakeBasicBlocks(const BYTE* codeAddr, IL_OFFSET codeSize, F
                         // to avoid stack overflow from recursion
                         fgSwitchToOptimized();
                     }
-
-#if !defined(FEATURE_CORECLR) && defined(_TARGET_AMD64_)
-                    if (isCallPopAndRet)
-                    {
-                        // By breaking here, we let pop and ret opcodes to be
-                        // imported after tail call.  If tail prefix is honored,
-                        // stmts corresponding to pop and ret will be removed
-                        // in fgMorphCall().
-                        break;
-                    }
-#endif // !FEATURE_CORECLR && _TARGET_AMD64_
                 }
                 else
                 {
@@ -6000,6 +5977,28 @@ void Compiler::fgFindBasicBlocks()
         }
 
         return;
+    }
+
+    // If we are doing OSR, add an entry block that simply branches to the right IL offset.
+    if (opts.IsOSR())
+    {
+        // Remember the original entry block in case this method is tail recursive.
+        fgEntryBB = fgLookupBB(0);
+
+        // Find the OSR entry block.
+        assert(info.compILEntry >= 0);
+        BasicBlock* bbTarget = fgLookupBB(info.compILEntry);
+
+        fgEnsureFirstBBisScratch();
+        fgFirstBB->bbJumpKind = BBJ_ALWAYS;
+        fgFirstBB->bbJumpDest = bbTarget;
+        fgAddRefPred(bbTarget, fgFirstBB);
+
+        JITDUMP("OSR: redirecting flow at entry via " FMT_BB " to " FMT_BB " (il offset 0x%x)\n", fgFirstBB->bbNum,
+                bbTarget->bbNum, info.compILEntry);
+
+        // rebuild lookup table... should be able to avoid this by leaving room up front.
+        fgInitBBLookup();
     }
 
     /* Mark all blocks within 'try' blocks as such */
@@ -6871,21 +6870,15 @@ unsigned Compiler::fgGetNestingLevel(BasicBlock* block, unsigned* pFinallyNestin
     return curNesting;
 }
 
-/*****************************************************************************
- *
- *  Import the basic blocks of the procedure.
- */
-
-void Compiler::fgImport()
+//------------------------------------------------------------------------
+// fgImport: read the IL forf the method and create jit IR
+//
+// Returns:
+//    phase status
+//
+PhaseStatus Compiler::fgImport()
 {
-    impImport(fgFirstBB);
-
-    if (!opts.jitFlags->IsSet(JitFlags::JIT_FLAG_SKIP_VERIFICATION))
-    {
-        CorInfoMethodRuntimeFlags verFlag;
-        verFlag = tiIsVerifiableCode ? CORINFO_FLG_VERIFIABLE : CORINFO_FLG_UNVERIFIABLE;
-        info.compCompHnd->setMethodAttribs(info.compMethodHnd, verFlag);
-    }
+    impImport();
 
     // Estimate how much of method IL was actually imported.
     //
@@ -6928,6 +6921,16 @@ void Compiler::fgImport()
     {
         compInlineResult->SetImportedILSize(info.compILImportSize);
     }
+
+    // Full preds are only used later on
+    assert(!fgComputePredsDone);
+    if (fgCheapPredsValid)
+    {
+        // Cheap predecessors are only used during importation
+        fgRemovePreds();
+    }
+
+    return PhaseStatus::MODIFIED_EVERYTHING;
 }
 
 /*****************************************************************************
@@ -7814,7 +7817,8 @@ GenTree* Compiler::fgGetCritSectOfStaticMethod()
 
     GenTree* tree = nullptr;
 
-    CORINFO_LOOKUP_KIND kind = info.compCompHnd->getLocationOfThisType(info.compMethodHnd);
+    CORINFO_LOOKUP_KIND kind;
+    info.compCompHnd->getLocationOfThisType(info.compMethodHnd, &kind);
 
     if (!kind.needsRuntimeLookup)
     {
@@ -8244,7 +8248,7 @@ void Compiler::fgConvertSyncReturnToLeave(BasicBlock* block)
     // Convert the BBJ_RETURN to BBJ_ALWAYS, jumping to genReturnBB.
     block->bbJumpKind = BBJ_ALWAYS;
     block->bbJumpDest = genReturnBB;
-    block->bbJumpDest->bbRefs++;
+    fgAddRefPred(genReturnBB, block);
 
 #ifdef DEBUG
     if (verbose)
@@ -8531,7 +8535,7 @@ private:
         newReturnBB->bbRefs     = 1; // bbRefs gets update later, for now it should be 1
         comp->fgReturnCount++;
 
-        newReturnBB->bbFlags |= BBF_INTERNAL;
+        newReturnBB->bbFlags |= (BBF_INTERNAL | BBF_JMP_TARGET);
 
         noway_assert(newReturnBB->bbNext == nullptr);
 
@@ -8920,15 +8924,6 @@ void Compiler::fgAddInternal()
         }
     }
 
-    // Grab a temp for the security object.
-    // (Note: opts.compDbgEnC currently also causes the security object to be generated. See Compiler::compCompile)
-    if (opts.compNeedSecurityCheck)
-    {
-        noway_assert(lvaSecurityObject == BAD_VAR_NUM);
-        lvaSecurityObject                  = lvaGrabTempWithImplicitUse(false DEBUGARG("security check"));
-        lvaTable[lvaSecurityObject].lvType = TYP_REF;
-    }
-
     // Merge return points if required or beneficial
     MergedReturns merger(this);
 
@@ -9065,43 +9060,6 @@ void Compiler::fgAddInternal()
         fgNewStmtAtEnd(fgFirstBB, gtNewQmarkNode(TYP_VOID, guardCheckCond, callback));
     }
 
-    /* Do we need to call out for security ? */
-
-    if (tiSecurityCalloutNeeded)
-    {
-        // We must have grabbed this local.
-        noway_assert(opts.compNeedSecurityCheck);
-        noway_assert(lvaSecurityObject != BAD_VAR_NUM);
-
-        GenTree* tree;
-
-        /* Insert the expression "call JIT_Security_Prolog(MethodHnd, &SecurityObject)" */
-
-        tree = gtNewIconEmbMethHndNode(info.compMethodHnd);
-
-        tree = gtNewHelperCallNode(info.compCompHnd->getSecurityPrologHelper(info.compMethodHnd), TYP_VOID,
-                                   gtNewCallArgs(tree, gtNewOperNode(GT_ADDR, TYP_BYREF,
-                                                                     gtNewLclvNode(lvaSecurityObject, TYP_REF))));
-
-        /* Create a new basic block and stick the call in it */
-
-        fgEnsureFirstBBisScratch();
-
-        fgNewStmtAtEnd(fgFirstBB, tree);
-
-#ifdef DEBUG
-        if (verbose)
-        {
-            printf("\ntiSecurityCalloutNeeded - Add call JIT_Security_Prolog(%08p) statement ",
-                   dspPtr(info.compMethodHnd));
-            printTreeID(tree);
-            printf(" in first basic block %s\n", fgFirstBB->dspToString());
-            gtDispTree(tree);
-            printf("\n");
-        }
-#endif
-    }
-
 #if !defined(FEATURE_EH_FUNCLETS)
 
     /* Is this a 'synchronized' method? */
@@ -9179,35 +9137,6 @@ void Compiler::fgAddInternal()
     }
 
 #endif // !FEATURE_EH_FUNCLETS
-
-    /* Do we need to do runtime call out to check the security? */
-
-    if (tiRuntimeCalloutNeeded)
-    {
-        GenTree* tree;
-
-        /* Insert the expression "call verificationRuntimeCheck(MethodHnd)" */
-
-        tree = gtNewIconEmbMethHndNode(info.compMethodHnd);
-
-        tree = gtNewHelperCallNode(CORINFO_HELP_VERIFICATION_RUNTIME_CHECK, TYP_VOID, gtNewCallArgs(tree));
-
-        /* Create a new basic block and stick the call in it */
-
-        fgEnsureFirstBBisScratch();
-
-        fgNewStmtAtEnd(fgFirstBB, tree);
-
-#ifdef DEBUG
-        if (verbose)
-        {
-            printf("\ntiRuntimeCalloutNeeded - Call verificationRuntimeCheck(%08p) statement in first basic block %s\n",
-                   dspPtr(info.compMethodHnd), fgFirstBB->dspToString());
-            gtDispTree(tree);
-            printf("\n");
-        }
-#endif
-    }
 
     if (opts.IsReversePInvoke())
     {
@@ -9359,9 +9288,9 @@ BasicBlock* Compiler::fgSplitBlockAtEnd(BasicBlock* curr)
     // interruptible if we exercised more care here.
     newBlock->bbFlags &= ~BBF_GC_SAFE_POINT;
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
     newBlock->bbFlags &= ~(BBF_FINALLY_TARGET);
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
     // The new block has no code, so we leave bbCodeOffs/bbCodeOffsEnd set to BAD_IL_OFFSET. If a caller
     // puts code in the block, then it needs to update these.
@@ -9793,118 +9722,238 @@ void Compiler::fgSimpleLowering()
 #endif
 }
 
-/*****************************************************************************
- *
- *  Find and remove any basic blocks that are useless (e.g. they have not been
- *  imported because they are not reachable, or they have been optimized away).
- */
-
+//------------------------------------------------------------------------
+// fgRemoveEmptyBlocks: clean up flow graph after importation
+//
+// Notes:
+//
+//  Find and remove any basic blocks that are useless (e.g. they have not been
+//  imported because they are not reachable, or they have been optimized away).
+//
+//  Remove try regions where no blocks in the try were imported.
+//  Update the end of try and handler regions where trailing blocks were not imported.
+//  Update the start of try regions that were partially imported (OSR)
+//
 void Compiler::fgRemoveEmptyBlocks()
 {
+    JITDUMP("\n*************** In fgRemoveEmptyBlocks\n");
+
     BasicBlock* cur;
     BasicBlock* nxt;
 
-    /* If we remove any blocks, we'll have to do additional work */
-
+    // If we remove any blocks, we'll have to do additional work
     unsigned removedBlks = 0;
 
     for (cur = fgFirstBB; cur != nullptr; cur = nxt)
     {
-        /* Get hold of the next block (in case we delete 'cur') */
-
+        // Get hold of the next block (in case we delete 'cur')
         nxt = cur->bbNext;
 
-        /* Should this block be removed? */
-
+        // Should this block be removed?
         if (!(cur->bbFlags & BBF_IMPORTED))
         {
             noway_assert(cur->isEmpty());
 
             if (ehCanDeleteEmptyBlock(cur))
             {
-                /* Mark the block as removed */
+                JITDUMP(FMT_BB " was not imported, marking as removed (%d)\n", cur->bbNum, removedBlks);
 
                 cur->bbFlags |= BBF_REMOVED;
-
-                /* Remember that we've removed a block from the list */
-
                 removedBlks++;
 
-#ifdef DEBUG
-                if (verbose)
-                {
-                    printf(FMT_BB " was not imported, marked as removed (%d)\n", cur->bbNum, removedBlks);
-                }
-#endif // DEBUG
-
-                /* Drop the block from the list */
-
+                // Drop the block from the list.
+                //
+                // We rely on the fact that this does not clear out
+                // cur->bbNext or cur->bbPrev in the code that
+                // follows.
                 fgUnlinkBlock(cur);
             }
             else
             {
-                // We were prevented from deleting this block by EH normalization. Mark the block as imported.
+                // We were prevented from deleting this block by EH
+                // normalization. Mark the block as imported.
                 cur->bbFlags |= BBF_IMPORTED;
             }
         }
     }
 
-    /* If no blocks were removed, we're done */
-
+    // If no blocks were removed, we're done
     if (removedBlks == 0)
     {
         return;
     }
 
-    /*  Update all references in the exception handler table.
-     *  Mark the new blocks as non-removable.
-     *
-     *  We may have made the entire try block unreachable.
-     *  Check for this case and remove the entry from the EH table.
-     */
-
+    // Update all references in the exception handler table.
+    //
+    // We may have made the entire try block unreachable.
+    // Check for this case and remove the entry from the EH table.
+    //
+    // For OSR, just the initial part of a try range may become
+    // unreachable; if so we need to shrink the try range down
+    // to the portion that was imported.
     unsigned  XTnum;
     EHblkDsc* HBtab;
-    INDEBUG(unsigned delCnt = 0;)
+    unsigned  delCnt = 0;
 
+    // Walk the EH regions from inner to outer
     for (XTnum = 0, HBtab = compHndBBtab; XTnum < compHndBBtabCount; XTnum++, HBtab++)
     {
     AGAIN:
-        /* If the beginning of the try block was not imported, we
-         * need to remove the entry from the EH table. */
 
+        // If start of a try region was not imported, then we either
+        // need to trim the region extent, or remove the region
+        // entirely.
+        //
+        // In normal importation, it is not valid to jump into the
+        // middle of a try, so if the try entry was not imported, the
+        // entire try can be removed.
+        //
+        // In OSR importation the entry patchpoint may be in the
+        // middle of a try, and we need to determine how much of the
+        // try ended up getting imported.  Because of backwards
+        // branches we may end up importing the entire try even though
+        // execution starts in the middle.
+        //
+        // Note it is common in both cases for the ends of trys (and
+        // associated handlers) to end up not getting imported, so if
+        // the try region is not removed, we always check if we need
+        // to trim the ends.
+        //
         if (HBtab->ebdTryBeg->bbFlags & BBF_REMOVED)
         {
-            noway_assert(!(HBtab->ebdTryBeg->bbFlags & BBF_IMPORTED));
-#ifdef DEBUG
-            if (verbose)
+            // Usual case is that the entire try can be removed.
+            bool removeTryRegion = true;
+
+            if (opts.IsOSR())
             {
-                printf("Beginning of try block (" FMT_BB ") not imported "
-                       "- remove index #%u from the EH table\n",
-                       HBtab->ebdTryBeg->bbNum, XTnum + delCnt);
+                // For OSR we may need to trim the try region start.
+                //
+                // We rely on the fact that removed blocks have been snipped from
+                // the main block list, but that those removed blocks have kept
+                // their bbprev (and bbnext) links.
+                //
+                // Find the first unremoved block before the try entry block.
+                //
+                BasicBlock* const oldTryEntry  = HBtab->ebdTryBeg;
+                BasicBlock*       tryEntryPrev = oldTryEntry->bbPrev;
+                while ((tryEntryPrev != nullptr) && ((tryEntryPrev->bbFlags & BBF_REMOVED) != 0))
+                {
+                    tryEntryPrev = tryEntryPrev->bbPrev;
+                }
+
+                // Because we've added an unremovable scratch block as
+                // fgFirstBB, this backwards walk should always find
+                // some block.
+                assert(tryEntryPrev != nullptr);
+
+                // If there is a next block of this prev block, and that block is
+                // contained in the current try, we'd like to make that block
+                // the new start of the try, and keep the region.
+                BasicBlock* newTryEntry    = tryEntryPrev->bbNext;
+                bool        updateTryEntry = false;
+
+                if ((newTryEntry != nullptr) && bbInTryRegions(XTnum, newTryEntry))
+                {
+                    // We want to trim the begin extent of the current try region to newTryEntry.
+                    //
+                    // This method is invoked after EH normalization, so we may need to ensure all
+                    // try regions begin at blocks that are not the start or end of some other try.
+                    //
+                    // So, see if this block is already the start or end of some other EH region.
+                    if (bbIsTryBeg(newTryEntry))
+                    {
+                        // We've already end-trimmed the inner try. Do the same now for the
+                        // current try, so it is easier to detect when they mutually protect.
+                        // (we will call this again later, which is harmless).
+                        fgSkipRmvdBlocks(HBtab);
+
+                        // If this try and the inner try form a "mutually protected try region"
+                        // then we must continue to share the try entry block.
+                        EHblkDsc* const HBinner = ehGetBlockTryDsc(newTryEntry);
+                        assert(HBinner->ebdTryBeg == newTryEntry);
+
+                        if (HBtab->ebdTryLast != HBinner->ebdTryLast)
+                        {
+                            updateTryEntry = true;
+                        }
+                    }
+                    // Also, a try and handler cannot start at the same block
+                    else if (bbIsHandlerBeg(newTryEntry))
+                    {
+                        updateTryEntry = true;
+                    }
+
+                    if (updateTryEntry)
+                    {
+                        // We need to trim the current try to begin at a different block. Normally
+                        // this would be problematic as we don't have enough context to redirect
+                        // all the incoming edges, but we know oldTryEntry is unreachable.
+                        // So there are no incoming edges to worry about.
+                        //
+                        assert(!tryEntryPrev->bbFallsThrough());
+
+                        // What follows is similar to fgNewBBInRegion, but we can't call that
+                        // here as the oldTryEntry is no longer in the main bb list.
+                        newTryEntry = bbNewBasicBlock(BBJ_NONE);
+                        newTryEntry->bbFlags |= (BBF_IMPORTED | BBF_INTERNAL);
+
+                        // Set the right EH region indices on this new block.
+                        //
+                        // Patchpoints currently cannot be inside handler regions,
+                        // and so likewise the old and new try region entries.
+                        assert(!oldTryEntry->hasHndIndex());
+                        newTryEntry->setTryIndex(XTnum);
+                        newTryEntry->clearHndIndex();
+                        fgInsertBBafter(tryEntryPrev, newTryEntry);
+
+                        JITDUMP("OSR: changing start of try region #%u from " FMT_BB " to new " FMT_BB "\n",
+                                XTnum + delCnt, oldTryEntry->bbNum, newTryEntry->bbNum);
+                    }
+                    else
+                    {
+                        // We can just trim the try to newTryEntry as it is not part of some inner try or handler.
+                        JITDUMP("OSR: changing start of try region #%u from " FMT_BB " to " FMT_BB "\n", XTnum + delCnt,
+                                oldTryEntry->bbNum, newTryEntry->bbNum);
+                    }
+
+                    // Update the handler table
+                    fgSetTryBeg(HBtab, newTryEntry);
+
+                    // Try entry blocks get specially marked and have special protection.
+                    HBtab->ebdTryBeg->bbFlags |= BBF_DONT_REMOVE | BBF_TRY_BEG | BBF_HAS_LABEL;
+
+                    // We are keeping this try region
+                    removeTryRegion = false;
+                }
             }
-            delCnt++;
-#endif // DEBUG
 
-            fgRemoveEHTableEntry(XTnum);
-
-            if (XTnum < compHndBBtabCount)
+            if (removeTryRegion)
             {
-                // There are more entries left to process, so do more. Note that
-                // HBtab now points to the next entry, that we copied down to the
-                // current slot. XTnum also stays the same.
-                goto AGAIN;
-            }
+                // In the dump, refer to the region by its original index.
+                JITDUMP("Try region #%u (" FMT_BB " -- " FMT_BB ") not imported, removing try from the EH table\n",
+                        XTnum + delCnt, HBtab->ebdTryBeg->bbNum, HBtab->ebdTryLast->bbNum);
 
-            break; // no more entries (we deleted the last one), so exit the loop
+                delCnt++;
+
+                fgRemoveEHTableEntry(XTnum);
+
+                if (XTnum < compHndBBtabCount)
+                {
+                    // There are more entries left to process, so do more. Note that
+                    // HBtab now points to the next entry, that we copied down to the
+                    // current slot. XTnum also stays the same.
+                    goto AGAIN;
+                }
+
+                // no more entries (we deleted the last one), so exit the loop
+                break;
+            }
         }
 
-/* At this point we know we have a valid try block */
-
-#ifdef DEBUG
+        // If we get here, the try entry block was not removed.
+        // Check some invariants.
         assert(HBtab->ebdTryBeg->bbFlags & BBF_IMPORTED);
         assert(HBtab->ebdTryBeg->bbFlags & BBF_DONT_REMOVE);
-
         assert(HBtab->ebdHndBeg->bbFlags & BBF_IMPORTED);
         assert(HBtab->ebdHndBeg->bbFlags & BBF_DONT_REMOVE);
 
@@ -9913,10 +9962,10 @@ void Compiler::fgRemoveEmptyBlocks()
             assert(HBtab->ebdFilter->bbFlags & BBF_IMPORTED);
             assert(HBtab->ebdFilter->bbFlags & BBF_DONT_REMOVE);
         }
-#endif // DEBUG
 
+        // Finally, do region end trimming -- update try and handler ends to reflect removed blocks.
         fgSkipRmvdBlocks(HBtab);
-    } /* end of the for loop over XTnum */
+    }
 
     // Renumber the basic blocks
     JITDUMP("\nRenumbering the basic blocks for fgRemoveEmptyBlocks\n");
@@ -10096,7 +10145,7 @@ bool Compiler::fgCanCompactBlocks(BasicBlock* block, BasicBlock* bNext)
         return false;
     }
 
-#if defined(_TARGET_ARM_)
+#if defined(TARGET_ARM)
     // We can't compact a finally target block, as we need to generate special code for such blocks during code
     // generation
     if ((bNext->bbFlags & BBF_FINALLY_TARGET) != 0)
@@ -10154,9 +10203,9 @@ void Compiler::fgCompactBlocks(BasicBlock* block, BasicBlock* bNext)
     noway_assert(bNext->countOfInEdges() == 1 || block->isEmpty());
     noway_assert(bNext->bbPreds);
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
     noway_assert((bNext->bbFlags & BBF_FINALLY_TARGET) == 0);
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
     // Make sure the second block is not the start of a TRY block or an exception handler
 
@@ -10633,11 +10682,11 @@ void Compiler::fgUnreachableBlock(BasicBlock* block)
     }
 #endif // DEBUG
 
-    noway_assert(block->bbPrev != nullptr); // Can use this function to remove the first block
+    noway_assert(block->bbPrev != nullptr); // Can't use this function to remove the first block
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
-    assert(!block->bbPrev->isBBCallAlwaysPair()); // can't remove the BBJ_ALWAYS of a BBJ_CALLFINALLY / BBJ_ALWAYS pair
-#endif                                            // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
+    assert(!block->isBBCallAlwaysPairTail()); // can't remove the BBJ_ALWAYS of a BBJ_CALLFINALLY / BBJ_ALWAYS pair
+#endif                                        // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
     /* First walk the statement trees in this basic block and delete each stmt */
 
@@ -10940,10 +10989,10 @@ void Compiler::fgRemoveBlock(BasicBlock* block, bool unreachable)
     // Should never remove a genReturnBB, as we might have special hookups there.
     noway_assert(block != genReturnBB);
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
     // Don't remove a finally target
     assert(!(block->bbFlags & BBF_FINALLY_TARGET));
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
     if (unreachable)
     {
@@ -10970,9 +11019,9 @@ void Compiler::fgRemoveBlock(BasicBlock* block, bool unreachable)
             // bPrev CALL becomes RETLESS as the BBJ_ALWAYS block is unreachable
             bPrev->bbFlags |= BBF_RETLESS_CALL;
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
             NO_WAY("No retless call finally blocks; need unwind target instead");
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
         }
         else if (bPrev->bbJumpKind == BBJ_ALWAYS && bPrev->bbJumpDest == block->bbNext &&
                  !(bPrev->bbFlags & BBF_KEEP_BBJ_ALWAYS) && (block != fgFirstColdBlock) &&
@@ -11012,9 +11061,9 @@ void Compiler::fgRemoveBlock(BasicBlock* block, bool unreachable)
 
             fgRemoveBlock(leaveBlk, true);
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
             fgClearFinallyTargetBit(leaveBlk->bbJumpDest);
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
         }
         else if (block->bbJumpKind == BBJ_RETURN)
         {
@@ -11025,8 +11074,8 @@ void Compiler::fgRemoveBlock(BasicBlock* block, bool unreachable)
     {
         noway_assert(block->isEmpty());
 
-        /* The block cannot follow a non-retless BBJ_CALLFINALLY (because we don't know who may jump to it) */
-        noway_assert((bPrev == nullptr) || !bPrev->isBBCallAlwaysPair());
+        // The block cannot follow a non-retless BBJ_CALLFINALLY (because we don't know who may jump to it).
+        noway_assert(!block->isBBCallAlwaysPairTail());
 
         /* This cannot be the last basic block */
         noway_assert(block != fgLastBB);
@@ -11268,7 +11317,7 @@ void Compiler::fgRemoveBlock(BasicBlock* block, bool unreachable)
                 if ((bPrev->bbJumpDest == bPrev->bbNext) &&
                     !fgInDifferentRegions(bPrev, bPrev->bbJumpDest)) // We don't remove a branch from Hot -> Cold
                 {
-                    if ((bPrev == fgFirstBB) || !bPrev->bbPrev->isBBCallAlwaysPair())
+                    if ((bPrev == fgFirstBB) || !bPrev->isBBCallAlwaysPairTail())
                     {
                         // It's safe to change the jump type
                         bPrev->bbJumpKind = BBJ_NONE;
@@ -11637,6 +11686,8 @@ bool Compiler::fgExpandRarelyRunBlocks()
 
                 // Check for a BBJ_CALLFINALLY followed by a rarely run paired BBJ_ALWAYS
                 //
+                // TODO-Cleanup: How can this be hit? If bbPrev starts a CallAlwaysPair, then this
+                // block must be BBJ_ALWAYS, not BBJ_CALLFINALLY.
                 if (bPrev->isBBCallAlwaysPair())
                 {
                     /* Is the next block rarely run? */
@@ -12317,7 +12368,7 @@ DONE:
 
 #if defined(FEATURE_EH_FUNCLETS)
 
-#if defined(_TARGET_ARM_)
+#if defined(TARGET_ARM)
 
 /*****************************************************************************
  * We just removed a BBJ_CALLFINALLY/BBJ_ALWAYS pair. If this was the only such pair
@@ -12352,7 +12403,7 @@ void Compiler::fgClearFinallyTargetBit(BasicBlock* block)
     block->bbFlags &= ~BBF_FINALLY_TARGET;
 }
 
-#endif // defined(_TARGET_ARM_)
+#endif // defined(TARGET_ARM)
 
 /*****************************************************************************
  * Is this an intra-handler control flow edge?
@@ -13102,6 +13153,7 @@ void Compiler::fgComputeBlockAndEdgeWeights()
     const bool usingProfileWeights = fgIsUsingProfileWeights();
     const bool isOptimizing        = opts.OptimizationEnabled();
 
+    fgModified             = false;
     fgHaveValidEdgeWeights = false;
     fgCalledCount          = BB_UNITY_WEIGHT;
 
@@ -13318,6 +13370,10 @@ void Compiler::fgComputeCalledCount(BasicBlock::weight_t returnWeight)
         if (fgFirstBB->bbWeight == 0)
         {
             fgFirstBB->bbFlags |= BBF_RUN_RARELY;
+        }
+        else
+        {
+            fgFirstBB->bbFlags &= ~BBF_RUN_RARELY;
         }
     }
 
@@ -13709,7 +13765,7 @@ bool Compiler::fgOptimizeBranchToEmptyUnconditional(BasicBlock* block, BasicBloc
         optimizeJump = false;
     }
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
     // Don't optimize a jump to a finally target. For BB1->BB2->BB3, where
     // BB2 is a finally target, if we changed BB1 to jump directly to BB3,
     // it would skip the finally target. BB1 might be a BBJ_ALWAYS block part
@@ -13719,7 +13775,7 @@ bool Compiler::fgOptimizeBranchToEmptyUnconditional(BasicBlock* block, BasicBloc
     {
         optimizeJump = false;
     }
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
     // Must optimize jump if bDest has been removed
     //
@@ -13872,7 +13928,7 @@ bool Compiler::fgOptimizeEmptyBlock(BasicBlock* block)
             // A GOTO cannot be to the next block since that
             // should have been fixed by the  optimization above
             // An exception is made for a jump from Hot to Cold
-            noway_assert(block->bbJumpDest != block->bbNext || ((bPrev != nullptr) && bPrev->isBBCallAlwaysPair()) ||
+            noway_assert(block->bbJumpDest != block->bbNext || block->isBBCallAlwaysPairTail() ||
                          fgInDifferentRegions(block, block->bbNext));
 
             /* Cannot remove the first BB */
@@ -13921,11 +13977,11 @@ bool Compiler::fgOptimizeEmptyBlock(BasicBlock* block)
                 }
             }
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
             /* Don't remove finally targets */
             if (block->bbFlags & BBF_FINALLY_TARGET)
                 break;
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
 #if defined(FEATURE_EH_FUNCLETS)
             /* Don't remove an empty block that is in a different EH region
@@ -14550,7 +14606,7 @@ bool Compiler::fgOptimizeBranchToNext(BasicBlock* block, BasicBlock* bNext, Basi
             if (!(block->bbFlags & BBF_KEEP_BBJ_ALWAYS))
             {
                 // We can't remove if the BBJ_ALWAYS is part of a BBJ_CALLFINALLY pair
-                if ((bPrev == nullptr) || !bPrev->isBBCallAlwaysPair())
+                if (!block->isBBCallAlwaysPairTail())
                 {
                     /* the unconditional jump is to the next BB  */
                     block->bbJumpKind = BBJ_NONE;
@@ -16764,7 +16820,7 @@ bool Compiler::fgUpdateFlowGraph(bool doTailDuplication)
                 continue;
             }
 
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
             // Don't remove the BBJ_ALWAYS block of a BBJ_CALLFINALLY/BBJ_ALWAYS pair.
             if (block->countOfInEdges() == 0 && bPrev->bbJumpKind == BBJ_CALLFINALLY)
             {
@@ -16774,7 +16830,7 @@ bool Compiler::fgUpdateFlowGraph(bool doTailDuplication)
                 bPrev = block;
                 continue;
             }
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
             noway_assert(!block->bbCatchTyp);
             noway_assert(!(block->bbFlags & BBF_TRY_BEG));
@@ -16915,10 +16971,10 @@ void Compiler::fgDebugCheckUpdate()
         /* no unreachable blocks */
 
         if ((block->countOfInEdges() == 0) && !(block->bbFlags & BBF_DONT_REMOVE)
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
             // With funclets, we never get rid of the BBJ_ALWAYS part of a BBJ_CALLFINALLY/BBJ_ALWAYS pair,
             // even if we can prove that the finally block never returns.
-            && (prev == NULL || block->bbJumpKind != BBJ_ALWAYS || !prev->isBBCallAlwaysPair())
+            && !block->isBBCallAlwaysPairTail()
 #endif // FEATURE_EH_FUNCLETS
                 )
         {
@@ -16965,7 +17021,7 @@ void Compiler::fgDebugCheckUpdate()
             }
         }
 
-        bool prevIsCallAlwaysPair = ((prev != nullptr) && prev->isBBCallAlwaysPair());
+        bool prevIsCallAlwaysPair = block->isBBCallAlwaysPairTail();
 
         // Check for an unnecessary jumps to the next block
         bool doAssertOnJumpToNextBlock = false; // unless we have a BBJ_COND or BBJ_ALWAYS we can not assert
@@ -20667,6 +20723,12 @@ bool BBPredsChecker::CheckEhTryDsc(BasicBlock* block, BasicBlock* blockPred, EHb
         return true;
     }
 
+    // For OSR, we allow the firstBB to branch to the middle of a try.
+    if (comp->opts.IsOSR() && (blockPred == comp->fgFirstBB))
+    {
+        return true;
+    }
+
     printf("Jump into the middle of try region: " FMT_BB " branches to " FMT_BB "\n", blockPred->bbNum, block->bbNum);
     assert(!"Jump into middle of try region");
     return false;
@@ -20849,6 +20911,7 @@ void Compiler::fgDebugCheckBBlist(bool checkBBNum /* = false */, bool checkBBRef
 #endif // DEBUG
 
     fgDebugCheckBlockLinks();
+    fgFirstBBisScratch();
 
     if (fgBBcount > 10000 && expensiveDebugCheckLevel < 1)
     {
@@ -21854,26 +21917,48 @@ unsigned Compiler::fgCheckInlineDepthAndRecursion(InlineInfo* inlineInfo)
     return depth;
 }
 
-/*****************************************************************************
- *
- *  Inlining phase
- */
-
-void Compiler::fgInline()
+//------------------------------------------------------------------------
+// fgInline - expand inline candidates
+//
+// Returns:
+//   phase status indicating if anything was modified
+//
+// Notes:
+//   Inline candidates are identified during importation and candidate calls
+//   must be top-level expressions. In input IR, the result of the call (if any)
+//   is consumed elsewhere by a GT_RET_EXPR node.
+//
+//   For successful inlines, calls are replaced by a sequence of argument setup
+//   instructions, the inlined method body, and return value cleanup. Note
+//   Inlining may introduce new inline candidates. These are processed in a
+//   depth-first fashion, as the inliner walks the IR in statement order.
+//
+//   After inline expansion in a statement, the statement tree
+//   is walked to locate GT_RET_EXPR nodes. These are replaced by either
+//   * the original call tree, if the inline failed
+//   * the return value tree from the inlinee, if the inline succeeded
+//
+//   This replacement happens in preorder; on the postorder side of the same
+//   tree walk, we look for opportunties to devirtualize or optimize now that
+//   we know the context for the newly supplied return value tree.
+//
+//   Inline arguments may be directly substituted into the body of the inlinee
+//   in some cases. See impInlineFetchArg.
+//
+PhaseStatus Compiler::fgInline()
 {
     if (!opts.OptEnabled(CLFLG_INLINING))
     {
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
 #ifdef DEBUG
-    if (verbose)
-    {
-        printf("*************** In fgInline()\n");
-    }
+    fgPrintInlinedMethods = JitConfig.JitPrintInlinedMethods().contains(info.compMethodName, info.compClassName,
+                                                                        &info.compMethodInfo->args);
 #endif // DEBUG
 
-    BasicBlock* block = fgFirstBB;
+    BasicBlock* block       = fgFirstBB;
+    bool        madeChanges = false;
     noway_assert(block != nullptr);
 
     // Set the root inline context on all statements
@@ -21927,6 +22012,9 @@ void Compiler::fgInline()
 
                     fgMorphCallInline(call, &inlineResult);
 
+                    // If there's a candidate to process, we will make changes
+                    madeChanges = true;
+
                     // fgMorphCallInline may have updated the
                     // statement expression to a GT_NOP if the
                     // call returned a value, regardless of
@@ -21964,6 +22052,7 @@ void Compiler::fgInline()
             if (expr->OperGet() == GT_COMMA && expr->AsOp()->gtOp1->OperGet() == GT_CALL &&
                 expr->AsOp()->gtOp2->OperGet() == GT_NOP)
             {
+                madeChanges = true;
                 stmt->SetRootNode(expr->AsOp()->gtOp1);
             }
         }
@@ -21993,13 +22082,6 @@ void Compiler::fgInline()
 
     fgVerifyHandlerTab();
 
-    if (verbose)
-    {
-        printf("*************** After fgInline()\n");
-        fgDispBasicBlocks(true);
-        fgDispHandlerTab();
-    }
-
     if (verbose || fgPrintInlinedMethods)
     {
         JITDUMP("**************** Inline Tree");
@@ -22008,6 +22090,8 @@ void Compiler::fgInline()
     }
 
 #endif // DEBUG
+
+    return madeChanges ? PhaseStatus::MODIFIED_EVERYTHING : PhaseStatus::MODIFIED_NOTHING;
 }
 
 #ifdef DEBUG
@@ -22273,7 +22357,7 @@ Compiler::fgWalkResult Compiler::fgUpdateInlineReturnExpressionPlaceHolder(GenTr
     Compiler*            comp      = data->compiler;
     CORINFO_CLASS_HANDLE retClsHnd = NO_CLASS_HANDLE;
 
-    if (tree->OperGet() == GT_RET_EXPR)
+    while (tree->OperGet() == GT_RET_EXPR)
     {
         // We are going to copy the tree from the inlinee,
         // so record the handle now.
@@ -22285,8 +22369,15 @@ Compiler::fgWalkResult Compiler::fgUpdateInlineReturnExpressionPlaceHolder(GenTr
 
         // Skip through chains of GT_RET_EXPRs (say from nested inlines)
         // to the actual tree to use.
-        GenTree*  inlineCandidate = tree->gtRetExprVal();
-        var_types retType         = tree->TypeGet();
+        //
+        // Also we might as well try and fold the return value.
+        // Eg returns of constant bools will have CASTS.
+        // This folding may uncover more GT_RET_EXPRs, so we loop around
+        // until we've got something distinct.
+        //
+        GenTree* inlineCandidate = tree->gtRetExprVal();
+        inlineCandidate          = comp->gtFoldExpr(inlineCandidate);
+        var_types retType        = tree->TypeGet();
 
 #ifdef DEBUG
         if (comp->verbose)
@@ -22555,6 +22646,56 @@ Compiler::fgWalkResult Compiler::fgLateDevirtualization(GenTree** pTree, fgWalkD
                 }
             }
         }
+    }
+    else if (tree->OperGet() == GT_JTRUE)
+    {
+        // See if this jtrue is now foldable.
+        BasicBlock* block    = comp->compCurBB;
+        GenTree*    condTree = tree->AsOp()->gtOp1;
+        assert(tree == block->lastStmt()->GetRootNode());
+
+        if (condTree->OperGet() == GT_CNS_INT)
+        {
+            JITDUMP(" ... found foldable jtrue at [%06u] in BB%02u\n", dspTreeID(tree), block->bbNum);
+            noway_assert((block->bbNext->countOfInEdges() > 0) && (block->bbJumpDest->countOfInEdges() > 0));
+
+            // We have a constant operand, and should have the all clear to optimize.
+            // Update side effects on the tree, assert there aren't any, and bash to nop.
+            comp->gtUpdateNodeSideEffects(tree);
+            assert((tree->gtFlags & GTF_SIDE_EFFECT) == 0);
+            tree->gtBashToNOP();
+
+            BasicBlock* bTaken    = nullptr;
+            BasicBlock* bNotTaken = nullptr;
+
+            if (condTree->AsIntCon()->gtIconVal != 0)
+            {
+                block->bbJumpKind = BBJ_ALWAYS;
+                bTaken            = block->bbJumpDest;
+                bNotTaken         = block->bbNext;
+            }
+            else
+            {
+                block->bbJumpKind = BBJ_NONE;
+                bTaken            = block->bbNext;
+                bNotTaken         = block->bbJumpDest;
+            }
+
+            comp->fgRemoveRefPred(bNotTaken, block);
+
+            // If that was the last ref, a subsequent flow-opt pass
+            // will clean up the now-unreachable bNotTaken, and any
+            // other transitively unreachable blocks.
+            if (bNotTaken->bbRefs == 0)
+            {
+                JITDUMP("... it looks like BB%02u is now unreachable!\n", bNotTaken->bbNum);
+            }
+        }
+    }
+    else
+    {
+        GenTree* foldedTree = comp->gtFoldExpr(tree);
+        *pTree              = foldedTree;
     }
 
     return WALK_CONTINUE;
@@ -22890,13 +23031,13 @@ void Compiler::fgInsertInlineeBlocks(InlineInfo* pInlineInfo)
             if (InlineeCompiler->fgFirstBB->bbStmtList != nullptr)
             {
                 stmtAfter = fgInsertStmtListAfter(iciBlock, stmtAfter, InlineeCompiler->fgFirstBB->firstStmt());
-
-                // Copy inlinee bbFlags to caller bbFlags.
-                const unsigned __int64 inlineeBlockFlags = InlineeCompiler->fgFirstBB->bbFlags;
-                noway_assert((inlineeBlockFlags & BBF_HAS_JMP) == 0);
-                noway_assert((inlineeBlockFlags & BBF_KEEP_BBJ_ALWAYS) == 0);
-                iciBlock->bbFlags |= inlineeBlockFlags;
             }
+
+            // Copy inlinee bbFlags to caller bbFlags.
+            const unsigned __int64 inlineeBlockFlags = InlineeCompiler->fgFirstBB->bbFlags;
+            noway_assert((inlineeBlockFlags & BBF_HAS_JMP) == 0);
+            noway_assert((inlineeBlockFlags & BBF_KEEP_BBJ_ALWAYS) == 0);
+            iciBlock->bbFlags |= inlineeBlockFlags;
 
 #ifdef DEBUG
             if (verbose)
@@ -23146,6 +23287,11 @@ _Done:
 #endif // DEBUG
         // Replace the call with the return expression
         iciCall->ReplaceWith(pInlineInfo->retExpr, this);
+
+        if (bottomBlock != nullptr)
+        {
+            bottomBlock->bbFlags |= InlineeCompiler->fgLastBB->bbFlags & BBF_SPLIT_GAINED;
+        }
     }
 
     //
@@ -23218,8 +23364,7 @@ Statement* Compiler::fgInlinePrependStatements(InlineInfo* inlineInfo)
     if (call->gtFlags & GTF_CALL_NULLCHECK && !inlineInfo->thisDereferencedFirst)
     {
         // Call impInlineFetchArg to "reserve" a temp for the "this" pointer.
-        nullcheck = gtNewOperNode(GT_IND, TYP_INT, impInlineFetchArg(0, inlArgInfo, lclVarInfo));
-        nullcheck->gtFlags |= GTF_EXCEPT;
+        nullcheck = gtNewNullCheck(impInlineFetchArg(0, inlArgInfo, lclVarInfo), block);
 
         // The NULL-check statement will be inserted to the statement list after those statements
         // that assign arguments to temps and before the actual body of the inlinee method.
@@ -23477,10 +23622,15 @@ Statement* Compiler::fgInlinePrependStatements(InlineInfo* inlineInfo)
 
     CORINFO_METHOD_INFO* InlineeMethodInfo = InlineeCompiler->info.compMethodInfo;
 
-    unsigned lclCnt = InlineeMethodInfo->locals.numArgs;
+    unsigned lclCnt     = InlineeMethodInfo->locals.numArgs;
+    bool     bbInALoop  = (block->bbFlags & BBF_BACKWARD_JUMP) != 0;
+    bool     bbIsReturn = block->bbJumpKind == BBJ_RETURN;
 
-    // Does callee contain any zero-init local?
-    if ((lclCnt != 0) && (InlineeMethodInfo->options & CORINFO_OPT_INIT_LOCALS) != 0)
+    // If the callee contains zero-init locals, we need to explicitly initialize them if we are
+    // in a loop or if the caller doesn't have compInitMem set. Otherwise we can rely on the
+    // normal logic in the caller to insert zero-init in the prolog if necessary.
+    if ((lclCnt != 0) && ((InlineeMethodInfo->options & CORINFO_OPT_INIT_LOCALS) != 0) &&
+        ((bbInALoop && !bbIsReturn) || !info.compInitMem))
     {
 
 #ifdef DEBUG
@@ -23494,9 +23644,20 @@ Statement* Compiler::fgInlinePrependStatements(InlineInfo* inlineInfo)
         {
             unsigned tmpNum = inlineInfo->lclTmpNum[lclNum];
 
-            // Is the local used at all?
+            // If the local is used check whether we need to insert explicit zero initialization.
             if (tmpNum != BAD_VAR_NUM)
             {
+                if (!fgVarNeedsExplicitZeroInit(lvaGetDesc(tmpNum), bbInALoop, bbIsReturn))
+                {
+#ifdef DEBUG
+                    if (verbose)
+                    {
+                        printf("\nSkipping zero initialization of V%02u\n", tmpNum);
+                    }
+#endif // DEBUG
+                    continue;
+                }
+
                 var_types lclTyp = (var_types)lvaTable[tmpNum].lvType;
                 noway_assert(lclTyp == lclVarInfo[lclNum + inlineInfo->argCnt].lclTypeInfo);
 
@@ -23511,18 +23672,14 @@ Statement* Compiler::fgInlinePrependStatements(InlineInfo* inlineInfo)
                 {
                     CORINFO_CLASS_HANDLE structType =
                         lclVarInfo[lclNum + inlineInfo->argCnt].lclVerTypeInfo.GetClassHandle();
+                    tree = gtNewBlkOpNode(gtNewLclvNode(tmpNum, lclTyp), // Dest
+                                          gtNewIconNode(0),              // Value
+                                          false,                         // isVolatile
+                                          false);                        // not copyBlock
 
-                    if (fgStructTempNeedsExplicitZeroInit(lvaTable + tmpNum, block))
-                    {
-                        tree = gtNewBlkOpNode(gtNewLclvNode(tmpNum, lclTyp), // Dest
-                                              gtNewIconNode(0),              // Value
-                                              false,                         // isVolatile
-                                              false);                        // not copyBlock
-
-                        newStmt = gtNewStmt(tree, callILOffset);
-                        fgInsertStmtAfter(block, afterStmt, newStmt);
-                        afterStmt = newStmt;
-                    }
+                    newStmt = gtNewStmt(tree, callILOffset);
+                    fgInsertStmtAfter(block, afterStmt, newStmt);
+                    afterStmt = newStmt;
                 }
 
 #ifdef DEBUG
@@ -23769,6 +23926,9 @@ void Compiler::fgLclFldAssign(unsigned lclNum)
 //------------------------------------------------------------------------
 // fgRemoveEmptyFinally: Remove try/finallys where the finally is empty
 //
+// Returns:
+//    PhaseStatus indicating what, if anything, was changed.
+//
 // Notes:
 //    Removes all try/finallys in the method with empty finallys.
 //    These typically arise from inlining empty Dispose methods.
@@ -23783,11 +23943,9 @@ void Compiler::fgLclFldAssign(unsigned lclNum)
 //    empty (from say subsequent optimization). An SPMI run with
 //    just the "detection" part of this phase run after optimization
 //    found only one example where a new empty finally was detected.
-
-void Compiler::fgRemoveEmptyFinally()
+//
+PhaseStatus Compiler::fgRemoveEmptyFinally()
 {
-    JITDUMP("\n*************** In fgRemoveEmptyFinally()\n");
-
 #if defined(FEATURE_EH_FUNCLETS)
     // We need to do this transformation before funclets are created.
     assert(!fgFuncletsCreated);
@@ -23799,19 +23957,19 @@ void Compiler::fgRemoveEmptyFinally()
     if (compHndBBtabCount == 0)
     {
         JITDUMP("No EH in this method, nothing to remove.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.MinOpts())
     {
         JITDUMP("Method compiled with minOpts, no removal.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.compDbgCode)
     {
         JITDUMP("Method compiled with debug codegen, no removal.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
 #ifdef DEBUG
@@ -24006,15 +24164,17 @@ void Compiler::fgRemoveEmptyFinally()
             printf("\n");
         }
 
-        fgVerifyHandlerTab();
-        fgDebugCheckBBlist(false, false);
-
 #endif // DEBUG
     }
+
+    return (emptyCount > 0) ? PhaseStatus::MODIFIED_EVERYTHING : PhaseStatus::MODIFIED_NOTHING;
 }
 
 //------------------------------------------------------------------------
 // fgRemoveEmptyTry: Optimize try/finallys where the try is empty
+//
+// Returns:
+//    PhaseStatus indicating what, if anything, was changed.
 //
 // Notes:
 //    In runtimes where thread abort is not possible, `try {} finally {S}`
@@ -24028,8 +24188,8 @@ void Compiler::fgRemoveEmptyFinally()
 //    this optimization, the code block `S` can lose special
 //    within-finally status and so complete execution is no longer
 //    guaranteed.
-
-void Compiler::fgRemoveEmptyTry()
+//
+PhaseStatus Compiler::fgRemoveEmptyTry()
 {
     JITDUMP("\n*************** In fgRemoveEmptyTry()\n");
 
@@ -24041,13 +24201,7 @@ void Compiler::fgRemoveEmptyTry()
     // Assume we don't need to update the bbPreds lists.
     assert(!fgComputePredsDone);
 
-#ifdef FEATURE_CORECLR
     bool enableRemoveEmptyTry = true;
-#else
-    // Code in a finally gets special treatment in the presence of
-    // thread abort.
-    bool enableRemoveEmptyTry = false;
-#endif // FEATURE_CORECLR
 
 #ifdef DEBUG
     // Allow override to enable/disable.
@@ -24057,25 +24211,25 @@ void Compiler::fgRemoveEmptyTry()
     if (!enableRemoveEmptyTry)
     {
         JITDUMP("Empty try removal disabled.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (compHndBBtabCount == 0)
     {
         JITDUMP("No EH in this method, nothing to remove.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.MinOpts())
     {
         JITDUMP("Method compiled with minOpts, no removal.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.compDbgCode)
     {
         JITDUMP("Method compiled with debug codegen, no removal.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
 #ifdef DEBUG
@@ -24331,25 +24485,17 @@ void Compiler::fgRemoveEmptyTry()
     {
         JITDUMP("fgRemoveEmptyTry() optimized %u empty-try try-finally clauses\n", emptyCount);
         fgOptimizedFinally = true;
-
-#ifdef DEBUG
-        if (verbose)
-        {
-            printf("\n*************** After fgRemoveEmptyTry()\n");
-            fgDispBasicBlocks();
-            fgDispHandlerTab();
-            printf("\n");
-        }
-
-        fgVerifyHandlerTab();
-        fgDebugCheckBBlist(false, false);
-
-#endif // DEBUG
+        return PhaseStatus::MODIFIED_EVERYTHING;
     }
+
+    return PhaseStatus::MODIFIED_NOTHING;
 }
 
 //------------------------------------------------------------------------
 // fgCloneFinally: Optimize normal exit path from a try/finally
+//
+// Returns:
+//    PhaseStatus indicating what, if anything, was changed.
 //
 // Notes:
 //    Handles finallys that are not enclosed by or enclosing other
@@ -24374,11 +24520,9 @@ void Compiler::fgRemoveEmptyTry()
 //    BBF_CLONED_FINALLY_BEGIN and BBF_CLONED_FINALLY_END. However
 //    these markers currently can get lost during subsequent
 //    optimizations.
-
-void Compiler::fgCloneFinally()
+//
+PhaseStatus Compiler::fgCloneFinally()
 {
-    JITDUMP("\n*************** In fgCloneFinally()\n");
-
 #if defined(FEATURE_EH_FUNCLETS)
     // We need to do this transformation before funclets are created.
     assert(!fgFuncletsCreated);
@@ -24387,13 +24531,7 @@ void Compiler::fgCloneFinally()
     // Assume we don't need to update the bbPreds lists.
     assert(!fgComputePredsDone);
 
-#ifdef FEATURE_CORECLR
     bool enableCloning = true;
-#else
-    // Finally cloning currently doesn't provide sufficient protection
-    // for the cloned code in the presence of thread abort.
-    bool enableCloning = false;
-#endif // FEATURE_CORECLR
 
 #ifdef DEBUG
     // Allow override to enable/disable.
@@ -24403,31 +24541,30 @@ void Compiler::fgCloneFinally()
     if (!enableCloning)
     {
         JITDUMP("Finally cloning disabled.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (compHndBBtabCount == 0)
     {
         JITDUMP("No EH in this method, no cloning.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.MinOpts())
     {
         JITDUMP("Method compiled with minOpts, no cloning.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.compDbgCode)
     {
         JITDUMP("Method compiled with debug codegen, no cloning.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
 #ifdef DEBUG
     if (verbose)
     {
-        printf("\n*************** Before fgCloneFinally()\n");
         fgDispBasicBlocks();
         fgDispHandlerTab();
         printf("\n");
@@ -24931,23 +25068,21 @@ void Compiler::fgCloneFinally()
     if (cloneCount > 0)
     {
         JITDUMP("fgCloneFinally() cloned %u finally handlers\n", cloneCount);
-        fgOptimizedFinally = true;
 
 #ifdef DEBUG
         if (verbose)
         {
-            printf("\n*************** After fgCloneFinally()\n");
             fgDispBasicBlocks();
             fgDispHandlerTab();
             printf("\n");
         }
 
-        fgVerifyHandlerTab();
-        fgDebugCheckBBlist(false, false);
         fgDebugCheckTryFinallyExits();
 
 #endif // DEBUG
     }
+
+    return (cloneCount > 0 ? PhaseStatus::MODIFIED_EVERYTHING : PhaseStatus::MODIFIED_NOTHING);
 }
 
 #ifdef DEBUG
@@ -25184,27 +25319,30 @@ void Compiler::fgCleanupContinuation(BasicBlock* continuation)
 #endif // !FEATURE_EH_FUNCLETS
 }
 
+#if defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
+
 //------------------------------------------------------------------------
-// fgUpdateFinallyTargetFlags: recompute BBF_FINALLY_TARGET bits for all blocks
-// after finally optimizations have run.
-
-void Compiler::fgUpdateFinallyTargetFlags()
+// fgUpdateFinallyTargetFlags: recompute BBF_FINALLY_TARGET bits
+//    after EH optimizations
+//
+// Returns:
+//   phase status indicating if anything was modified
+//
+PhaseStatus Compiler::fgUpdateFinallyTargetFlags()
 {
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
-
-    // Any fixup required?
-    if (!fgOptimizedFinally)
+    // Any finally targetflag fixup required?
+    if (fgOptimizedFinally)
     {
-        JITDUMP("In fgUpdateFinallyTargetFlags - no finally opts, no fixup required\n");
-        return;
+        JITDUMP("updating finally target flag bits\n");
+        fgClearAllFinallyTargetBits();
+        fgAddFinallyTargetFlags();
+        return PhaseStatus::MODIFIED_EVERYTHING;
     }
-
-    JITDUMP("In fgUpdateFinallyTargetFlags, updating finally target flag bits\n");
-
-    fgClearAllFinallyTargetBits();
-    fgAddFinallyTargetFlags();
-
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
+    else
+    {
+        JITDUMP("no finally opts, no fixup required\n");
+        return PhaseStatus::MODIFIED_NOTHING;
+    }
 }
 
 //------------------------------------------------------------------------
@@ -25213,8 +25351,6 @@ void Compiler::fgUpdateFinallyTargetFlags()
 //
 void Compiler::fgClearAllFinallyTargetBits()
 {
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
-
     JITDUMP("*************** In fgClearAllFinallyTargetBits()\n");
 
     // Note that we clear the flags even if there are no EH clauses (compHndBBtabCount == 0)
@@ -25225,8 +25361,6 @@ void Compiler::fgClearAllFinallyTargetBits()
     {
         block->bbFlags &= ~BBF_FINALLY_TARGET;
     }
-
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
 }
 
 //------------------------------------------------------------------------
@@ -25234,8 +25368,6 @@ void Compiler::fgClearAllFinallyTargetBits()
 //
 void Compiler::fgAddFinallyTargetFlags()
 {
-#if defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
-
     JITDUMP("*************** In fgAddFinallyTargetFlags()\n");
 
     if (compHndBBtabCount == 0)
@@ -25260,11 +25392,15 @@ void Compiler::fgAddFinallyTargetFlags()
             }
         }
     }
-#endif // defined(FEATURE_EH_FUNCLETS) && defined(_TARGET_ARM_)
 }
+
+#endif // defined(FEATURE_EH_FUNCLETS) && defined(TARGET_ARM)
 
 //------------------------------------------------------------------------
 // fgMergeFinallyChains: tail merge finally invocations
+//
+// Returns:
+//    PhaseStatus indicating what, if anything, was changed.
 //
 // Notes:
 //
@@ -25273,10 +25409,8 @@ void Compiler::fgAddFinallyTargetFlags()
 //    try-finallys where there are multiple exit points in the try
 //    that have the same target.
 
-void Compiler::fgMergeFinallyChains()
+PhaseStatus Compiler::fgMergeFinallyChains()
 {
-    JITDUMP("\n*************** In fgMergeFinallyChains()\n");
-
 #if defined(FEATURE_EH_FUNCLETS)
     // We need to do this transformation before funclets are created.
     assert(!fgFuncletsCreated);
@@ -25288,19 +25422,19 @@ void Compiler::fgMergeFinallyChains()
     if (compHndBBtabCount == 0)
     {
         JITDUMP("No EH in this method, nothing to merge.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.MinOpts())
     {
         JITDUMP("Method compiled with minOpts, no merging.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     if (opts.compDbgCode)
     {
         JITDUMP("Method compiled with debug codegen, no merging.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     bool enableMergeFinallyChains = true;
@@ -25325,13 +25459,12 @@ void Compiler::fgMergeFinallyChains()
     if (!enableMergeFinallyChains)
     {
         JITDUMP("fgMergeFinallyChains disabled\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
 #ifdef DEBUG
     if (verbose)
     {
-        printf("\n*************** Before fgMergeFinallyChains()\n");
         fgDispBasicBlocks();
         fgDispHandlerTab();
         printf("\n");
@@ -25355,7 +25488,7 @@ void Compiler::fgMergeFinallyChains()
     if (!hasFinally)
     {
         JITDUMP("Method does not have any try-finallys; no merging.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     // Process finallys from outside in, merging as we go. This gives
@@ -25478,6 +25611,8 @@ void Compiler::fgMergeFinallyChains()
                     "likely the non-canonical callfinallys were unreachable\n");
         }
     }
+
+    return didMerge ? PhaseStatus::MODIFIED_EVERYTHING : PhaseStatus::MODIFIED_NOTHING;
 }
 
 //------------------------------------------------------------------------
@@ -25635,6 +25770,9 @@ bool Compiler::fgUseThrowHelperBlocks()
 //------------------------------------------------------------------------
 // fgTailMergeThrows: Tail merge throw blocks and blocks with no return calls.
 //
+// Returns:
+//    PhaseStatus indicating what, if anything, was changed.
+//
 // Notes:
 //    Scans the flow graph for throw blocks and blocks with no return calls
 //    that can be merged, and opportunistically merges them.
@@ -25673,7 +25811,7 @@ bool Compiler::fgUseThrowHelperBlocks()
 //    *  CALL      void   ThrowHelper.ThrowArgumentOutOfRangeException
 //    \--*  CNS_INT   int    33
 //
-void Compiler::fgTailMergeThrows()
+PhaseStatus Compiler::fgTailMergeThrows()
 {
     noway_assert(opts.OptimizationEnabled());
 
@@ -25683,7 +25821,7 @@ void Compiler::fgTailMergeThrows()
     if (optNoReturnCallCount < 2)
     {
         JITDUMP("Method does not have multiple noreturn calls.\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     // This transformation requires block pred lists to be built
@@ -25742,6 +25880,14 @@ void Compiler::fgTailMergeThrows()
     // and there is less jumbled flow to sort out later.
     for (BasicBlock* block = fgLastBB; block != nullptr; block = block->bbPrev)
     {
+        // Workaround: don't consider try entry blocks as candidates
+        // for merging; if the canonical throw is later in the same try,
+        // we'll create invalid flow.
+        if ((block->bbFlags & BBF_TRY_BEG) != 0)
+        {
+            continue;
+        }
+
         // For throw helpers the block should have exactly one statement....
         // (this isn't guaranteed, but seems likely)
         Statement* stmt = block->firstStmt();
@@ -25798,7 +25944,7 @@ void Compiler::fgTailMergeThrows()
     if (numCandidates == 0)
     {
         JITDUMP("\n*************** no throws can be tail merged, sorry\n");
-        return;
+        return PhaseStatus::MODIFIED_NOTHING;
     }
 
     JITDUMP("\n*** found %d merge candidates, rewriting flow\n\n", numCandidates);
@@ -25871,6 +26017,11 @@ void Compiler::fgTailMergeThrows()
         }
     }
 
+    if (updateCount == 0)
+    {
+        return PhaseStatus::MODIFIED_NOTHING;
+    }
+
     // If we altered flow, reset fgModified. Given where we sit in the
     // phase list, flow-dependent side data hasn't been built yet, so
     // nothing needs invalidation.
@@ -25878,21 +26029,9 @@ void Compiler::fgTailMergeThrows()
     // Note we could invoke a cleanup pass here, but optOptimizeFlow
     // seems to be missing some safety checks and doesn't expect to
     // see an already cleaned-up flow graph.
-    if (updateCount > 0)
-    {
-        assert(fgModified);
-        fgModified = false;
-    }
-
-#if DEBUG
-    if (verbose)
-    {
-        printf("\n*************** After fgTailMergeThrows(%d updates)\n", updateCount);
-        fgDispBasicBlocks();
-        fgVerifyHandlerTab();
-        fgDebugCheckBBlist();
-    }
-#endif // DEBUG
+    assert(fgModified);
+    fgModified = false;
+    return PhaseStatus::MODIFIED_EVERYTHING;
 }
 
 //------------------------------------------------------------------------

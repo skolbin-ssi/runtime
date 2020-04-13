@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections;
 using System.Text;
@@ -114,7 +115,7 @@ namespace System.Globalization.Tests
         public static IEnumerable<object[]> LastIndexOf_TestData()
         {
             // Empty strings
-            yield return new object[] { "foo", "", 2, 3, CompareOptions.None, 2 };
+            yield return new object[] { "foo", "", 2, 3, CompareOptions.None, 3 };
             yield return new object[] { "", "", 0, 0, CompareOptions.None, 0 };
             yield return new object[] { "", "a", 0, 0, CompareOptions.None, -1 };
             yield return new object[] { "", "", -1, 0, CompareOptions.None, 0 };
@@ -127,8 +128,8 @@ namespace System.Globalization.Tests
             yield return new object[] { "Hello", "b", 5, 5, CompareOptions.None, -1 };
             yield return new object[] { "Hello", "l", 5, 0, CompareOptions.None, -1 };
 
-            yield return new object[] { "Hello", "", 5, 5, CompareOptions.None, 4 };
-            yield return new object[] { "Hello", "", 5, 0, CompareOptions.None, 4 };
+            yield return new object[] { "Hello", "", 5, 5, CompareOptions.None, 5 };
+            yield return new object[] { "Hello", "", 5, 0, CompareOptions.None, 5 };
 
             // OrdinalIgnoreCase
             yield return new object[] { "Hello", "l", 4, 5, CompareOptions.OrdinalIgnoreCase, 3 };
@@ -181,6 +182,9 @@ namespace System.Globalization.Tests
             yield return new object[] { "foo", "", CompareOptions.None, true };
             yield return new object[] { "", "", CompareOptions.None, true };
 
+            // Early exit for empty values before 'options' is validated
+            yield return new object[] { "hello", "", (CompareOptions)(-1), true };
+
             // Long strings
             yield return new object[] { new string('a', 5555), "aaaaaaaaaaaaaaa", CompareOptions.None, true };
             yield return new object[] { new string('a', 5555), new string('a', 5000), CompareOptions.None, true };
@@ -218,6 +222,9 @@ namespace System.Globalization.Tests
             // Empty strings
             yield return new object[] { "foo", "", CompareOptions.None, true };
             yield return new object[] { "", "", CompareOptions.None, true };
+
+            // Early exit for empty values before 'options' is validated
+            yield return new object[] { "hello", "", (CompareOptions)(-1), true };
 
             // Long strings
             yield return new object[] { new string('a', 5555), "aaaaaaaaaaaaaaa", CompareOptions.None, true };
@@ -639,6 +646,25 @@ namespace System.Globalization.Tests
             Assert.NotEqual(0, SortKey.Compare(sortKeyForEmptyString, sortKeyForZeroWidthJoiner));
         }
 
+        [Theory]
+        [InlineData("", "", 0)]
+        [InlineData("", "not-empty", -1)]
+        [InlineData("not-empty", "", 1)]
+        [InlineData("hello", "hello", 0)]
+        [InlineData("prefix", "prefix-with-more-data", -1)]
+        [InlineData("prefix-with-more-data", "prefix", 1)]
+        [InlineData("e", "\u0115", -1)] // U+0115 = LATIN SMALL LETTER E WITH BREVE, tests endianness handling
+        public void TestSortKey_Compare_And_Equals(string value1, string value2, int expectedSign)
+        {
+            // These tests are in the "invariant" unit test project because we rely on Invariant mode
+            // copying the input data directly into the sort key.
+
+            SortKey sortKey1 = CultureInfo.InvariantCulture.CompareInfo.GetSortKey(value1);
+            SortKey sortKey2 = CultureInfo.InvariantCulture.CompareInfo.GetSortKey(value2);
+
+            Assert.Equal(expectedSign, Math.Sign(SortKey.Compare(sortKey1, sortKey2)));
+            Assert.Equal(expectedSign == 0, sortKey1.Equals(sortKey2));
+        }
 
         private static StringComparison GetStringComparison(CompareOptions options)
         {
@@ -683,7 +709,7 @@ namespace System.Globalization.Tests
                 Assert.Equal(result, source.LastIndexOf(value, startIndex, count, GetStringComparison(options)));
 
                 // Filter differences betweeen string-based and Span-based LastIndexOf
-                // - Empty value handling - https://github.com/dotnet/coreclr/issues/26608
+                // - Empty value handling - https://github.com/dotnet/runtime/issues/13382
                 // - Negative count
                 if (value.Length == 0 || count < 0)
                     continue;
@@ -707,7 +733,18 @@ namespace System.Globalization.Tests
             {
                 Assert.Equal(result, CultureInfo.GetCultureInfo(cul).CompareInfo.IsPrefix(source, value, options));
                 Assert.Equal(result, source.StartsWith(value, GetStringComparison(options)));
-                Assert.Equal(result, source.AsSpan().StartsWith(value.AsSpan(), GetStringComparison(options)));
+
+                // Span versions - using BoundedMemory to check for buffer overruns
+
+                using BoundedMemory<char> sourceBoundedMemory = BoundedMemory.AllocateFromExistingData<char>(source);
+                sourceBoundedMemory.MakeReadonly();
+                ReadOnlySpan<char> sourceBoundedSpan = sourceBoundedMemory.Span;
+
+                using BoundedMemory<char> valueBoundedMemory = BoundedMemory.AllocateFromExistingData<char>(value);
+                valueBoundedMemory.MakeReadonly();
+                ReadOnlySpan<char> valueBoundedSpan = valueBoundedMemory.Span;
+
+                Assert.Equal(result, sourceBoundedSpan.StartsWith(valueBoundedSpan, GetStringComparison(options)));
             }
         }
 
@@ -719,10 +756,37 @@ namespace System.Globalization.Tests
             {
                 Assert.Equal(result, CultureInfo.GetCultureInfo(cul).CompareInfo.IsSuffix(source, value, options));
                 Assert.Equal(result, source.EndsWith(value, GetStringComparison(options)));
-                Assert.Equal(result, source.AsSpan().EndsWith(value.AsSpan(), GetStringComparison(options)));
+
+                // Span versions - using BoundedMemory to check for buffer overruns
+
+                using BoundedMemory<char> sourceBoundedMemory = BoundedMemory.AllocateFromExistingData<char>(source);
+                sourceBoundedMemory.MakeReadonly();
+                ReadOnlySpan<char> sourceBoundedSpan = sourceBoundedMemory.Span;
+
+                using BoundedMemory<char> valueBoundedMemory = BoundedMemory.AllocateFromExistingData<char>(value);
+                valueBoundedMemory.MakeReadonly();
+                ReadOnlySpan<char> valueBoundedSpan = valueBoundedMemory.Span;
+
+                Assert.Equal(result, sourceBoundedSpan.EndsWith(valueBoundedSpan, GetStringComparison(options)));
             }
         }
 
+        [Theory]
+        [InlineData("", false)]
+        [InlineData('x', true)]
+        [InlineData('\ud800', true)] // standalone high surrogate
+        [InlineData("hello", true)]
+        public void TestIsSortable(object sourceObj, bool expectedResult)
+        {
+            if (sourceObj is string s)
+            {
+                Assert.Equal(expectedResult, CompareInfo.IsSortable(s));
+            }
+            else
+            {
+                Assert.Equal(expectedResult, CompareInfo.IsSortable((char)sourceObj));
+            }
+        }
 
         [Theory]
         [MemberData(nameof(Compare_TestData))]
@@ -731,13 +795,23 @@ namespace System.Globalization.Tests
             foreach (string cul in s_cultureNames)
             {
                 int res = CultureInfo.GetCultureInfo(cul).CompareInfo.Compare(source, value, options);
-                if (res < 0) res = -1;
-                if (res > 0) res = 1;
-                Assert.Equal(result, res);
+                Assert.Equal(result, Math.Sign(res));
+
                 res = string.Compare(source, value, GetStringComparison(options));
-                if (res < 0) res = -1;
-                if (res > 0) res = 1;
-                Assert.Equal(result, res);
+                Assert.Equal(result, Math.Sign(res));
+
+                // Span versions - using BoundedMemory to check for buffer overruns
+
+                using BoundedMemory<char> sourceBoundedMemory = BoundedMemory.AllocateFromExistingData<char>(source);
+                sourceBoundedMemory.MakeReadonly();
+                ReadOnlySpan<char> sourceBoundedSpan = sourceBoundedMemory.Span;
+
+                using BoundedMemory<char> valueBoundedMemory = BoundedMemory.AllocateFromExistingData<char>(value);
+                valueBoundedMemory.MakeReadonly();
+                ReadOnlySpan<char> valueBoundedSpan = valueBoundedMemory.Span;
+
+                res = sourceBoundedSpan.CompareTo(valueBoundedSpan, GetStringComparison(options));
+                Assert.Equal(result, Math.Sign(res));
             }
         }
 
