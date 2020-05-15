@@ -9,6 +9,7 @@ trigger:
     - '*'
     - docs/manpages/*
     exclude:
+    - .github/*
     - docs/*
     - CODE-OF-CONDUCT.md
     - CONTRIBUTING.md
@@ -76,13 +77,14 @@ stages:
       - tvOS_x64
       - tvOS_arm64
       - iOS_x64
-      # - iOS_arm # https://github.com/dotnet/runtime/issues/34465
+      - iOS_arm
       - iOS_arm64
       - OSX_x64
       - Linux_x64
       - Linux_arm
       - Linux_arm64
       - Linux_musl_x64
+      - Browser_wasm
       # - Linux_musl_arm64
       - Windows_NT_x64
       # - Windows_NT_x86
@@ -129,8 +131,9 @@ stages:
       - tvOS_x64
       - tvOS_arm64
       - iOS_x64
-      # - iOS_arm # https://github.com/dotnet/runtime/issues/34465
+      - iOS_arm
       - iOS_arm64
+      - Browser_wasm
       jobParameters:
         isOfficialBuild: ${{ variables.isOfficialBuild }}
         liveRuntimeBuildConfig: release
@@ -186,15 +189,18 @@ stages:
         buildFullPlatformManifest: false
       runtimeFlavor: mono
       platforms:
+      - OSX_x64
+      - Linux_x64
       - tvOS_x64
       - tvOS_arm64
-      # - iOS_arm # https://github.com/dotnet/runtime/issues/34465
+      - iOS_arm
       - iOS_arm64
       - iOS_x64
       - Android_arm
       - Android_arm64
       - Android_x64
       - Android_x86
+      - Browser_wasm
 
 - ${{ if eq(variables.isOfficialBuild, true) }}:
   - template: /eng/pipelines/official/stages/publish.yml
