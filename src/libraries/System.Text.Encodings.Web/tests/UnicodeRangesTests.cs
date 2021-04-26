@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Reflection;
 using Xunit;
@@ -28,6 +27,7 @@ namespace System.Text.Unicode.Tests
 
         [Theory]
         [MemberData(nameof(UnicodeRanges_GeneratedData))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
         public static void Range_Unicode(ushort first, ushort last, string blockName)
         {
             Assert.Equal(0x0, first & 0xF); // first char in any block should be U+nnn0

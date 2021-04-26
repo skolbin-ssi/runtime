@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -127,9 +126,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="TryReceive"]/*' />
-#pragma warning disable CS8614 // TODO-NULLABLE: https://github.com/dotnet/roslyn/issues/42470
         public bool TryReceive(Predicate<T[]>? filter, [NotNullWhen(true)] out T[]? item)
-#pragma warning restore CS8614
         {
             return _source.TryReceive(filter, out item);
         }
@@ -157,8 +154,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-        [return: MaybeNull]
-        T[] ISourceBlock<T[]>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T[]> target, out bool messageConsumed)
+        T[]? ISourceBlock<T[]>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T[]> target, out bool messageConsumed)
         {
             return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
         }
@@ -182,16 +178,9 @@ namespace System.Threading.Tasks.Dataflow
         public override string ToString() { return Common.GetNameForDebugger(this, _source.DataflowBlockOptions); }
 
         /// <summary>The data to display in the debugger display attribute.</summary>
-        private object DebuggerDisplayContent
-        {
-            get
-            {
-                return string.Format("{0}, BatchSize={1}, OutputCount={2}",
-                    Common.GetNameForDebugger(this, _source.DataflowBlockOptions),
-                    BatchSize,
-                    OutputCountForDebugger);
-            }
-        }
+        private object DebuggerDisplayContent =>
+            $"{Common.GetNameForDebugger(this, _source.DataflowBlockOptions)}, BatchSize={BatchSize}, OutputCount={OutputCountForDebugger}";
+
         /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
         object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
 
@@ -391,7 +380,7 @@ namespace System.Threading.Tasks.Dataflow
                             Debug.Assert(source != null, "We must have thrown if source == null && consumeToAccept == true.");
 
                             bool consumed;
-                            messageValue = source.ConsumeMessage(messageHeader, _owningBatch, out consumed);
+                            messageValue = source.ConsumeMessage(messageHeader, _owningBatch, out consumed)!;
                             if (!consumed) return DataflowMessageStatus.NotAvailable;
                         }
 
@@ -589,9 +578,17 @@ namespace System.Threading.Tasks.Dataflow
 
                     if (_nonGreedyState != null)
                     {
-                        // We can make a triggered batch using postponed messages
-                        if (_nonGreedyState.AcceptFewerThanBatchSize &&
-                            (_messages.Count > 0 || (_nonGreedyState.PostponedMessages.Count > 0 && boundedCapacityAvailable > 0)))
+                        // If a batch was triggered and we have any messages, we can create a batch from what we already have.
+                        if (_nonGreedyState.AcceptFewerThanBatchSize && _messages.Count > 0)
+                            return true;
+
+                        // At this point, to make a batch we'll need to consume postponed messages, but we can't do
+                        // that if we're declining all future messages.
+                        if (_decliningPermanently)
+                            return false;
+
+                        // If a batch was triggered and there are any postponed messages to retrieve and there's room available, try.
+                        if (_nonGreedyState.AcceptFewerThanBatchSize && _nonGreedyState.PostponedMessages.Count > 0 && boundedCapacityAvailable > 0)
                             return true;
 
                         if (_dataflowBlockOptions.Greedy)
@@ -1000,7 +997,7 @@ namespace System.Threading.Tasks.Dataflow
                     KeyValuePair<ISourceBlock<T>, KeyValuePair<DataflowMessageHeader, T>> sourceAndMessage = reserved[i];
                     reserved[i] = default(KeyValuePair<ISourceBlock<T>, KeyValuePair<DataflowMessageHeader, T>>); // in case of exception from ConsumeMessage
                     bool consumed;
-                    T consumedValue = sourceAndMessage.Key.ConsumeMessage(sourceAndMessage.Value.Key, _owningBatch, out consumed);
+                    T? consumedValue = sourceAndMessage.Key.ConsumeMessage(sourceAndMessage.Value.Key, _owningBatch, out consumed);
                     if (!consumed)
                     {
                         // The protocol broke down, so throw an exception, as this is fatal.  Before doing so, though,
@@ -1052,7 +1049,7 @@ namespace System.Threading.Tasks.Dataflow
                     KeyValuePair<ISourceBlock<T>, KeyValuePair<DataflowMessageHeader, T>> sourceAndMessage = reserved[i];
                     reserved[i] = default(KeyValuePair<ISourceBlock<T>, KeyValuePair<DataflowMessageHeader, T>>); // in case of exception from ConsumeMessage
                     bool consumed;
-                    T consumedValue = sourceAndMessage.Key.ConsumeMessage(sourceAndMessage.Value.Key, _owningBatch, out consumed);
+                    T? consumedValue = sourceAndMessage.Key.ConsumeMessage(sourceAndMessage.Value.Key, _owningBatch, out consumed);
                     if (consumed)
                     {
                         var consumedMessage = new KeyValuePair<DataflowMessageHeader, T>(sourceAndMessage.Value.Key, consumedValue!);
@@ -1166,8 +1163,7 @@ namespace System.Threading.Tasks.Dataflow
                 get
                 {
                     var displayBatch = _owningBatch as IDebuggerDisplay;
-                    return string.Format("Block=\"{0}\"",
-                        displayBatch != null ? displayBatch.Content : _owningBatch);
+                    return $"Block=\"{(displayBatch != null ? displayBatch.Content : _owningBatch)}\"";
                 }
             }
 

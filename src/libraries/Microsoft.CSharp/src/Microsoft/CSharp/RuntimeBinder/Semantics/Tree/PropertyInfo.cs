@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Microsoft.CSharp.RuntimeBinder.Semantics
@@ -22,6 +22,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
 
         public PropertyInfo PropertyInfo
         {
+            [RequiresUnreferencedCode(Binder.TrimmerWarning)]
             get
             {
                 // To do this, we need to construct a type array of the parameter types,

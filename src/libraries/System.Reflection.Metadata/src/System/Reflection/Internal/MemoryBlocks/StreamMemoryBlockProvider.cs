@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -77,9 +76,11 @@ namespace System.Reflection.Internal
             {
                 stream.Seek(start, SeekOrigin.Begin);
 
-                if (!isFileStream || !FileStreamReadLightUp.TryReadFile(stream, block.Pointer, start, size))
+                int bytesRead = 0;
+
+                if (!isFileStream || (bytesRead = FileStreamReadLightUp.ReadFile(stream, block.Pointer, size)) != size)
                 {
-                    stream.CopyTo(block.Pointer, size);
+                    stream.CopyTo(block.Pointer + bytesRead, size - bytesRead);
                 }
 
                 fault = false;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 
@@ -274,7 +273,7 @@ namespace System.Collections.Specialized
             count--;
         }
 
-        private class NodeEnumerator : IDictionaryEnumerator
+        private sealed class NodeEnumerator : IDictionaryEnumerator
         {
             private readonly ListDictionary _list;
             private DictionaryNode? _current;
@@ -363,7 +362,7 @@ namespace System.Collections.Specialized
             }
         }
 
-        private class NodeKeyValueCollection : ICollection
+        private sealed class NodeKeyValueCollection : ICollection
         {
             private readonly ListDictionary _list;
             private readonly bool _isKeys;
@@ -423,7 +422,7 @@ namespace System.Collections.Specialized
             }
 
 
-            private class NodeKeyValueEnumerator : IEnumerator
+            private sealed class NodeKeyValueEnumerator : IEnumerator
             {
                 private readonly ListDictionary _list;
                 private DictionaryNode? _current;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using Test.Cryptography;
@@ -8,6 +7,7 @@ using Xunit;
 
 namespace System.Security.Cryptography.Dsa.Tests
 {
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public sealed class DSASignVerify_Array : DSASignVerify
     {
         public override byte[] SignData(DSA dsa, byte[] data, HashAlgorithmName hashAlgorithm) =>
@@ -54,6 +54,7 @@ namespace System.Security.Cryptography.Dsa.Tests
         }
     }
 
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public sealed class DSASignVerify_Stream : DSASignVerify
     {
         public override byte[] SignData(DSA dsa, byte[] data, HashAlgorithmName hashAlgorithm) =>
@@ -75,6 +76,7 @@ namespace System.Security.Cryptography.Dsa.Tests
     }
 
 #if NETCOREAPP
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public sealed class DSASignVerify_Span : DSASignVerify
     {
         public override byte[] SignData(DSA dsa, byte[] data, HashAlgorithmName hashAlgorithm) =>
@@ -107,6 +109,7 @@ namespace System.Security.Cryptography.Dsa.Tests
         }
     }
 #endif
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public abstract partial class DSASignVerify
     {
         public abstract byte[] SignData(DSA dsa, byte[] data, HashAlgorithmName hashAlgorithm);
@@ -140,7 +143,7 @@ namespace System.Security.Cryptography.Dsa.Tests
 
         private void UseAfterDispose(bool importKey)
         {
-            DSA key = importKey ? DSAFactory.Create(DSATestData.GetDSA1024Params()) : DSAFactory.Create(512);
+            DSA key = importKey ? DSAFactory.Create(DSATestData.GetDSA1024Params()) : DSAFactory.Create(1024);
             byte[] data = { 1 };
             byte[] sig;
 
@@ -160,7 +163,21 @@ namespace System.Security.Cryptography.Dsa.Tests
             Assert.Throws<ObjectDisposedException>(
                 () =>
                 {
-                    key.KeySize = 576;
+                    try
+                    {
+                        key.KeySize = 576;
+                    }
+                    catch (CryptographicException)
+                    {
+                        // DSACryptoServiceProvider on Android only supports 1024 and does an early check for legal
+                        // key sizes, since it is more restrictive than the wrapped implementation. It will throw
+                        // CryptographicException. SignData should still throw ObjectDisposedException.
+                        if (!PlatformDetection.IsAndroid)
+                        {
+                            throw;
+                        }
+                    }
+
                     SignData(key, data, HashAlgorithmName.SHA1);
                 });
         }

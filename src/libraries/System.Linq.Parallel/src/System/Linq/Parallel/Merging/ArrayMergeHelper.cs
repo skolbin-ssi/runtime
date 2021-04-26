@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -26,7 +25,7 @@ namespace System.Linq.Parallel
     /// no extra cost for ordering.
     /// </summary>
     /// <typeparam name="TInputOutput"></typeparam>
-    internal class ArrayMergeHelper<TInputOutput> : IMergeHelper<TInputOutput>
+    internal sealed class ArrayMergeHelper<TInputOutput> : IMergeHelper<TInputOutput>
     {
         private readonly QueryResults<TInputOutput> _queryResults; // Indexable query results
         private readonly TInputOutput[] _outputArray; // The output array.
@@ -71,7 +70,7 @@ namespace System.Linq.Parallel
         /// We never expect this method to be called. ArrayMergeHelper is intended to be used when we want
         /// to consume the results using GetResultsAsArray().
         /// </summary>
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "ArrayMergeHelper<>.GetEnumerator() is not intended to be used")]
         public IEnumerator<TInputOutput> GetEnumerator()
         {
             Debug.Fail("ArrayMergeHelper<>.GetEnumerator() is not intended to be used. Call GetResultsAsArray() instead.");

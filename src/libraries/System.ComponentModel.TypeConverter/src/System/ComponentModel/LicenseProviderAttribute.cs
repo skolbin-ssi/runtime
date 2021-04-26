@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -18,7 +17,9 @@ namespace System.ComponentModel
         /// </summary>
         public static readonly LicenseProviderAttribute Default = new LicenseProviderAttribute();
 
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
         private Type _licenseProviderType;
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
         private readonly string _licenseProviderName;
 
         /// <summary>
@@ -33,7 +34,7 @@ namespace System.ComponentModel
         /// Initializes a new instance of the <see cref='System.ComponentModel.LicenseProviderAttribute'/> class with
         /// the specified type.
         /// </summary>
-        public LicenseProviderAttribute(string typeName)
+        public LicenseProviderAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] string typeName)
         {
             _licenseProviderName = typeName;
         }
@@ -42,7 +43,7 @@ namespace System.ComponentModel
         /// Initializes a new instance of the <see cref='System.ComponentModel.LicenseProviderAttribute'/> class with
         /// the specified type of license provider.
         /// </summary>
-        public LicenseProviderAttribute(Type type)
+        public LicenseProviderAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
         {
             _licenseProviderType = type;
         }
@@ -50,6 +51,7 @@ namespace System.ComponentModel
         /// <summary>
         /// Gets the license provider to use with the associated class.
         /// </summary>
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
         public Type LicenseProvider
         {
             get

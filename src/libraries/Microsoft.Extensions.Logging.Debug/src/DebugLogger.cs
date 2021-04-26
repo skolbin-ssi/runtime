@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -10,7 +9,7 @@ namespace Microsoft.Extensions.Logging.Debug
     /// <summary>
     /// A logger that writes messages in the debug output window only when a debugger is attached.
     /// </summary>
-    internal partial class DebugLogger : ILogger
+    internal sealed partial class DebugLogger : ILogger
     {
         private readonly string _name;
 
@@ -50,7 +49,7 @@ namespace Microsoft.Extensions.Logging.Debug
                 throw new ArgumentNullException(nameof(formatter));
             }
 
-            var message = formatter(state, exception);
+            string message = formatter(state, exception);
 
             if (string.IsNullOrEmpty(message))
             {

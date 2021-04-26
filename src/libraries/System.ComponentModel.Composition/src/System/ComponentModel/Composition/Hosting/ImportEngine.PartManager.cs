@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel.Composition.Primitives;
@@ -16,7 +15,7 @@ namespace System.ComponentModel.Composition.Hosting
         ///     It stores things like the list of disposable exports used to satisfy the imports as
         ///     well as the caching of the exports discovered during previewing of a part.
         /// </summary>
-        private class PartManager
+        private sealed class PartManager
         {
             private Dictionary<ImportDefinition, List<IDisposable>>? _importedDisposableExports;
             private Dictionary<ImportDefinition, Export[]?>? _importCache;

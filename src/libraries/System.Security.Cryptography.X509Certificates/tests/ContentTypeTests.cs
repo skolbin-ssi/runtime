@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.IO;
@@ -11,11 +10,10 @@ namespace System.Security.Cryptography.X509Certificates.Tests
     public class ContentTypeTests
     {
         [Theory]
-        [InlineData("My.pfx", X509ContentType.Pkcs12)]
-        [InlineData("My.cer", X509ContentType.Cert)]
+        [MemberData(nameof(GetFileNamesWithType))]
         public static void TestFileContentType(string fileName, X509ContentType contentType)
         {
-            string fullPath = Path.Combine("TestData", fileName);
+            string fullPath = Path.Combine(TestFiles.TestDataFolder, fileName);
             X509ContentType fileType = X509Certificate2.GetCertContentType(fullPath);
             Assert.Equal(contentType, fileType);
         }
@@ -27,6 +25,9 @@ namespace System.Security.Cryptography.X509Certificates.Tests
             _ = caseName;
             X509ContentType blobType = X509Certificate2.GetCertContentType(blob);
             Assert.Equal(contentType, blobType);
+
+            blobType = X509Certificate2.GetCertContentType(blob.AsSpan());
+            Assert.Equal(contentType, blobType);
         }
 
         [Fact]
@@ -34,6 +35,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
         {
             byte[] blob = new byte[] { 0x00, 0xFF, 0x00, 0xFF };
             Assert.ThrowsAny<CryptographicException>(() => X509Certificate2.GetCertContentType(blob));
+            Assert.ThrowsAny<CryptographicException>(() => X509Certificate2.GetCertContentType(blob.AsSpan()));
         }
 
         public static IEnumerable<object[]> GetContentBlobsWithType()
@@ -53,6 +55,15 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                 new object[] { "MultiPrivatePfx", TestData.MultiPrivateKeyPfx, X509ContentType.Pkcs12 },
                 new object[] { "ChainPfx", TestData.ChainPfxBytes, X509ContentType.Pkcs12 },
                 new object[] { "ConcatenatedPem", TestData.ConcatenatedPemFile, X509ContentType.Cert }
+            };
+        }
+
+        public static IEnumerable<object[]> GetFileNamesWithType()
+        {
+            return new[]
+            {
+                new object[] { TestFiles.PfxFileName, X509ContentType.Pkcs12 },
+                new object[] { TestFiles.MyCertFileName, X509ContentType.Cert }
             };
         }
     }

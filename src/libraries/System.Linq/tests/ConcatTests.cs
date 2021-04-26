@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -245,7 +244,7 @@ namespace System.Linq.Tests
             yield return new object[] { Enumerable.Range(0, 500).Select(i => Enumerable.Repeat(i, 1)).Reverse() };
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsSpeedOptimized))]
         public void CountOfConcatIteratorShouldThrowExceptionOnIntegerOverflow()
         {
             var supposedlyLargeCollection = new DelegateBasedCollection<int> { CountWorker = () => int.MaxValue };

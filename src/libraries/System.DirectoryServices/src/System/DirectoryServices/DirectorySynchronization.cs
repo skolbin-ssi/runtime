@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
 
@@ -20,7 +19,7 @@ namespace System.DirectoryServices
             Option = option;
         }
 
-        public DirectorySynchronization(DirectorySynchronization sync)
+        public DirectorySynchronization(DirectorySynchronization? sync)
         {
             if (sync != null)
             {
@@ -29,9 +28,9 @@ namespace System.DirectoryServices
             }
         }
 
-        public DirectorySynchronization(byte[] cookie) => ResetDirectorySynchronizationCookie(cookie);
+        public DirectorySynchronization(byte[]? cookie) => ResetDirectorySynchronizationCookie(cookie);
 
-        public DirectorySynchronization(DirectorySynchronizationOptions option, byte[] cookie)
+        public DirectorySynchronization(DirectorySynchronizationOptions option, byte[]? cookie)
         {
             Option = option;
             ResetDirectorySynchronizationCookie(cookie);
@@ -68,7 +67,7 @@ namespace System.DirectoryServices
 
         public void ResetDirectorySynchronizationCookie() => _cookie = Array.Empty<byte>();
 
-        public void ResetDirectorySynchronizationCookie(byte[] cookie)
+        public void ResetDirectorySynchronizationCookie(byte[]? cookie)
         {
             if (cookie == null)
             {

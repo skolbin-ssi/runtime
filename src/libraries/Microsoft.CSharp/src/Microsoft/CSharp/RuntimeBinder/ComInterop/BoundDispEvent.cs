@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
@@ -15,6 +15,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
         private readonly Guid _sourceIid;
         private readonly int _dispid;
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal BoundDispEvent(object rcw, Guid sourceIid, int dispid)
         {
             _rcw = rcw;
@@ -29,6 +30,8 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
         /// <param name="handler">The handler for the operation.</param>
         /// <param name="result">The result of the operation.</param>
         /// <returns>true if the operation is complete, false if the call site should determine behavior.</returns>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This whole class is unsafe. Constructors are marked as such.")]
         public override bool TryBinaryOperation(BinaryOperationBinder binder, object handler, out object result)
         {
             if (binder.Operation == ExpressionType.AddAssign)
@@ -72,6 +75,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
         /// </summary>
         /// <param name="handler">The handler to be added.</param>
         /// <returns>The original event with handler added.</returns>
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private object InPlaceAdd(object handler)
         {
             Requires.NotNull(handler, nameof(handler));

@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Threading;
 
 namespace System.ComponentModel.Composition
 {
-    internal partial class ExportServices
+    internal static partial class ExportServices
     {
         private sealed class DisposableLazy<T, TMetadataView> : Lazy<T, TMetadataView>, IDisposable
         {

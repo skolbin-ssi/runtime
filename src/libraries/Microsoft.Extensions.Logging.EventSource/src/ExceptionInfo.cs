@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 
@@ -10,7 +9,7 @@ namespace Microsoft.Extensions.Logging.EventSource
     /// Represents information about exceptions that is captured by EventSourceLogger
     /// </summary>
     [System.Diagnostics.Tracing.EventData(Name ="ExceptionInfo")]
-    internal class ExceptionInfo
+    internal sealed class ExceptionInfo
     {
         public static ExceptionInfo Empty { get; } = new ExceptionInfo();
 

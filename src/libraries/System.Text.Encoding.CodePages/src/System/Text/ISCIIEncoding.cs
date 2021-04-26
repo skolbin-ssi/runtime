@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // ISCIIEncoding
 //
@@ -25,7 +24,7 @@ namespace System.Text
     //      Forms D & KD have things like 0934, which decomposes to 0933 + 093C, so not normal.
     //      Form IDNA has the above problems plus case mapping, so false (like most encodings)
     //
-    internal class ISCIIEncoding : EncodingNLS, ISerializable
+    internal sealed class ISCIIEncoding : EncodingNLS, ISerializable
     {
         // Constants
         private const int CodeDevanagari = 2;    // 0x42 57002
@@ -692,16 +691,16 @@ namespace System.Text
             return _defaultCodePage + EncoderFallback.GetHashCode() + DecoderFallback.GetHashCode();
         }
 
-        internal class ISCIIEncoder : EncoderNLS
+        internal sealed class ISCIIEncoder : EncoderNLS
         {
             // Need to remember the default code page (for HasState)
-            internal int defaultCodePage = 0;
+            internal int defaultCodePage;
 
             // Need a place for the current code page
-            internal int currentCodePage = 0;
+            internal int currentCodePage;
 
             // Was the last character a virama?  (Because ZWJ and ZWNJ are different then)
-            internal bool bLastVirama = false;
+            internal bool bLastVirama;
 
             public ISCIIEncoder(EncodingNLS encoding) : base(encoding)
             {
@@ -730,15 +729,15 @@ namespace System.Text
             }
         }
 
-        internal class ISCIIDecoder : DecoderNLS
+        internal sealed class ISCIIDecoder : DecoderNLS
         {
             // Need a place to store any our current code page and last ATR flag
-            internal int currentCodePage = 0;
-            internal bool bLastATR = false;
-            internal bool bLastVirama = false;
-            internal bool bLastDevenagariStressAbbr = false;
-            internal char cLastCharForNextNukta = '\0';
-            internal char cLastCharForNoNextNukta = '\0';
+            internal int currentCodePage;
+            internal bool bLastATR;
+            internal bool bLastVirama;
+            internal bool bLastDevenagariStressAbbr;
+            internal char cLastCharForNextNukta;
+            internal char cLastCharForNoNextNukta;
 
             public ISCIIDecoder(EncodingNLS encoding) : base(encoding)
             {

@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Internal;
 using System.IO;
@@ -14,9 +14,9 @@ using System.Runtime.Serialization;
 
 namespace System.Drawing
 {
-#if NETCOREAPP
-    [TypeConverter("System.Drawing.IconConverter, System.Windows.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51")]
-#endif
+    [Editor("System.Drawing.Design.IconEditor, System.Drawing.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a",
+            "System.Drawing.Design.UITypeEditor, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")]
+    [TypeConverter(typeof(IconConverter))]
     [Serializable]
     [TypeForwardedFrom("System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")]
     public sealed partial class Icon : MarshalByRefObject, ICloneable, IDisposable, ISerializable
@@ -36,7 +36,7 @@ namespace System.Drawing
         private uint _bestImageOffset;
         private uint _bestBitDepth;
         private uint _bestBytesInRes;
-        private bool? _isBestImagePng = null;
+        private bool? _isBestImagePng;
         private Size _iconSize = Size.Empty;
         private IntPtr _handle = IntPtr.Zero;
         private readonly bool _ownHandle = true;
@@ -94,7 +94,7 @@ namespace System.Drawing
             if (_iconData == null)
             {
                 _iconSize = original.Size;
-                _handle = SafeNativeMethods.CopyImage(new HandleRef(original, original.Handle), SafeNativeMethods.IMAGE_ICON, _iconSize.Width, _iconSize.Height, 0);
+                _handle = Interop.User32.CopyImage(new HandleRef(original, original.Handle), SafeNativeMethods.IMAGE_ICON, _iconSize.Width, _iconSize.Height, 0);
             }
             else
             {
@@ -104,6 +104,9 @@ namespace System.Drawing
 
         public Icon(Type type, string resource) : this()
         {
+            if (resource == null)
+                throw new ArgumentNullException(nameof(resource));
+
             Stream? stream = type.Module.Assembly.GetManifestResourceStream(type, resource);
             if (stream == null)
             {
@@ -167,6 +170,9 @@ namespace System.Drawing
                 throw new ArgumentNullException(nameof(filePath));
             }
 
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentException(SR.NullOrEmptyPath, nameof(filePath));
+
             filePath = Path.GetFullPath(filePath);
             if (!File.Exists(filePath))
             {
@@ -184,7 +190,7 @@ namespace System.Drawing
 
             fixed (char* b = buffer)
             {
-                IntPtr hIcon = SafeNativeMethods.ExtractAssociatedIcon(NativeMethods.NullHandleRef, b, ref index);
+                IntPtr hIcon = Interop.Shell32.ExtractAssociatedIcon(NativeMethods.NullHandleRef, b, ref index);
                 ArrayPool<char>.Shared.Return(buffer);
                 if (hIcon != IntPtr.Zero)
                 {
@@ -217,24 +223,24 @@ namespace System.Drawing
             {
                 if (_iconSize.IsEmpty)
                 {
-                    SafeNativeMethods.ICONINFO info = default;
-                    SafeNativeMethods.GetIconInfo(new HandleRef(this, Handle), ref info);
-                    SafeNativeMethods.BITMAP bitmap = default;
+                    Interop.User32.ICONINFO info = default;
+                    Interop.User32.GetIconInfo(new HandleRef(this, Handle), ref info);
+                    Interop.Gdi32.BITMAP bitmap = default;
 
                     if (info.hbmColor != IntPtr.Zero)
                     {
-                        SafeNativeMethods.GetObject(
+                        Interop.Gdi32.GetObject(
                             new HandleRef(null, info.hbmColor),
-                            sizeof(SafeNativeMethods.BITMAP),
+                            sizeof(Interop.Gdi32.BITMAP),
                             ref bitmap);
                         Interop.Gdi32.DeleteObject(info.hbmColor);
                         _iconSize = new Size((int)bitmap.bmWidth, (int)bitmap.bmHeight);
                     }
                     else if (info.hbmMask != IntPtr.Zero)
                     {
-                        SafeNativeMethods.GetObject(
+                        Interop.Gdi32.GetObject(
                             new HandleRef(null, info.hbmMask),
-                            sizeof(SafeNativeMethods.BITMAP),
+                            sizeof(Interop.Gdi32.BITMAP),
                             ref bitmap);
                         _iconSize = new Size((int)bitmap.bmWidth, (int)(bitmap.bmHeight / 2));
                     }
@@ -268,7 +274,7 @@ namespace System.Drawing
         {
             if (_ownHandle)
             {
-                SafeNativeMethods.DestroyIcon(new HandleRef(this, _handle));
+                Interop.User32.DestroyIcon(new HandleRef(this, _handle));
                 _handle = IntPtr.Zero;
             }
         }
@@ -361,8 +367,8 @@ namespace System.Drawing
             IntPtr hSaveRgn = SaveClipRgn(dc);
             try
             {
-                SafeNativeMethods.IntersectClipRect(new HandleRef(this, dc), targetX, targetY, targetX + clipWidth, targetY + clipHeight);
-                SafeNativeMethods.DrawIconEx(new HandleRef(null, dc),
+                Interop.Gdi32.IntersectClipRect(new HandleRef(this, dc), targetX, targetY, targetX + clipWidth, targetY + clipHeight);
+                Interop.User32.DrawIconEx(new HandleRef(null, dc),
                                             targetX - imageX,
                                             targetY - imageY,
                                             new HandleRef(this, _handle),
@@ -374,7 +380,9 @@ namespace System.Drawing
             }
             finally
             {
-                RestoreClipRgn(dc, hSaveRgn);
+                Interop.Gdi32.SelectClipRgn(dc, hSaveRgn);
+                // We need to delete the region handle after restoring the region as GDI+ uses a copy of the handle.
+                Interop.Gdi32.DeleteObject(hSaveRgn);
             }
         }
 
@@ -389,13 +397,13 @@ namespace System.Drawing
                 hSaveRgn = hTempRgn;
                 hTempRgn = IntPtr.Zero;
             }
+            else
+            {
+                // if we fail to get the clip region delete the handle.
+                Interop.Gdi32.DeleteObject(hTempRgn);
+            }
 
             return hSaveRgn;
-        }
-
-        private static void RestoreClipRgn(IntPtr hDC, IntPtr hRgn)
-        {
-            Interop.Gdi32.SelectClipRgn(new HandleRef(null, hDC), new HandleRef(null, hRgn));
         }
 
         internal void Draw(Graphics graphics, int x, int y)
@@ -411,8 +419,11 @@ namespace System.Drawing
         internal void Draw(Graphics graphics, Rectangle targetRect)
         {
             Rectangle copy = targetRect;
-            copy.X += (int)graphics.Transform.OffsetX;
-            copy.Y += (int)graphics.Transform.OffsetY;
+
+            using Matrix transform = graphics.Transform;
+            PointF offset = transform.Offset;
+            copy.X += (int)offset.X;
+            copy.Y += (int)offset.Y;
 
             using (WindowsGraphics wg = WindowsGraphics.FromGraphics(graphics, ApplyGraphicsProperties.Clipping))
             {
@@ -428,8 +439,10 @@ namespace System.Drawing
         internal void DrawUnstretched(Graphics graphics, Rectangle targetRect)
         {
             Rectangle copy = targetRect;
-            copy.X += (int)graphics.Transform.OffsetX;
-            copy.Y += (int)graphics.Transform.OffsetY;
+            using Matrix transform = graphics.Transform;
+            PointF offset = transform.Offset;
+            copy.X += (int)offset.X;
+            copy.Y += (int)offset.Y;
 
             using (WindowsGraphics wg = WindowsGraphics.FromGraphics(graphics, ApplyGraphicsProperties.Clipping))
             {
@@ -440,7 +453,13 @@ namespace System.Drawing
 
         ~Icon() => Dispose(false);
 
-        public static Icon FromHandle(IntPtr handle) => new Icon(handle);
+        public static Icon FromHandle(IntPtr handle)
+        {
+            if (handle == IntPtr.Zero)
+                throw new ArgumentException(null, nameof(handle));
+
+            return new Icon(handle);
+        }
 
         // Initializes this Image object.  This is identical to calling the image's
         // constructor with picture, but this allows non-constructor initialization,
@@ -460,12 +479,12 @@ namespace System.Drawing
             // Get the correct width and height.
             if (width == 0)
             {
-                width = UnsafeNativeMethods.GetSystemMetrics(SafeNativeMethods.SM_CXICON);
+                width = Interop.User32.GetSystemMetrics(SafeNativeMethods.SM_CXICON);
             }
 
             if (height == 0)
             {
-                height = UnsafeNativeMethods.GetSystemMetrics(SafeNativeMethods.SM_CYICON);
+                height = Interop.User32.GetSystemMetrics(SafeNativeMethods.SM_CYICON);
             }
 
             if (s_bitDepth == 0)
@@ -595,7 +614,7 @@ namespace System.Drawing
 
                     fixed (byte* pbAlignedBuffer = alignedBuffer)
                     {
-                        _handle = SafeNativeMethods.CreateIconFromResourceEx(pbAlignedBuffer, _bestBytesInRes, true, 0x00030000, 0, 0, 0);
+                        _handle = Interop.User32.CreateIconFromResourceEx(pbAlignedBuffer, _bestBytesInRes, true, 0x00030000, 0, 0, 0);
                     }
                     ArrayPool<byte>.Shared.Return(alignedBuffer);
                 }
@@ -603,7 +622,7 @@ namespace System.Drawing
                 {
                     try
                     {
-                        _handle = SafeNativeMethods.CreateIconFromResourceEx(checked(b + _bestImageOffset), _bestBytesInRes, true, 0x00030000, 0, 0, 0);
+                        _handle = Interop.User32.CreateIconFromResourceEx(checked(b + _bestImageOffset), _bestBytesInRes, true, 0x00030000, 0, 0, 0);
                     }
                     catch (OverflowException)
                     {
@@ -646,38 +665,30 @@ namespace System.Drawing
                     }
                     finally
                     {
+                        Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
                         Marshal.ReleaseComObject(picture);
                     }
                 }
             }
         }
 
-        private void CopyBitmapData(BitmapData sourceData, BitmapData targetData)
+        private unsafe void CopyBitmapData(BitmapData sourceData, BitmapData targetData)
         {
-            int offsetSrc = 0;
-            int offsetDest = 0;
+            byte* srcPtr = (byte*)sourceData.Scan0;
+            byte* destPtr = (byte*)targetData.Scan0;
 
             Debug.Assert(sourceData.Height == targetData.Height, "Unexpected height. How did this happen?");
+            int height = Math.Min(sourceData.Height, targetData.Height);
+            long bytesToCopyEachIter = Math.Abs(targetData.Stride);
 
-            for (int i = 0; i < Math.Min(sourceData.Height, targetData.Height); i++)
+            for (int i = 0; i < height; i++)
             {
-                IntPtr srcPtr, destPtr;
-                if (IntPtr.Size == 4)
-                {
-                    srcPtr = new IntPtr(sourceData.Scan0.ToInt32() + offsetSrc);
-                    destPtr = new IntPtr(targetData.Scan0.ToInt32() + offsetDest);
-                }
-                else
-                {
-                    srcPtr = new IntPtr(sourceData.Scan0.ToInt64() + offsetSrc);
-                    destPtr = new IntPtr(targetData.Scan0.ToInt64() + offsetDest);
-                }
-
-                UnsafeNativeMethods.CopyMemory(new HandleRef(this, destPtr), new HandleRef(this, srcPtr), Math.Abs(targetData.Stride));
-
-                offsetSrc += sourceData.Stride;
-                offsetDest += targetData.Stride;
+                Buffer.MemoryCopy(srcPtr, destPtr, bytesToCopyEachIter, bytesToCopyEachIter);
+                srcPtr += sourceData.Stride;
+                destPtr += targetData.Stride;
             }
+
+            GC.KeepAlive(this); // finalizer mustn't deallocate data blobs while this method is running
         }
 
         private static bool BitmapHasAlpha(BitmapData bmpData)
@@ -759,14 +770,14 @@ namespace System.Drawing
             else if (_bestBitDepth == 0 || _bestBitDepth == 32)
             {
                 // This may be a 32bpp icon or an icon without any data.
-                SafeNativeMethods.ICONINFO info = default;
-                SafeNativeMethods.GetIconInfo(new HandleRef(this, _handle), ref info);
-                SafeNativeMethods.BITMAP bmp = default;
+                Interop.User32.ICONINFO info = default;
+                Interop.User32.GetIconInfo(new HandleRef(this, _handle), ref info);
+                Interop.Gdi32.BITMAP bmp = default;
                 try
                 {
                     if (info.hbmColor != IntPtr.Zero)
                     {
-                        SafeNativeMethods.GetObject(new HandleRef(null, info.hbmColor), sizeof(SafeNativeMethods.BITMAP), ref bmp);
+                        Interop.Gdi32.GetObject(new HandleRef(null, info.hbmColor), sizeof(Interop.Gdi32.BITMAP), ref bmp);
                         if (bmp.bmBitsPixel == 32)
                         {
                             Bitmap? tmpBitmap = null;
@@ -894,7 +905,7 @@ namespace System.Drawing
 
         public override string ToString() => SR.toStringIcon;
 
-        [DllImport(ExternDll.Oleaut32, PreserveSig = false)]
+        [DllImport(Interop.Libraries.Oleaut32, PreserveSig = false)]
         internal static extern IPicture OleCreatePictureIndirect(PICTDESC pictdesc, [In]ref Guid refiid, bool fOwn);
 
         [ComImport]
@@ -940,13 +951,13 @@ namespace System.Drawing
             void SetHdc([In] IntPtr hdc);
         }
 
-        internal class Ole
+        internal static class Ole
         {
             public const int PICTYPE_ICON = 3;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal class PICTDESC
+        internal sealed class PICTDESC
         {
             internal int cbSizeOfStruct;
             public int picType;

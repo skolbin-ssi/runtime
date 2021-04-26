@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.IO;
@@ -193,7 +192,7 @@ namespace System.Net.Http.Functional.Tests
             using (HttpClient client = CreateHttpClientForRemoteServer(remoteServer))
             using (HttpResponseMessage response =
                     await client.GetAsync(remoteServer.EchoUri, HttpCompletionOption.ResponseHeadersRead))
-            using (Stream stream = await response.Content.ReadAsStreamAsync())
+            using (Stream stream = await response.Content.ReadAsStreamAsync(TestAsync))
             {
                 var buffer = new byte[2048];
                 Task task = stream.ReadAsync(buffer, 0, buffer.Length, cts.Token);
@@ -255,6 +254,29 @@ namespace System.Net.Http.Functional.Tests
                 await ReadAsStreamHelper(uri);
             });
         }
+
+        [Theory]
+        [InlineData(TransferType.None, TransferError.None)]
+        [InlineData(TransferType.ContentLength, TransferError.None)]
+        [InlineData(TransferType.Chunked, TransferError.None)]
+        public async Task ReadAsStreamAsync_StreamCanReadIsFalseAfterDispose(
+            TransferType transferType,
+            TransferError transferError)
+        {
+            await StartTransferTypeAndErrorServer(transferType, transferError, async uri =>
+            {
+                using (HttpClient client = CreateHttpClient())
+                using (HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
+                {
+                    Stream stream = await response.Content.ReadAsStreamAsync();
+                    Assert.True(stream.CanRead);
+
+                    stream.Dispose();
+
+                    Assert.False(stream.CanRead);
+                }
+            });
+        }
 #endif
 
         public enum TransferType
@@ -299,15 +321,14 @@ namespace System.Net.Http.Functional.Tests
                     }
 
                     // Write response header
-                    TextWriter writer = connection.Writer;
-                    await writer.WriteAsync("HTTP/1.1 200 OK\r\n").ConfigureAwait(false);
-                    await writer.WriteAsync($"Date: {DateTimeOffset.UtcNow:R}\r\n").ConfigureAwait(false);
-                    await writer.WriteAsync("Content-Type: text/plain\r\n").ConfigureAwait(false);
+                    await connection.WriteStringAsync("HTTP/1.1 200 OK\r\n").ConfigureAwait(false);
+                    await connection.WriteStringAsync($"Date: {DateTimeOffset.UtcNow:R}\r\n").ConfigureAwait(false);
+                    await connection.WriteStringAsync("Content-Type: text/plain\r\n").ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(transferHeader))
                     {
-                        await writer.WriteAsync(transferHeader).ConfigureAwait(false);
+                        await connection.WriteStringAsync(transferHeader).ConfigureAwait(false);
                     }
-                    await writer.WriteAsync("\r\n").ConfigureAwait(false);
+                    await connection.WriteStringAsync("\r\n").ConfigureAwait(false);
 
                     // Write response body
                     if (transferType == TransferType.Chunked)
@@ -315,16 +336,16 @@ namespace System.Net.Http.Functional.Tests
                         string chunkSizeInHex = string.Format(
                             "{0:x}\r\n",
                             content.Length + (transferError == TransferError.ChunkSizeTooLarge ? 42 : 0));
-                        await writer.WriteAsync(chunkSizeInHex).ConfigureAwait(false);
-                        await writer.WriteAsync($"{content}\r\n").ConfigureAwait(false);
+                        await connection.WriteStringAsync(chunkSizeInHex).ConfigureAwait(false);
+                        await connection.WriteStringAsync($"{content}\r\n").ConfigureAwait(false);
                         if (transferError != TransferError.MissingChunkTerminator)
                         {
-                            await writer.WriteAsync("0\r\n\r\n").ConfigureAwait(false);
+                            await connection.WriteStringAsync("0\r\n\r\n").ConfigureAwait(false);
                         }
                     }
                     else
                     {
-                        await writer.WriteAsync($"{content}").ConfigureAwait(false);
+                        await connection.WriteStringAsync($"{content}").ConfigureAwait(false);
                     }
                 }));
         }
@@ -336,7 +357,7 @@ namespace System.Net.Http.Functional.Tests
                 using (var response = await client.GetAsync(
                     serverUri,
                     HttpCompletionOption.ResponseHeadersRead))
-                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var stream = await response.Content.ReadAsStreamAsync(TestAsync))
                 {
                     var buffer = new byte[1];
                     while (await stream.ReadAsync(buffer, 0, 1) > 0) ;

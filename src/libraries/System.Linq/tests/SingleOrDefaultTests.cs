@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -38,6 +37,15 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void EmptyIListDefault()
+        {
+            int?[] source = { };
+            int expected = 5;
+
+            Assert.Equal(expected, source.SingleOrDefault(5));
+        }
+
+        [Fact]
         public void SingleElementIList()
         {
             int[] source = { 4 };
@@ -47,11 +55,28 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void SingleElementIListDefault()
+        {
+            int[] source = { 4 };
+            int expected = 4;
+
+            Assert.Equal(expected, source.SingleOrDefault(5));
+        }
+
+        [Fact]
         public void ManyElementIList()
         {
             int[] source = { 4, 4, 4, 4, 4 };
 
             Assert.Throws<InvalidOperationException>(() => source.SingleOrDefault());
+        }
+
+        [Fact]
+        public void ManyElementIListDefault()
+        {
+            int[] source = { 4, 4, 4, 4, 4 };
+
+            Assert.Throws<InvalidOperationException>(() => source.SingleOrDefault(5));
         }
 
         [Fact]
@@ -90,12 +115,30 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void EmptySourceWithPredicateDefault()
+        {
+            int[] source = { };
+            int expected = 5;
+
+            Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0, 5));
+        }
+
+        [Fact]
         public void SingleElementPredicateTrue()
         {
             int[] source = { 4 };
             int expected = 4;
 
             Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0));
+        }
+
+        [Fact]
+        public void SingleElementPredicateTrueDefault()
+        {
+            int[] source = { 4 };
+            int expected = 4;
+
+            Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0, 5));
         }
 
         [Fact]
@@ -108,12 +151,30 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void SingleElementPredicateFalseDefault()
+        {
+            int[] source = { 3 };
+            int expected = 5;
+
+            Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0, 5));
+        }
+
+        [Fact]
         public void ManyElementsPredicateFalseForAll()
         {
             int[] source = { 3, 1, 7, 9, 13, 19 };
             int expected = default(int);
 
             Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0));
+        }
+
+        [Fact]
+        public void ManyElementsPredicateFalseForAllDefault()
+        {
+            int[] source = { 3, 1, 7, 9, 13, 19 };
+            int expected = 5;
+
+            Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0, 5));
         }
 
         [Fact]
@@ -126,11 +187,28 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void ManyElementsPredicateTrueForLastDefault()
+        {
+            int[] source = { 3, 1, 7, 9, 13, 19, 20 };
+            int expected = 20;
+
+            Assert.Equal(expected, source.SingleOrDefault(i => i % 2 == 0, 5));
+        }
+
+        [Fact]
         public void ManyElementsPredicateTrueForFirstAndFifth()
         {
             int[] source = { 2, 3, 1, 7, 10, 13, 19, 9 };
 
             Assert.Throws<InvalidOperationException>(() => source.SingleOrDefault(i => i % 2 == 0));
+        }
+
+        [Fact]
+        public void ManyElementsPredicateTrueForFirstAndFifthDefault()
+        {
+            int[] source = { 2, 3, 1, 7, 10, 13, 19, 9 };
+
+            Assert.Throws<InvalidOperationException>(() => source.SingleOrDefault(i => i % 2 == 0, 5));
         }
 
         [Theory]
@@ -158,11 +236,27 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void ThrowsOnNullSourceDefault()
+        {
+            int[] source = null;
+            AssertExtensions.Throws<ArgumentNullException>("source", () => source.SingleOrDefault(5));
+            AssertExtensions.Throws<ArgumentNullException>("source", () => source.SingleOrDefault(i => i % 2 == 0, 5));
+        }
+
+        [Fact]
         public void ThrowsOnNullPredicate()
         {
             int[] source = { };
             Func<int, bool> nullPredicate = null;
             AssertExtensions.Throws<ArgumentNullException>("predicate", () => source.SingleOrDefault(nullPredicate));
+        }
+
+        [Fact]
+        public void ThrowsOnNullPredicateDefault()
+        {
+            int[] source = { };
+            Func<int, bool> nullPredicate = null;
+            AssertExtensions.Throws<ArgumentNullException>("predicate", () => source.SingleOrDefault(nullPredicate, 5));
         }
     }
 }

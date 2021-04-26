@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Text.Json.Serialization
 {
@@ -12,10 +11,19 @@ namespace System.Text.Json.Serialization
             JsonSerializerOptions options,
             ref WriteStack state)
         {
-            // Value types can never have a null except for Nullable<T>.
-            if (value == null && IsValueType && Nullable.GetUnderlyingType(TypeToConvert) == null)
+            if (IsValueType)
             {
-                ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                // Value types can never have a null except for Nullable<T>.
+                if (value == null && Nullable.GetUnderlyingType(TypeToConvert) == null)
+                {
+                    ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(TypeToConvert);
+                }
+
+                // Root object is a boxed value type, we need to push it to the reference stack before it gets unboxed here.
+                if (options.ReferenceHandlingStrategy == ReferenceHandlingStrategy.IgnoreCycles && value != null)
+                {
+                    state.ReferenceResolver.PushReferenceForCycleDetection(value);
+                }
             }
 
             T actualValue = (T)value!;
@@ -24,7 +32,7 @@ namespace System.Text.Json.Serialization
 
         internal bool WriteCore(
             Utf8JsonWriter writer,
-            T value,
+            in T value,
             JsonSerializerOptions options,
             ref WriteStack state)
         {

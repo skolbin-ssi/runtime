@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
@@ -9,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Net.Sockets;
 using System.Security;
 using System.Threading;
+using System.Runtime.Versioning;
 
 namespace System.IO.Pipes
 {
@@ -67,6 +67,7 @@ namespace System.IO.Pipes
             return true;
         }
 
+        [SupportedOSPlatform("windows")]
         public int NumberOfServerInstances
         {
             get
@@ -82,7 +83,7 @@ namespace System.IO.Pipes
             {
                 CheckPipePropertyOperations();
                 if (!CanRead) throw new NotSupportedException(SR.NotSupported_UnreadableStream);
-                return InternalHandle?.NamedPipeSocket?.ReceiveBufferSize ?? 0;
+                return InternalHandle?.PipeSocket.ReceiveBufferSize ?? 0;
             }
         }
 
@@ -92,7 +93,7 @@ namespace System.IO.Pipes
             {
                 CheckPipePropertyOperations();
                 if (!CanWrite) throw new NotSupportedException(SR.NotSupported_UnwritableStream);
-                return InternalHandle?.NamedPipeSocket?.SendBufferSize ?? 0;
+                return InternalHandle?.PipeSocket.SendBufferSize ?? 0;
             }
         }
 
@@ -112,10 +113,5 @@ namespace System.IO.Pipes
                 throw new UnauthorizedAccessException(SR.UnauthorizedAccess_NotOwnedByCurrentUser);
             }
         }
-
-        // -----------------------------
-        // ---- PAL layer ends here ----
-        // -----------------------------
-
     }
 }

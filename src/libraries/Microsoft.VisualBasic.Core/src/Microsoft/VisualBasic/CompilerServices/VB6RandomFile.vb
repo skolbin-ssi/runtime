@@ -1,9 +1,9 @@
 ' Licensed to the .NET Foundation under one or more agreements.
 ' The .NET Foundation licenses this file to you under the MIT license.
-' See the LICENSE file in the project root for more information.
 
 Imports System
 Imports System.IO
+Imports System.Runtime.Versioning
 
 Imports Microsoft.VisualBasic.CompilerServices.ExceptionUtils
 Imports Microsoft.VisualBasic.CompilerServices.Utils
@@ -48,8 +48,6 @@ Namespace Microsoft.VisualBasic.CompilerServices
                 Throw ex
             Catch ex As OutOfMemoryException
                 Throw ex
-            Catch ex As System.Threading.ThreadAbortException
-                Throw ex
             Catch ex As Exception
                 Throw VbMakeException(vbErrors.InternalError)
             End Try
@@ -78,8 +76,6 @@ Namespace Microsoft.VisualBasic.CompilerServices
                     Throw ex
                 Catch ex As OutOfMemoryException
                     Throw ex
-                Catch ex As System.Threading.ThreadAbortException
-                    Throw ex
                 Catch
                     'Try Write access
                     m_access = OpenAccess.Write
@@ -88,8 +84,6 @@ Namespace Microsoft.VisualBasic.CompilerServices
                     Catch ex As StackOverflowException
                         Throw ex
                     Catch ex As OutOfMemoryException
-                        Throw ex
-                    Catch ex As System.Threading.ThreadAbortException
                         Throw ex
                     Catch
                         'If that failed, try read access
@@ -127,6 +121,7 @@ Namespace Microsoft.VisualBasic.CompilerServices
             CloseTheFile()
         End Sub
 
+        <UnsupportedOSPlatform("macos")> 
         Friend Overloads Overrides Sub Lock(ByVal lStart As Long, ByVal lEnd As Long)
             If lStart > lEnd Then
                 Throw New ArgumentException(SR.Format(SR.Argument_InvalidValue1, "Start"))
@@ -141,6 +136,7 @@ Namespace Microsoft.VisualBasic.CompilerServices
             m_file.Lock(lStartByte, lLength)
         End Sub
 
+        <UnsupportedOSPlatform("macos")> 
         Friend Overloads Overrides Sub Unlock(ByVal lStart As Long, ByVal lEnd As Long)
             If lStart > lEnd Then
                 Throw New ArgumentException(SR.Format(SR.Argument_InvalidValue1, "Start"))

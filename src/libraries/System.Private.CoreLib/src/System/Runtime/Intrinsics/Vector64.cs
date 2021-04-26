@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Internal.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
@@ -24,8 +23,8 @@ namespace System.Runtime.Intrinsics
             where T : struct
             where U : struct
         {
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<T>();
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<U>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<T>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<U>();
             return Unsafe.As<Vector64<T>, Vector64<U>>(ref vector);
         }
 
@@ -654,6 +653,24 @@ namespace System.Runtime.Intrinsics
             }
         }
 
+        /// <summary>Creates a new <see cref="Vector64{Double}" /> instance with the first element initialized to the specified value and the remaining elements initialized to zero.</summary>
+        /// <param name="value">The value that element 0 will be initialized to.</param>
+        /// <returns>A new <see cref="Vector64{Double}" /> instance with the first element initialized to <paramref name="value"/> and the remaining elements initialized to zero.</returns>
+        public static unsafe Vector64<double> CreateScalar(double value)
+        {
+            if (AdvSimd.IsSupported)
+            {
+                return Create(value);
+            }
+
+            return SoftwareFallback(value);
+
+            static Vector64<double> SoftwareFallback(double value)
+            {
+                return Unsafe.As<double, Vector64<double>>(ref value);
+            }
+        }
+
         /// <summary>Creates a new <see cref="Vector64{Int16}" /> instance with the first element initialized to the specified value and the remaining elements initialized to zero.</summary>
         /// <param name="value">The value that element 0 will be initialized to.</param>
         /// <returns>A new <see cref="Vector64{Int16}" /> instance with the first element initialized to <paramref name="value"/> and the remaining elements initialized to zero.</returns>
@@ -691,6 +708,24 @@ namespace System.Runtime.Intrinsics
                 var result = Vector64<int>.Zero;
                 Unsafe.WriteUnaligned(ref Unsafe.As<Vector64<int>, byte>(ref result), value);
                 return result;
+            }
+        }
+
+        /// <summary>Creates a new <see cref="Vector64{Int64}" /> instance with the first element initialized to the specified value and the remaining elements initialized to zero.</summary>
+        /// <param name="value">The value that element 0 will be initialized to.</param>
+        /// <returns>A new <see cref="Vector64{Int64}" /> instance with the first element initialized to <paramref name="value"/> and the remaining elements initialized to zero.</returns>
+        public static unsafe Vector64<long> CreateScalar(long value)
+        {
+            if (AdvSimd.Arm64.IsSupported)
+            {
+                return Create(value);
+            }
+
+            return SoftwareFallback(value);
+
+            static Vector64<long> SoftwareFallback(long value)
+            {
+                return Unsafe.As<long, Vector64<long>>(ref value);
             }
         }
 
@@ -774,6 +809,26 @@ namespace System.Runtime.Intrinsics
                 var result = Vector64<uint>.Zero;
                 Unsafe.WriteUnaligned(ref Unsafe.As<Vector64<uint>, byte>(ref result), value);
                 return result;
+            }
+        }
+
+
+        /// <summary>Creates a new <see cref="Vector64{UInt64}" /> instance with the first element initialized to the specified value and the remaining elements initialized to zero.</summary>
+        /// <param name="value">The value that element 0 will be initialized to.</param>
+        /// <returns>A new <see cref="Vector64{UInt64}" /> instance with the first element initialized to <paramref name="value"/> and the remaining elements initialized to zero.</returns>
+        [CLSCompliant(false)]
+        public static unsafe Vector64<ulong> CreateScalar(ulong value)
+        {
+            if (AdvSimd.Arm64.IsSupported)
+            {
+                return Create(value);
+            }
+
+            return SoftwareFallback(value);
+
+            static Vector64<ulong> SoftwareFallback(ulong value)
+            {
+                return Unsafe.As<ulong, Vector64<ulong>>(ref value);
             }
         }
 
@@ -889,7 +944,7 @@ namespace System.Runtime.Intrinsics
         public static T GetElement<T>(this Vector64<T> vector, int index)
             where T : struct
         {
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<T>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<T>();
 
             if ((uint)(index) >= (uint)(Vector64<T>.Count))
             {
@@ -908,10 +963,11 @@ namespace System.Runtime.Intrinsics
         /// <returns>A <see cref="Vector64{T}" /> with the value of the element at <paramref name="index" /> set to <paramref name="value" /> and the remaining elements set to the same value as that in <paramref name="vector" />.</returns>
         /// <exception cref="NotSupportedException">The type of <paramref name="vector" /> (<typeparamref name="T" />) is not supported.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="index" /> was less than zero or greater than the number of elements.</exception>
+        [Intrinsic]
         public static Vector64<T> WithElement<T>(this Vector64<T> vector, int index, T value)
             where T : struct
         {
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<T>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<T>();
 
             if ((uint)(index) >= (uint)(Vector64<T>.Count))
             {
@@ -933,7 +989,7 @@ namespace System.Runtime.Intrinsics
         public static T ToScalar<T>(this Vector64<T> vector)
             where T : struct
         {
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<T>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<T>();
             return Unsafe.As<Vector64<T>, T>(ref vector);
         }
 
@@ -942,10 +998,11 @@ namespace System.Runtime.Intrinsics
         /// <param name="vector">The vector to extend.</param>
         /// <returns>A new <see cref="Vector128{T}" /> with the lower 64-bits set to the value of <paramref name="vector" /> and the upper 64-bits initialized to zero.</returns>
         /// <exception cref="NotSupportedException">The type of <paramref name="vector" /> (<typeparamref name="T" />) is not supported.</exception>
+        [Intrinsic]
         public static Vector128<T> ToVector128<T>(this Vector64<T> vector)
             where T : struct
         {
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<T>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<T>();
 
             Vector128<T> result = Vector128<T>.Zero;
             Unsafe.As<Vector128<T>, Vector64<T>>(ref result) = vector;
@@ -957,10 +1014,11 @@ namespace System.Runtime.Intrinsics
         /// <param name="vector">The vector to extend.</param>
         /// <returns>A new <see cref="Vector128{T}" /> with the lower 64-bits set to the value of <paramref name="vector" /> and the upper 64-bits left uninitialized.</returns>
         /// <exception cref="NotSupportedException">The type of <paramref name="vector" /> (<typeparamref name="T" />) is not supported.</exception>
+        [Intrinsic]
         public static unsafe Vector128<T> ToVector128Unsafe<T>(this Vector64<T> vector)
             where T : struct
         {
-            ThrowHelper.ThrowForUnsupportedVectorBaseType<T>();
+            ThrowHelper.ThrowForUnsupportedIntrinsicsVectorBaseType<T>();
 
             // This relies on us stripping the "init" flag from the ".locals"
             // declaration to let the upper bits be uninitialized.

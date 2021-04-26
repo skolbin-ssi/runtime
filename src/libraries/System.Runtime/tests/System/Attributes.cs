@@ -1,9 +1,8 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 //
-// AttributeTest.cs - NUnit Test Cases for the System.Attribute class
+// AttributeTest.cs - Unit Test Cases for the System.Attribute class
 //
 // Authors:
 //  Duco Fijma (duco@lorentz.xs4all.nl)
@@ -268,7 +267,7 @@ namespace System.Tests
 
             Assert.Throws<ArgumentNullException>(() => Attribute.GetCustomAttribute(element, attributeType));
             attributeType = null;
-            element = typeof(AttributeGetCustomAttributes).Assembly; ;
+            element = typeof(AttributeGetCustomAttributes).Assembly;
             Assert.Throws<ArgumentNullException>(() => Attribute.GetCustomAttribute(element, attributeType));
             attributeType = typeof(myClass);
             AssertExtensions.Throws<ArgumentException>(null, () => Attribute.GetCustomAttribute(element, attributeType));
@@ -310,7 +309,7 @@ namespace System.Tests
 
             Assert.Throws<ArgumentNullException>(() => Attribute.GetCustomAttribute(element, attributeType, true));
             attributeType = null;
-            element = typeof(AttributeGetCustomAttributes).Assembly; ;
+            element = typeof(AttributeGetCustomAttributes).Assembly;
             Assert.Throws<ArgumentNullException>(() => Attribute.GetCustomAttribute(element, attributeType, false));
             attributeType = typeof(myClass);
             AssertExtensions.Throws<ArgumentException>(null, () => Attribute.GetCustomAttribute(element, attributeType, true));

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.DirectoryServices.ActiveDirectory
 {
@@ -24,15 +23,15 @@ namespace System.DirectoryServices.ActiveDirectory
 
     public class TrustRelationshipInformation
     {
-        internal string source = null;
-        internal string target = null;
+        internal string? source;
+        internal string? target;
         internal TrustType type;
         internal TrustDirection direction;
-        internal DirectoryContext context = null;
+        internal DirectoryContext context = null!;
 
         internal TrustRelationshipInformation() { }
 
-        internal TrustRelationshipInformation(DirectoryContext context, string source, TrustObject obj)
+        internal TrustRelationshipInformation(DirectoryContext context, string? source, TrustObject obj)
         {
             // security context
             this.context = context;
@@ -52,9 +51,9 @@ namespace System.DirectoryServices.ActiveDirectory
             this.type = obj.TrustType;
         }
 
-        public string SourceName => source;
+        public string? SourceName => source;
 
-        public string TargetName => target;
+        public string? TargetName => target;
 
         public TrustType TrustType => type;
 

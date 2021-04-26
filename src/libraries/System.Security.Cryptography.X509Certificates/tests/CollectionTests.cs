@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using Xunit;
 
 namespace System.Security.Cryptography.X509Certificates.Tests
@@ -612,7 +612,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
         {
             using (var pfxCer = new X509Certificate2(TestData.PfxData, TestData.PfxDataPassword, storageFlags))
             {
-                using (ImportedCollection ic = Cert.Import(Path.Combine("TestData", "My.pfx"), TestData.PfxDataPassword, storageFlags))
+                using (ImportedCollection ic = Cert.Import(TestFiles.PfxFile, TestData.PfxDataPassword, storageFlags))
                 {
                     X509Certificate2Collection cc2 = ic.Collection;
                     int count = cc2.Count;
@@ -781,7 +781,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
             var collection = new X509Certificate2Collection();
             try
             {
-                collection.Import(Path.Combine("TestData", "DummyTcpServer.pfx"), (string)null, Cert.EphemeralIfPossible);
+                collection.Import(TestFiles.DummyTcpServerPfxFile, (string)null, Cert.EphemeralIfPossible);
                 collection.Import(TestData.PfxData, TestData.PfxDataPassword, Cert.EphemeralIfPossible);
                 Assert.Equal(3, collection.Count);
             }
@@ -801,7 +801,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
 
             try
             {
-                collection.Import(Path.Combine("TestData", "DummyTcpServer.pfx"), (string)null, X509KeyStorageFlags.Exportable | Cert.EphemeralIfPossible);
+                collection.Import(TestFiles.DummyTcpServerPfxFile, (string)null, X509KeyStorageFlags.Exportable | Cert.EphemeralIfPossible);
                 collection.Import(TestData.PfxData, TestData.PfxDataPassword, X509KeyStorageFlags.Exportable | Cert.EphemeralIfPossible);
 
                 // Pre-condition, we have multiple private keys
@@ -809,7 +809,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                 Assert.Equal(2, originalPrivateKeyCount);
 
                 byte[] exported = collection.Export(X509ContentType.Pkcs12);
-                
+
                 using (ImportedCollection ic = Cert.Import(exported))
                 {
                     X509Certificate2Collection importedCollection = ic.Collection;
@@ -1305,7 +1305,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
 
                 // Halfway between microsoftDotCom's NotBefore and NotAfter
                 // This isn't a boundary condition test.
-                chain.ChainPolicy.VerificationTime = new DateTime(2015, 10, 15, 12, 01, 01, DateTimeKind.Local);
+                chain.ChainPolicy.VerificationTime = new DateTime(2021, 02, 26, 12, 01, 01, DateTimeKind.Local);
                 chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
                 bool valid = chain.Build(microsoftDotCom);
@@ -1424,6 +1424,115 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                     key.SignData(serializedCert, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
                 }
             }
+        }
+
+        [Fact]
+        public static void ImportFromPem_SingleCertificate_Success()
+        {
+            using(ImportedCollection ic = Cert.ImportFromPem(TestData.ECDsaCertificate))
+            {
+                Assert.Single(ic.Collection);
+                Assert.Equal("E844FA74BC8DCE46EF4F8605EA00008F161AB56F", ic.Collection[0].Thumbprint);
+            }
+        }
+
+        [Fact]
+        public static void ImportFromPem_SingleCertificate_IgnoresUnrelatedPems_Success()
+        {
+            string pemAggregate = TestData.ECDsaPkcs8Key + TestData.ECDsaCertificate;
+
+            using(ImportedCollection ic = Cert.ImportFromPem(pemAggregate))
+            {
+                Assert.Single(ic.Collection);
+                Assert.Equal("E844FA74BC8DCE46EF4F8605EA00008F161AB56F", ic.Collection[0].Thumbprint);
+            }
+        }
+
+        [Fact]
+        public static void ImportFromPem_MultiplePems_Success()
+        {
+            string pemAggregate = TestData.RsaCertificate + TestData.ECDsaCertificate;
+
+            using(ImportedCollection ic = Cert.ImportFromPem(pemAggregate))
+            {
+                Assert.Equal(2, ic.Collection.Count);
+                Assert.Equal("A33348E44A047A121F44E810E888899781E1FF19", ic.Collection[0].Thumbprint);
+                Assert.Equal("E844FA74BC8DCE46EF4F8605EA00008F161AB56F", ic.Collection[1].Thumbprint);
+            }
+        }
+
+        [Fact]
+        public static void ImportFromPemFile_MultiplePems_Success()
+        {
+            string pemAggregate = TestData.RsaCertificate + TestData.ECDsaCertificate;
+
+            using (TempFileHolder aggregatePemFile = new TempFileHolder(pemAggregate))
+            using(ImportedCollection ic = Cert.ImportFromPemFile(aggregatePemFile.FilePath))
+            {
+                Assert.Equal(2, ic.Collection.Count);
+                Assert.Equal("A33348E44A047A121F44E810E888899781E1FF19", ic.Collection[0].Thumbprint);
+                Assert.Equal("E844FA74BC8DCE46EF4F8605EA00008F161AB56F", ic.Collection[1].Thumbprint);
+            }
+        }
+
+        [Fact]
+        public static void ImportFromPemFile_Null_Throws()
+        {
+            X509Certificate2Collection cc = new X509Certificate2Collection();
+
+            AssertExtensions.Throws<ArgumentNullException>("certPemFilePath", () =>
+                cc.ImportFromPemFile(null));
+        }
+
+        [Fact]
+        public static void ImportFromPem_Exception_AllOrNothing()
+        {
+            using(ImportedCollection ic = Cert.ImportFromPem(TestData.DsaCertificate))
+            {
+                StringBuilder builder = new StringBuilder();
+                builder.AppendLine(TestData.RsaCertificate);
+                builder.AppendLine(@"
+    -----BEGIN CERTIFICATE-----
+    MIII
+    -----END CERTIFICATE-----");
+                builder.AppendLine(TestData.ECDsaCertificate);
+
+                Assert.ThrowsAny<CryptographicException>(() => ic.Collection.ImportFromPem(builder.ToString()));
+                Assert.Single(ic.Collection);
+                Assert.Equal("35052C549E4E7805E4EA204C2BE7F4BC19B88EC8", ic.Collection[0].Thumbprint);
+            }
+        }
+
+        [Fact]
+        public static void ImportFromPem_NonCertificateContent_Pkcs12_Fails()
+        {
+            X509Certificate2Collection cc = new X509Certificate2Collection();
+
+            using (X509Certificate2 cert = X509Certificate2.CreateFromPem(TestData.RsaCertificate, TestData.RsaPkcs1Key))
+            {
+                string content = Convert.ToBase64String(cert.Export(X509ContentType.Pkcs12));
+                string certContents = $@"
+-----BEGIN CERTIFICATE-----
+{content}
+-----END CERTIFICATE-----
+";
+                Assert.Throws<CryptographicException>(() => cc.ImportFromPem(certContents));
+            }
+        }
+
+        [Fact]
+        public static void ImportFromPem_NonCertificateContent_Pkcs7_Fails()
+        {
+            X509Certificate2Collection cc = new X509Certificate2Collection();
+
+            string content = Convert.ToBase64String(TestData.Pkcs7ChainDerBytes);
+            string certContents = $@"
+-----BEGIN CERTIFICATE-----
+{content}
+-----END CERTIFICATE-----
+";
+
+            Assert.Throws<CryptographicException>(() => cc.ImportFromPem(certContents));
         }
 
         private static void TestExportSingleCert_SecureStringPassword(X509ContentType ct)

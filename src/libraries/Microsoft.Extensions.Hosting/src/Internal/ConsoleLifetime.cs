@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Threading;
@@ -80,7 +79,7 @@ namespace Microsoft.Extensions.Hosting.Internal
         private void OnProcessExit(object sender, EventArgs e)
         {
             ApplicationLifetime.StopApplication();
-            if(!_shutdownBlock.WaitOne(HostOptions.ShutdownTimeout))
+            if (!_shutdownBlock.WaitOne(HostOptions.ShutdownTimeout))
             {
                 Logger.LogInformation("Waiting for the host to be disposed. Ensure all 'IHost' instances are wrapped in 'using' blocks.");
             }
@@ -94,6 +93,10 @@ namespace Microsoft.Extensions.Hosting.Internal
         {
             e.Cancel = true;
             ApplicationLifetime.StopApplication();
+
+            // Don't block in process shutdown for CTRL+C/SIGINT since we can set e.Cancel to true
+            // we assume that application code will unwind once StopApplication signals the token
+            _shutdownBlock.Set();
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

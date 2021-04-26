@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Globalization
 {
     // Gregorian Calendars use Era Info
-    internal class EraInfo
+    internal sealed class EraInfo
     {
         internal int era;          // The value of the era.
         internal long ticks;    // The time in ticks when the era starts
@@ -46,7 +45,7 @@ namespace System.Globalization
     // This calendar recognizes two era values:
     // 0 CurrentEra (AD)
     // 1 BeforeCurrentEra (BC)
-    internal class GregorianCalendarHelper
+    internal sealed class GregorianCalendarHelper
     {
         // 1 tick = 100ns = 10E-7 second
         // Number of ticks per time unit
@@ -102,7 +101,7 @@ namespace System.Globalization
         internal Calendar m_Cal;
 
         internal EraInfo[] m_EraInfo;
-        internal int[]? m_eras = null;
+        internal int[]? m_eras;
 
         // Construct an instance of gregorian calendar.
         internal GregorianCalendarHelper(Calendar cal, EraInfo[] eraInfo)
@@ -444,7 +443,7 @@ namespace System.Globalization
             year = GetGregorianYear(year, era);
             if (month < 1 || month > 12)
             {
-                throw new ArgumentOutOfRangeException(nameof(month), SR.ArgumentOutOfRange_Month);
+                ThrowHelper.ThrowArgumentOutOfRange_Month(month);
             }
             int[] days = ((year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) ? DaysToMonth366 : DaysToMonth365);
             return days[month] - days[month - 1];

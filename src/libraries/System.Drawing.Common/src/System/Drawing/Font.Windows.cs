@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
 using System.Diagnostics;
@@ -228,7 +227,7 @@ namespace System.Drawing
         public static Font FromHfont(IntPtr hfont)
         {
             Interop.User32.LOGFONT logFont = default;
-            SafeNativeMethods.GetObject(new HandleRef(null, hfont), ref logFont);
+            Interop.Gdi32.GetObject(new HandleRef(null, hfont), ref logFont);
 
             using (ScreenDC dc = ScreenDC.Create())
             {

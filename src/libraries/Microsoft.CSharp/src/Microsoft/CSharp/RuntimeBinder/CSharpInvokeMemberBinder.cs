@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Numerics.Hashing;
 using Microsoft.CSharp.RuntimeBinder.Errors;
@@ -20,9 +20,11 @@ namespace Microsoft.CSharp.RuntimeBinder
     {
         public BindingFlag BindingFlags => 0;
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public Expr DispatchPayload(RuntimeBinder runtimeBinder, ArgumentObject[] arguments, LocalVariableSymbol[] locals)
             => runtimeBinder.DispatchPayload(this, arguments, locals);
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public void PopulateSymbolTableWithName(Type callingType, ArgumentObject[] arguments)
             => RuntimeBinder.PopulateSymbolTableWithPayloadInformation(this, callingType, arguments);
 
@@ -59,6 +61,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         /// <param name="callingContext">The <see cref="System.Type"/> that indicates where this operation is defined.</param>
         /// <param name="typeArguments">The list of user-specified type arguments to this call.</param>
         /// <param name="argumentInfo">The sequence of <see cref="CSharpArgumentInfo"/> instances for the arguments to this operation.</param>
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public CSharpInvokeMemberBinder(
                 CSharpCallFlags flags,
                 string name,
@@ -112,11 +115,13 @@ namespace Microsoft.CSharp.RuntimeBinder
         /// <param name="args">The arguments of the dynamic invoke member operation.</param>
         /// <param name="errorSuggestion">The binding result to use if binding fails, or null.</param>
         /// <returns>The <see cref="DynamicMetaObject"/> representing the result of the binding.</returns>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This whole class is unsafe. Constructors are marked as such.")]
         public override DynamicMetaObject FallbackInvokeMember(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
         {
 #if ENABLECOMBINDER
             DynamicMetaObject com;
-            if (!BinderHelper.IsWindowsRuntimeObject(target) && ComInterop.ComBinder.TryBindInvokeMember(this, target, args, out com))
+            if (ComInterop.ComBinder.TryBindInvokeMember(this, target, args, out com))
             {
                 return com;
             }
@@ -136,6 +141,8 @@ namespace Microsoft.CSharp.RuntimeBinder
         /// <param name="args">The arguments of the dynamic invoke operation.</param>
         /// <param name="errorSuggestion">The binding result to use if binding fails, or null.</param>
         /// <returns>The <see cref="DynamicMetaObject"/> representing the result of the binding.</returns>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This whole class is unsafe. Constructors are marked as such.")]
         public override DynamicMetaObject FallbackInvoke(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
         {
             CSharpInvokeBinder c = new CSharpInvokeBinder(Flags, CallingContext, _argumentInfo).TryGetExisting();

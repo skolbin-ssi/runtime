@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Linq.Expressions;
 using Xunit;
@@ -24,9 +23,23 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void EmptyDefault()
+        {
+            int[] source = { };
+            int defaultValue = 5;
+            Assert.Equal(defaultValue, source.AsQueryable().SingleOrDefault(5));
+        }
+
+        [Fact]
         public void EmptySourceWithPredicate()
         {
             Assert.Null(Enumerable.Empty<int?>().AsQueryable().SingleOrDefault(i => i % 2 == 0));
+        }
+
+        [Fact]
+        public void EmptySourceWithPredicateDefault()
+        {
+            Assert.Equal(5, Enumerable.Empty<int?>().AsQueryable().SingleOrDefault(i => i % 2 == 0, 5));
         }
 
         [Theory]

@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -35,10 +34,10 @@ namespace Generic.Dictionary
             }, TaskCreationOptions.LongRunning);
 
             // If Dictionary regresses, we do not want to hang here indefinitely
-            Assert.True((await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(60))) == task) && task.IsCompletedSuccessfully);
+            await task.WaitAsync(TimeSpan.FromSeconds(60));
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         [InlineData(null)]
         [InlineData(typeof(CustomEqualityComparerInt32ValueType))]
         public async Task DictionaryConcurrentAccessDetection_ValueTypeKey(Type comparerType)
@@ -60,7 +59,7 @@ namespace Generic.Dictionary
                 d => d.Remove(1, out int value));
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         [InlineData(null)]
         [InlineData(typeof(CustomEqualityComparerDummyRefType))]
         public async Task DictionaryConcurrentAccessDetection_ReferenceTypeKey(Type comparerType)

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Linq;
 using Microsoft.DotNet.RemoteExecutor;
@@ -92,7 +91,7 @@ namespace System.IO.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.AnyUnix)]  // Uses P/Invokes
+        [PlatformSpecific(TestPlatforms.AnyUnix & ~TestPlatforms.Browser)]  // Uses P/Invokes
         public void TrueForNonRegularFile()
         {
             string fileName = GetTestFilePath();
@@ -132,7 +131,7 @@ namespace System.IO.Tests
             Assert.False(linkPathFI.Exists, "linkPath should no longer exist");
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public void UnsharedFileExists()
         {
             string path = GetTestFilePath();
@@ -146,8 +145,8 @@ namespace System.IO.Tests
             }
         }
 
-        [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
+        [SkipOnPlatform(TestPlatforms.OSX, "Not supported on OSX.")]
         public void LockedFileExists()
         {
             string path = GetTestFilePath();

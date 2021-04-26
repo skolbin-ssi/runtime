@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Specialized;
 using System.Configuration;
@@ -147,10 +146,12 @@ namespace System.Runtime.Caching
                 _configCacheMemoryLimitMegabytes = ConfigUtil.GetIntValue(config, ConfigUtil.CacheMemoryLimitMegabytes, _configCacheMemoryLimitMegabytes, true, int.MaxValue);
                 _configPhysicalMemoryLimitPercentage = ConfigUtil.GetIntValue(config, ConfigUtil.PhysicalMemoryLimitPercentage, _configPhysicalMemoryLimitPercentage, true, 100);
             }
+#if !NETCOREAPP3_1_OR_GREATER
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && _configPhysicalMemoryLimitPercentage > 0)
             {
                 throw new PlatformNotSupportedException(SR.PlatformNotSupported_PhysicalMemoryLimitPercentage);
             }
+#endif
         }
 
         private void InitDisposableMembers()

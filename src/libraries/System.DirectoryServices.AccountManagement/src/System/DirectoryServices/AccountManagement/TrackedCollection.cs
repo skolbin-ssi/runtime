@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -9,7 +8,7 @@ using System.Collections.Generic;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal class TrackedCollection<T> : ICollection<T>, ICollection, IEnumerable<T>, IEnumerable
+    internal sealed class TrackedCollection<T> : ICollection<T>, ICollection, IEnumerable<T>, IEnumerable
     {
         //
         // ICollection
@@ -198,14 +197,14 @@ namespace System.DirectoryServices.AccountManagement
         // Private implementation
         //
 
-        internal class ValueEl
+        internal sealed class ValueEl
         {
             public bool isInserted;
 
             //public T insertedValue = T.default;
             public T insertedValue;
 
-            public Pair<T, T> originalValue = null;
+            public Pair<T, T> originalValue;
 
             public T GetCurrentValue()
             {

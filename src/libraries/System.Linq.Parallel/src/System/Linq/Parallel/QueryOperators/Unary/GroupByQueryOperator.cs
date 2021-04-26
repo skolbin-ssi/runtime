@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -227,7 +226,7 @@ namespace System.Linq.Parallel
         protected readonly CancellationToken _cancellationToken;
         private Mutables? _mutables; // All of the mutable state.
 
-        private class Mutables
+        private sealed class Mutables
         {
             internal HashLookup<Wrapper<TGroupKey>, ListChunk<TElement>>? _hashLookup; // The lookup with key-value mappings.
             internal int _hashLookupIndex; // The current index within the lookup.
@@ -254,7 +253,7 @@ namespace System.Linq.Parallel
         // just enumerate the key-set from the hash-table, retrieving groupings of key-elements.
         //
 
-        internal override bool MoveNext([MaybeNullWhen(false), AllowNull] ref IGrouping<TGroupKey, TElement> currentElement, ref TOrderKey currentKey)
+        internal override bool MoveNext([MaybeNullWhen(false), AllowNull] ref IGrouping<TGroupKey, TElement> currentElement, [AllowNull] ref TOrderKey currentKey)
         {
             Debug.Assert(_source != null);
 
@@ -329,7 +328,7 @@ namespace System.Linq.Parallel
             while (_source.MoveNext(ref sourceElement, ref sourceKeyUnused))
             {
                 if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                    _cancellationToken.ThrowIfCancellationRequested();;
+                    _cancellationToken.ThrowIfCancellationRequested();
 
                 // Generate a key and place it into the hashtable.
                 Wrapper<TGroupKey> key = new Wrapper<TGroupKey>(sourceElement.Second);
@@ -391,7 +390,7 @@ namespace System.Linq.Parallel
             while (_source.MoveNext(ref sourceElement, ref sourceKeyUnused))
             {
                 if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                    _cancellationToken.ThrowIfCancellationRequested();;
+                    _cancellationToken.ThrowIfCancellationRequested();
 
                 // Generate a key and place it into the hashtable.
                 Wrapper<TGroupKey> key = new Wrapper<TGroupKey>(sourceElement.Second);
@@ -430,7 +429,7 @@ namespace System.Linq.Parallel
         protected readonly CancellationToken _cancellationToken;
         private Mutables? _mutables; // All the mutable state.
 
-        private class Mutables
+        private sealed class Mutables
         {
             internal HashLookup<Wrapper<TGroupKey>, GroupKeyData>? _hashLookup; // The lookup with key-value mappings.
             internal int _hashLookupIndex; // The current index within the lookup.
@@ -460,7 +459,7 @@ namespace System.Linq.Parallel
         // just enumerate the key-set from the hash-table, retrieving groupings of key-elements.
         //
 
-        internal override bool MoveNext([MaybeNullWhen(false), AllowNull] ref IGrouping<TGroupKey, TElement> currentElement, ref TOrderKey currentKey)
+        internal override bool MoveNext([MaybeNullWhen(false), AllowNull] ref IGrouping<TGroupKey, TElement> currentElement, [AllowNull] ref TOrderKey currentKey)
         {
             Debug.Assert(_source != null);
             Debug.Assert(_keySelector != null);
@@ -558,7 +557,7 @@ namespace System.Linq.Parallel
             while (_source.MoveNext(ref sourceElement, ref sourceOrderKey))
             {
                 if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                    _cancellationToken.ThrowIfCancellationRequested();;
+                    _cancellationToken.ThrowIfCancellationRequested();
 
                 // Generate a key and place it into the hashtable.
                 Wrapper<TGroupKey> key = new Wrapper<TGroupKey>(sourceElement.Second);
@@ -633,7 +632,7 @@ namespace System.Linq.Parallel
             while (_source.MoveNext(ref sourceElement, ref sourceOrderKey))
             {
                 if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                    _cancellationToken.ThrowIfCancellationRequested();;
+                    _cancellationToken.ThrowIfCancellationRequested();
 
                 // Generate a key and place it into the hashtable.
                 Wrapper<TGroupKey> key = new Wrapper<TGroupKey>(sourceElement.Second);
@@ -677,7 +676,7 @@ namespace System.Linq.Parallel
     // key-to-many-values mapping.
     //
 
-    internal class GroupByGrouping<TGroupKey, TElement> : IGrouping<TGroupKey, TElement>
+    internal sealed class GroupByGrouping<TGroupKey, TElement> : IGrouping<TGroupKey, TElement>
     {
         private readonly KeyValuePair<Wrapper<TGroupKey>, ListChunk<TElement>> _keyValues; // A key value pair.
 
@@ -723,7 +722,7 @@ namespace System.Linq.Parallel
     /// An ordered version of the grouping data structure. Represents an ordered group of elements that
     /// have the same grouping key.
     /// </summary>
-    internal class OrderedGroupByGrouping<TGroupKey, TOrderKey, TElement> : IGrouping<TGroupKey, TElement>
+    internal sealed class OrderedGroupByGrouping<TGroupKey, TOrderKey, TElement> : IGrouping<TGroupKey, TElement>
     {
         private const int INITIAL_CHUNK_SIZE = 2;
 

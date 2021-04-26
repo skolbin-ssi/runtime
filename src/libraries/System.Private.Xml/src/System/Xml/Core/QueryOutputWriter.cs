@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 namespace System.Xml
 {
     using System;
@@ -21,7 +19,7 @@ namespace System.Xml
     ///
     /// It also performs well-formed document checks if standalone="yes" and/or a doc-type-decl is output.
     /// </summary>
-    internal class QueryOutputWriter : XmlRawWriter
+    internal sealed class QueryOutputWriter : XmlRawWriter
     {
         private readonly XmlRawWriter _wrapped;
         private bool _inCDataSection;
@@ -32,7 +30,7 @@ namespace System.Xml
         private readonly bool _checkWellFormedDoc;
         private bool _hasDocElem;
         private bool _inAttr;
-        private readonly string _systemId, _publicId;
+        private readonly string? _systemId, _publicId;
         private int _depth;
 
         public QueryOutputWriter(XmlRawWriter writer, XmlWriterSettings settings)
@@ -91,11 +89,11 @@ namespace System.Xml
         {
             get
             {
-                return this.resolver;
+                return this._resolver;
             }
             set
             {
-                this.resolver = value;
+                this._resolver = value;
                 _wrapped.NamespaceResolver = value;
             }
         }
@@ -254,19 +252,19 @@ namespace System.Xml
             _wrapped.WriteCData(text);
         }
 
-        public override void WriteComment(string text)
+        public override void WriteComment(string? text)
         {
             EndCDataSection();
             _wrapped.WriteComment(text);
         }
 
-        public override void WriteProcessingInstruction(string name, string text)
+        public override void WriteProcessingInstruction(string name, string? text)
         {
             EndCDataSection();
             _wrapped.WriteProcessingInstruction(name, text);
         }
 
-        public override void WriteWhitespace(string ws)
+        public override void WriteWhitespace(string? ws)
         {
             if (!_inAttr && (_inCDataSection || StartCDataSection()))
                 _wrapped.WriteCData(ws);

@@ -16,21 +16,19 @@ Install Apple Xcode developer tools from the Mac App Store ([link](https://apps.
 Toolchain Setup
 ---------------
 
-Building dotnet/runtime depends on several tools to be installed. You can download them individually or use [Homebrew](http://brew.sh) for easier toolchain setup.
+Building dotnet/runtime depends on several tools to be installed. You can download them individually or use [Homebrew](https://brew.sh) for easier toolchain setup.
 
 Install the following packages:
 
 - cmake 3.15.5 or newer
-- autoconf
-- automake
 - icu4c
-- libtool
 - openssl 1.1
 - pkg-config
 - python3
+- ninja (optional, enables building native code with ninja instead of make)
 
-The lines to install all the packages above using Homebrew.
+You can install all the required packages above using Homebrew by running this command in the repository root:
 
 ```
-brew install cmake autoconf automake icu4c libtool openssl@1.1 pkg-config python3
+brew bundle --no-lock --file eng/Brewfile
 ```

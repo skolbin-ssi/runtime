@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -77,7 +76,7 @@ namespace System
                 ThrowHelper.ThrowArgumentOutOfRangeException();
 #endif
 
-            _pointer = new ByReference<T>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), start));
+            _pointer = new ByReference<T>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), (nint)(uint)start /* force zero-extension */));
             _length = length;
         }
 
@@ -135,7 +134,7 @@ namespace System
             {
                 if ((uint)index >= (uint)_length)
                     ThrowHelper.ThrowIndexOutOfRangeException();
-                return ref Unsafe.Add(ref _pointer.Value, index);
+                return ref Unsafe.Add(ref _pointer.Value, (nint)(uint)index /* force zero-extension */);
             }
         }
 
@@ -275,7 +274,7 @@ namespace System
 
             if ((uint)_length <= (uint)destination.Length)
             {
-                Buffer.Memmove(ref destination._pointer.Value, ref _pointer.Value, (nuint)_length);
+                Buffer.Memmove(ref destination._pointer.Value, ref _pointer.Value, (uint)_length);
             }
             else
             {
@@ -296,7 +295,7 @@ namespace System
             bool retVal = false;
             if ((uint)_length <= (uint)destination.Length)
             {
-                Buffer.Memmove(ref destination._pointer.Value, ref _pointer.Value, (nuint)_length);
+                Buffer.Memmove(ref destination._pointer.Value, ref _pointer.Value, (uint)_length);
                 retVal = true;
             }
             return retVal;
@@ -320,14 +319,7 @@ namespace System
             {
                 return new string(new ReadOnlySpan<char>(ref Unsafe.As<T, char>(ref _pointer.Value), _length));
             }
-#if FEATURE_UTF8STRING
-            else if (typeof(T) == typeof(Char8))
-            {
-                // TODO_UTF8STRING: Call into optimized transcoding routine when it's available.
-                return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(ref Unsafe.As<T, byte>(ref _pointer.Value), _length));
-            }
-#endif // FEATURE_UTF8STRING
-            return string.Format("System.ReadOnlySpan<{0}>[{1}]", typeof(T).Name, _length);
+            return $"System.ReadOnlySpan<{typeof(T).Name}>[{_length}]";
         }
 
         /// <summary>
@@ -343,7 +335,7 @@ namespace System
             if ((uint)start > (uint)_length)
                 ThrowHelper.ThrowArgumentOutOfRangeException();
 
-            return new ReadOnlySpan<T>(ref Unsafe.Add(ref _pointer.Value, start), _length - start);
+            return new ReadOnlySpan<T>(ref Unsafe.Add(ref _pointer.Value, (nint)(uint)start /* force zero-extension */), _length - start);
         }
 
         /// <summary>
@@ -366,7 +358,7 @@ namespace System
                 ThrowHelper.ThrowArgumentOutOfRangeException();
 #endif
 
-            return new ReadOnlySpan<T>(ref Unsafe.Add(ref _pointer.Value, start), length);
+            return new ReadOnlySpan<T>(ref Unsafe.Add(ref _pointer.Value, (nint)(uint)start /* force zero-extension */), length);
         }
 
         /// <summary>
@@ -380,7 +372,7 @@ namespace System
                 return Array.Empty<T>();
 
             var destination = new T[_length];
-            Buffer.Memmove(ref MemoryMarshal.GetArrayDataReference(destination), ref _pointer.Value, (nuint)_length);
+            Buffer.Memmove(ref MemoryMarshal.GetArrayDataReference(destination), ref _pointer.Value, (uint)_length);
             return destination;
         }
     }

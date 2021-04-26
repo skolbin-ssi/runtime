@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Drawing.Imaging
 {
@@ -8,7 +7,7 @@ namespace System.Drawing.Imaging
 
     // sdkinc\imaging.h
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    internal class ImageCodecInfoPrivate
+    internal sealed class ImageCodecInfoPrivate
     {
 #pragma warning disable CS0618 // Legacy code: We don't care about using obsolete API's.
         [MarshalAs(UnmanagedType.Struct)]

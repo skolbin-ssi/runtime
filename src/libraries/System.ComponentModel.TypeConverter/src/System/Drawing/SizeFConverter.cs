@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.ComponentModel;
@@ -42,7 +41,7 @@ namespace System.Drawing
                 char sep = culture.TextInfo.ListSeparator[0];
                 string[] tokens = text.Split(sep);
                 float[] values = new float[tokens.Length];
-                TypeConverter floatConverter = TypeDescriptor.GetConverter(typeof(float));
+                TypeConverter floatConverter = TypeDescriptor.GetConverterTrimUnsafe(typeof(float));
                 for (int i = 0; i < values.Length; i++)
                 {
                     values[i] = (float)floatConverter.ConvertFromString(context, culture, tokens[i]);
@@ -76,7 +75,7 @@ namespace System.Drawing
                     }
 
                     string sep = culture.TextInfo.ListSeparator + " ";
-                    TypeConverter floatConverter = TypeDescriptor.GetConverter(typeof(float));
+                    TypeConverter floatConverter = TypeDescriptor.GetConverterTrimUnsafe(typeof(float));
                     var args = new string[]
                     {
                         floatConverter.ConvertToString(context, culture, size.Width),
@@ -119,6 +118,7 @@ namespace System.Drawing
 
         private static readonly string[] s_propertySort = { "Width", "Height" };
 
+        [RequiresUnreferencedCode("The Type of value cannot be statically discovered. " + AttributeCollection.FilterRequiresUnreferencedCodeMessage)]
         public override PropertyDescriptorCollection GetProperties(ITypeDescriptorContext context, object value, Attribute[] attributes)
         {
             PropertyDescriptorCollection props = TypeDescriptor.GetProperties(typeof(SizeF), attributes);

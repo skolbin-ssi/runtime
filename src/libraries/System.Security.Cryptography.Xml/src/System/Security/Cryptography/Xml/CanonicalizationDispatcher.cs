@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Xml;
 using System.Text;
@@ -9,10 +8,8 @@ namespace System.Security.Cryptography.Xml
 {
     // the central dispatcher for canonicalization writes. not all node classes
     // implement ICanonicalizableNode; so a manual dispatch is sometimes necessary.
-    internal class CanonicalizationDispatcher
+    internal static class CanonicalizationDispatcher
     {
-        private CanonicalizationDispatcher() { }
-
         public static void Write(XmlNode node, StringBuilder strBuilder, DocPosition docPos, AncestralNamespaceContextManager anc)
         {
             if (node is ICanonicalizableNode)

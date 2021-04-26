@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Configuration.Internal
 {
     // The runtime config system
-    internal class ConfigSystem : IConfigSystem
+    internal sealed class ConfigSystem : IConfigSystem
     {
         private IInternalConfigHost _configHost;
         private IInternalConfigRoot _configRoot;

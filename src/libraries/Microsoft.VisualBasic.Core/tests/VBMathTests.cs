@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -171,9 +170,6 @@ namespace Microsoft.VisualBasic.Tests
         public void Randomize_SetsExpectedState()
         {
             ResetSeed();
-
-            if (!BitConverter.IsLittleEndian)
-                throw new NotImplementedException("big endian tests");
 
             VBMath.Randomize(-2E30);
             Assert.Equal(-0.0297851562f, VBMath.Rnd(0.0f));

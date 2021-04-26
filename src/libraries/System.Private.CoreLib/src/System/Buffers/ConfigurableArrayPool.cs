@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -111,10 +110,11 @@ namespace System.Buffers
 
             if (log.IsEnabled())
             {
-                int bufferId = buffer.GetHashCode(), bucketId = -1; // no bucket for an on-demand allocated buffer
-                log.BufferRented(bufferId, buffer.Length, Id, bucketId);
-                log.BufferAllocated(bufferId, buffer.Length, Id, bucketId, index >= _buckets.Length ?
-                    ArrayPoolEventSource.BufferAllocatedReason.OverMaximumSize : ArrayPoolEventSource.BufferAllocatedReason.PoolExhausted);
+                int bufferId = buffer.GetHashCode();
+                log.BufferRented(bufferId, buffer.Length, Id, ArrayPoolEventSource.NoBucketId);
+                log.BufferAllocated(bufferId, buffer.Length, Id, ArrayPoolEventSource.NoBucketId, index >= _buckets.Length ?
+                    ArrayPoolEventSource.BufferAllocatedReason.OverMaximumSize :
+                    ArrayPoolEventSource.BufferAllocatedReason.PoolExhausted);
             }
 
             return buffer;
@@ -137,12 +137,13 @@ namespace System.Buffers
             int bucket = Utilities.SelectBucketIndex(array.Length);
 
             // If we can tell that the buffer was allocated, drop it. Otherwise, check if we have space in the pool
-            if (bucket < _buckets.Length)
+            bool haveBucket = bucket < _buckets.Length;
+            if (haveBucket)
             {
                 // Clear the array if the user requests
                 if (clearArray)
                 {
-                    Array.Clear(array, 0, array.Length);
+                    Array.Clear(array);
                 }
 
                 // Return the buffer to its bucket.  In the future, we might consider having Return return false
@@ -155,7 +156,12 @@ namespace System.Buffers
             ArrayPoolEventSource log = ArrayPoolEventSource.Log;
             if (log.IsEnabled())
             {
-                log.BufferReturned(array.GetHashCode(), array.Length, Id);
+                int bufferId = array.GetHashCode();
+                log.BufferReturned(bufferId, array.Length, Id);
+                if (!haveBucket)
+                {
+                    log.BufferDropped(bufferId, array.Length, Id, ArrayPoolEventSource.NoBucketId, ArrayPoolEventSource.BufferDroppedReason.Full);
+                }
             }
         }
 
@@ -241,6 +247,8 @@ namespace System.Buffers
                     throw new ArgumentException(SR.ArgumentException_BufferNotFromPool, nameof(array));
                 }
 
+                bool returned;
+
                 // While holding the spin lock, if there's room available in the bucket,
                 // put the buffer into the next available slot.  Otherwise, we just drop it.
                 // The try/finally is necessary to properly handle thread aborts on platforms
@@ -250,7 +258,8 @@ namespace System.Buffers
                 {
                     _lock.Enter(ref lockTaken);
 
-                    if (_index != 0)
+                    returned = _index != 0;
+                    if (returned)
                     {
                         _buffers[--_index] = array;
                     }
@@ -258,6 +267,15 @@ namespace System.Buffers
                 finally
                 {
                     if (lockTaken) _lock.Exit(false);
+                }
+
+                if (!returned)
+                {
+                    ArrayPoolEventSource log = ArrayPoolEventSource.Log;
+                    if (log.IsEnabled())
+                    {
+                        log.BufferDropped(array.GetHashCode(), _bufferLength, _poolId, Id, ArrayPoolEventSource.BufferDroppedReason.Full);
+                    }
                 }
             }
         }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Runtime.InteropServices;
@@ -72,7 +71,7 @@ internal static partial class Interop
             }
 
             // Couldn't get a message, so manufacture one.
-            return string.Format("Unknown error (0x{0:x})", errorCode);
+            return $"Unknown error (0x{errorCode:x})";
         }
 
         private static string GetAndTrimString(Span<char> buffer)

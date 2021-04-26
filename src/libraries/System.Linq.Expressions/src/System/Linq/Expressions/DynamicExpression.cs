@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -36,6 +35,9 @@ namespace System.Linq.Expressions
         /// Reduces the dynamic expression node to a simpler expression.
         /// </summary>
         /// <returns>The reduced expression.</returns>
+        [DynamicDependency("Target", typeof(CallSite<>))]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "The field will be preserved by the DynamicDependency")]
         public override Expression Reduce()
         {
             var site = Expression.Constant(CallSite.Create(DelegateType, Binder));
@@ -135,7 +137,7 @@ namespace System.Linq.Expressions
         /// </summary>
         public ReadOnlyCollection<Expression> Arguments => GetOrMakeArguments();
 
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual ReadOnlyCollection<Expression> GetOrMakeArguments()
         {
             throw ContractUtils.Unreachable;
@@ -161,7 +163,7 @@ namespace System.Linq.Expressions
         /// This helper is provided to allow re-writing of nodes to not depend on the specific optimized
         /// subclass of DynamicExpression which is being used.
         /// </summary>
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual DynamicExpression Rewrite(Expression[] args)
         {
             throw ContractUtils.Unreachable;
@@ -198,7 +200,7 @@ namespace System.Linq.Expressions
             return ExpressionExtension.MakeDynamic(DelegateType, Binder, arguments);
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual bool SameArguments(ICollection<Expression>? arguments)
         {
             throw ContractUtils.Unreachable;
@@ -206,13 +208,13 @@ namespace System.Linq.Expressions
 
         #region IArgumentProvider Members
 
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         Expression IArgumentProvider.GetArgument(int index)
         {
             throw ContractUtils.Unreachable;
         }
 
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         int IArgumentProvider.ArgumentCount
         {
             get { throw ContractUtils.Unreachable; }
@@ -510,7 +512,7 @@ namespace System.Linq.Expressions
         }
     }
 
-    internal class TypedDynamicExpressionN : DynamicExpressionN
+    internal sealed class TypedDynamicExpressionN : DynamicExpressionN
     {
         internal TypedDynamicExpressionN(Type returnType, Type delegateType, CallSiteBinder binder, IReadOnlyList<Expression> arguments)
             : base(delegateType, binder, arguments)

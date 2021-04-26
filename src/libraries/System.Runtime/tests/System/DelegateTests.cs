@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using System.Reflection;
@@ -101,6 +100,22 @@ namespace System.Tests
             Action emptyDelegate = EmptyFunc;
             emptyDelegate.DynamicInvoke(new object[] { });
             emptyDelegate.DynamicInvoke(null);
+        }
+
+        private class SomeCustomConstantAttribute : CustomConstantAttribute
+        {
+            public static object Do(object o) => o;
+          
+            public override object Value => "SomeValue";
+        }
+
+        private delegate object ObjectDelegateWithSomeCustomConstantAttribute([SomeCustomConstant] object o);
+
+        [Fact]
+        [SkipOnMono("https://github.com/dotnet/runtime/issues/49806")]
+        public static void DynamicInvoke_MissingTypeForCustomConstantAttribute_Succeeds()
+        {
+            Assert.Equal("SomeValue", (string)(new ObjectDelegateWithSomeCustomConstantAttribute(SomeCustomConstantAttribute.Do).DynamicInvoke(Type.Missing)));
         }
 
         [Fact]
@@ -620,6 +635,10 @@ namespace System.Tests
             e = (E)Delegate.CreateDelegate(typeof(E), new C(), "DoExecute");
             Assert.NotNull(e);
             Assert.Equal(102, e(new C()));
+
+            e = (E)Delegate.CreateDelegate(typeof(E), new B() { field = 42 }, "GetField");
+            Assert.NotNull(e);
+            Assert.Equal(42, e(new C()));
         }
 
         [Fact]
@@ -1098,12 +1117,35 @@ namespace System.Tests
             Assert.Null(ex.InnerException);
             Assert.NotNull(ex.Message);
         }
+
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49839", TestRuntimes.Mono)]
+        [Fact]
+        public static void CreateDelegate10_Nullable_Method()
+        {
+            int? num = 123;
+            MethodInfo mi = typeof(int?).GetMethod("ToString");
+            NullableIntToString toString = (NullableIntToString)Delegate.CreateDelegate(
+                typeof(NullableIntToString), mi);
+            string s = toString(ref num);
+            Assert.Equal(num.ToString(), s);
+        }
+
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49839", TestRuntimes.Mono)]
+        [Fact]
+        public static void CreateDelegate10_Nullable_ClosedDelegate()
+        {
+            int? num = 123;
+            MethodInfo mi = typeof(int?).GetMethod("ToString");
+            AssertExtensions.Throws<ArgumentException>(
+                () => Delegate.CreateDelegate(typeof(NullableIntToString), num, mi));
+        }
         #endregion Tests
 
         #region Test Setup
 
         public class B
         {
+            public int field;
 
             public virtual string retarg3(string s)
             {
@@ -1136,6 +1178,11 @@ namespace System.Tests
             public int StartExecute(C c, B b)
             {
                 return 3;
+            }
+
+            public int GetField(C c)
+            {
+                return field;
             }
         }
 
@@ -1198,6 +1245,8 @@ namespace System.Tests
 
         public delegate void D(C c);
         public delegate int E(C c);
+
+        delegate string NullableIntToString(ref int? obj);
         #endregion Test Setup
     }
 }

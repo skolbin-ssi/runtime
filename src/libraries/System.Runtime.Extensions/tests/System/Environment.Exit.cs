@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.IO;
@@ -21,8 +20,9 @@ namespace System.Tests
             new object[] { 255 },
         };
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [MemberData(nameof(ExitCodeValues))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
         public static void CheckExitCode(int expectedExitCode)
         {
             RemoteExecutor.Invoke(s => int.Parse(s), expectedExitCode.ToString(), new RemoteInvokeOptions { ExpectedExitCode = expectedExitCode }).Dispose();
@@ -42,6 +42,9 @@ namespace System.Tests
         [InlineData(1)] // setting ExitCode and exiting Main
         [InlineData(2)] // setting ExitCode both from Main and from an Unloading event handler.
         [InlineData(3)] // using Exit(exitCode)
+        [SkipOnPlatform(TestPlatforms.Browser, "throws PNSE")]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49868", TestPlatforms.Android)]
         public static void ExitCode_VoidMainAppReturnsSetValue(int mode)
         {
             int expectedExitCode = 123;

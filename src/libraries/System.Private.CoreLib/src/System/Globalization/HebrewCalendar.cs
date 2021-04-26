@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 
@@ -665,7 +664,7 @@ namespace System.Globalization
             int monthDays = LunarMonthLen[hebrewYearType * MaxMonthPlusOne + month];
             if (monthDays == 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(month), month, SR.ArgumentOutOfRange_Month);
+                ThrowHelper.ThrowArgumentOutOfRange_Month(month);
             }
 
             return monthDays;
@@ -893,7 +892,7 @@ namespace System.Globalization
             return year;
         }
 
-        internal class DateBuffer
+        internal sealed class DateBuffer
         {
             internal int year;
             internal int month;

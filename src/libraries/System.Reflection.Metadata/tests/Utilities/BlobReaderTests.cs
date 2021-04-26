@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Reflection.Internal;
 using System.Text;
@@ -308,7 +307,7 @@ namespace System.Reflection.Metadata.Tests
 
                 reader.Reset();
                 Assert.Equal(0, reader.Offset);
-                Assert.Equal(BitConverter.ToDouble(buffer2, 0), reader.ReadDouble());
+                Assert.Equal(BitConverter.Int64BitsToDouble(0x0807060504030201L), reader.ReadDouble());
             }
         }
 

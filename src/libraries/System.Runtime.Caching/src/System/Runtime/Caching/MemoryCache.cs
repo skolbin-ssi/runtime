@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Runtime.Caching.Configuration;
@@ -43,7 +42,7 @@ namespace System.Runtime.Caching
         private bool IsDisposed { get { return (_disposed == 1); } }
         internal bool ConfigLess { get { return _configLess; } }
 
-        private class SentinelEntry
+        private sealed class SentinelEntry
         {
             private readonly string _key;
             private readonly ChangeMonitor _expensiveObjectDependency;
@@ -344,7 +343,7 @@ namespace System.Runtime.Caching
             {
                 throw new ArgumentNullException(nameof(name));
             }
-            if (name == string.Empty)
+            if (name.Length == 0)
             {
                 throw new ArgumentException(SR.Empty_string_invalid, nameof(name));
             }
@@ -364,7 +363,7 @@ namespace System.Runtime.Caching
             {
                 throw new ArgumentNullException(nameof(name));
             }
-            if (name == string.Empty)
+            if (name.Length == 0)
             {
                 throw new ArgumentException(SR.Empty_string_invalid, nameof(name));
             }

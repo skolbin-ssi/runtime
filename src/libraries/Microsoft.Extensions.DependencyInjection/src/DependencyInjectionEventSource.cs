@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Tracing;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection.ServiceLookup;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -31,6 +30,8 @@ namespace Microsoft.Extensions.DependencyInjection
         // - A stop event's event id must be next one after its start event.
         // - Avoid renaming methods or parameters marked with EventAttribute. EventSource uses these to form the event object.
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "Parameters to this method are primitive and are trimmer safe.")]
         [Event(1, Level = EventLevel.Verbose)]
         private void CallSiteBuilt(string serviceType, string callSite, int chunkIndex, int chunkCount)
         {
@@ -55,6 +56,21 @@ namespace Microsoft.Extensions.DependencyInjection
             WriteEvent(4, serviceType, methodSize);
         }
 
+        [Event(5, Level = EventLevel.Verbose)]
+        public void ScopeDisposed(int serviceProviderHashCode, int scopedServicesResolved, int disposableServices)
+        {
+            WriteEvent(5, serviceProviderHashCode, scopedServicesResolved, disposableServices);
+        }
+
+        [NonEvent]
+        public void ScopeDisposed(ServiceProviderEngine engine, ScopeState state)
+        {
+            if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
+            {
+                ScopeDisposed(engine.GetHashCode(), state.ResolvedServicesCount, state.DisposableServicesCount);
+            }
+        }
+
         [NonEvent]
         public void ServiceResolved(Type serviceType)
         {
@@ -69,8 +85,8 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
             {
-                var format = CallSiteJsonFormatter.Instance.Format(callSite);
-                var chunkCount = format.Length / MaxChunkSize + (format.Length % MaxChunkSize > 0 ? 1 : 0);
+                string format = CallSiteJsonFormatter.Instance.Format(callSite);
+                int chunkCount = format.Length / MaxChunkSize + (format.Length % MaxChunkSize > 0 ? 1 : 0);
 
                 for (int i = 0; i < chunkCount; i++)
                 {
@@ -82,17 +98,6 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         [NonEvent]
-        public void ExpressionTreeGenerated(Type serviceType, Expression expression)
-        {
-            if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
-            {
-                var visitor = new NodeCountingVisitor();
-                visitor.Visit(expression);
-                ExpressionTreeGenerated(serviceType.ToString(), visitor.NodeCount);
-            }
-        }
-
-        [NonEvent]
         public void DynamicMethodBuilt(Type serviceType, int methodSize)
         {
             if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
@@ -100,8 +105,24 @@ namespace Microsoft.Extensions.DependencyInjection
                 DynamicMethodBuilt(serviceType.ToString(), methodSize);
             }
         }
+    }
 
-        private class NodeCountingVisitor : ExpressionVisitor
+    internal static class DependencyInjectionEventSourceExtensions
+    {
+        // This is an extension method because this assembly is trimmed at a "type granular" level in Blazor,
+        // and the whole DependencyInjectionEventSource type can't be trimmed. So extracting this to a separate
+        // type allows for the System.Linq.Expressions usage to be trimmed by the ILLinker.
+        public static void ExpressionTreeGenerated(this DependencyInjectionEventSource source, Type serviceType, Expression expression)
+        {
+            if (source.IsEnabled(EventLevel.Verbose, EventKeywords.All))
+            {
+                var visitor = new NodeCountingVisitor();
+                visitor.Visit(expression);
+                source.ExpressionTreeGenerated(serviceType.ToString(), visitor.NodeCount);
+            }
+        }
+
+        private sealed class NodeCountingVisitor : ExpressionVisitor
         {
             public int NodeCount { get; private set; }
 

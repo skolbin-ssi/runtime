@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using Xunit;
@@ -21,6 +20,7 @@ namespace System.Runtime.InteropServices
             Assert.NotEmpty(RuntimeEnvironment.GetSystemVersion());
         }
 
+#pragma warning disable SYSLIB0019 // RuntimeEnvironment members SystemConfigurationFile, GetRuntimeInterfaceAsIntPtr, and GetRuntimeInterfaceAsObject are no longer supported and throw PlatformNotSupportedException.
         [Fact]
         public void SystemConfigurationFile_Get_ThrowsPlatformNotSupportedException()
         {
@@ -38,6 +38,7 @@ namespace System.Runtime.InteropServices
         {
             Assert.Throws<PlatformNotSupportedException>(() => RuntimeEnvironment.GetRuntimeInterfaceAsIntPtr(Guid.Empty, Guid.Empty));
         }
+#pragma warning restore SYSLIB0019
 
         [Fact]
         public void FromGlobalAccessCache_nNvoke_ReturnsFalse()

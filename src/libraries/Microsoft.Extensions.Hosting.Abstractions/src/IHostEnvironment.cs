@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using Microsoft.Extensions.FileProviders;
@@ -14,7 +13,7 @@ namespace Microsoft.Extensions.Hosting
     {
         /// <summary>
         /// Gets or sets the name of the environment. The host automatically sets this property to the value of the
-        /// of the "environment" key as specified in configuration.
+        /// "environment" key as specified in configuration.
         /// </summary>
         string EnvironmentName { get; set; }
 

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 
@@ -18,7 +17,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        public AdamInstance this[int index] => (AdamInstance)InnerList[index];
+        public AdamInstance this[int index] => (AdamInstance)InnerList[index]!;
 
         public bool Contains(AdamInstance adamInstance)
         {
@@ -29,7 +28,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                AdamInstance tmp = (AdamInstance)InnerList[i];
+                AdamInstance tmp = (AdamInstance)InnerList[i]!;
                 if (Utils.Compare(tmp.Name, adamInstance.Name) == 0)
                 {
                     return true;
@@ -47,7 +46,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                AdamInstance tmp = (AdamInstance)InnerList[i];
+                AdamInstance tmp = (AdamInstance)InnerList[i]!;
                 if (Utils.Compare(tmp.Name, adamInstance.Name) == 0)
                 {
                     return i;

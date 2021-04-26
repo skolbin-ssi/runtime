@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -80,12 +79,10 @@ namespace System.Reflection.TypeLoading.Ecma
             if (disposedString != null)
                 return disposedString;
 
-            StringBuilder sb = new StringBuilder();
-            string typeString = FieldDefinition.DecodeSignature(EcmaSignatureTypeProviderForToString.Instance, TypeContext);
-            sb.Append(typeString);
-            sb.Append(' ');
-            sb.Append(Name);
-            return sb.ToString();
+            return
+                FieldDefinition.DecodeSignature(EcmaSignatureTypeProviderForToString.Instance, TypeContext) +
+                " " +
+                Name;
         }
 
         private MetadataReader Reader => _module.Reader;

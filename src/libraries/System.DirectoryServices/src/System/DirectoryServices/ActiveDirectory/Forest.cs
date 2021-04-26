@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Text;
 using System.Collections;
@@ -26,21 +25,21 @@ namespace System.DirectoryServices.ActiveDirectory
     public class Forest : IDisposable
     {
         // Private Variables
-        private readonly DirectoryContext _context = null;
-        private readonly DirectoryEntryManager _directoryEntryMgr = null;
-        private bool _disposed = false;
+        private readonly DirectoryContext _context;
+        private readonly DirectoryEntryManager _directoryEntryMgr;
+        private bool _disposed;
 
         // Internal variables corresponding to public properties
-        private readonly string _forestDnsName = null;
-        private ReadOnlySiteCollection _cachedSites = null;
-        private DomainCollection _cachedDomains = null;
-        private GlobalCatalogCollection _cachedGlobalCatalogs = null;
-        private ApplicationPartitionCollection _cachedApplicationPartitions = null;
+        private readonly string _forestDnsName;
+        private ReadOnlySiteCollection? _cachedSites;
+        private DomainCollection? _cachedDomains;
+        private GlobalCatalogCollection? _cachedGlobalCatalogs;
+        private ApplicationPartitionCollection? _cachedApplicationPartitions;
         private int _forestModeLevel = -1;
-        private Domain _cachedRootDomain = null;
-        private ActiveDirectorySchema _cachedSchema = null;
-        private DomainController _cachedSchemaRoleOwner = null;
-        private DomainController _cachedNamingRoleOwner = null;
+        private Domain? _cachedRootDomain;
+        private ActiveDirectorySchema? _cachedSchema;
+        private DomainController? _cachedSchemaRoleOwner;
+        private DomainController? _cachedNamingRoleOwner;
 
         #region constructors
         internal Forest(DirectoryContext context, string forestDnsName, DirectoryEntryManager directoryEntryMgr)
@@ -84,9 +83,9 @@ namespace System.DirectoryServices.ActiveDirectory
 
         public static Forest GetForest(DirectoryContext context)
         {
-            DirectoryEntryManager directoryEntryMgr = null;
-            DirectoryEntry rootDSE = null;
-            string rootDomainNC = null;
+            DirectoryEntryManager? directoryEntryMgr = null;
+            DirectoryEntry? rootDSE = null;
+            string? rootDomainNC = null;
 
             // check that the argument is not null
             if (context == null)
@@ -134,7 +133,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 {
                     throw new ActiveDirectoryObjectNotFoundException(SR.Format(SR.DCNotFound, context.Name), typeof(Forest), null);
                 }
-                rootDomainNC = (string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.RootDomainNamingContext);
+                rootDomainNC = (string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.RootDomainNamingContext)!;
             }
             catch (COMException e)
             {
@@ -806,7 +805,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 }
                 else
                 {
-                    forestModeValue = int.Parse((string)rootDSE.Properties[PropertyManager.ForestFunctionality].Value, NumberFormatInfo.InvariantInfo);
+                    forestModeValue = int.Parse((string)rootDSE.Properties[PropertyManager.ForestFunctionality].Value!, NumberFormatInfo.InvariantInfo);
                 }
             }
             catch (COMException e)
@@ -825,8 +824,8 @@ namespace System.DirectoryServices.ActiveDirectory
         //
         private DomainController GetRoleOwner(ActiveDirectoryRole role)
         {
-            DirectoryEntry entry = null;
-            string dcName = null;
+            DirectoryEntry? entry = null;
+            string? dcName = null;
 
             try
             {
@@ -850,7 +849,7 @@ namespace System.DirectoryServices.ActiveDirectory
                         break;
                 }
 
-                dcName = Utils.GetDnsHostNameFromNTDSA(_context, (string)PropertyManager.GetPropertyValue(_context, entry, PropertyManager.FsmoRoleOwner));
+                dcName = Utils.GetDnsHostNameFromNTDSA(_context, (string)PropertyManager.GetPropertyValue(_context, entry, PropertyManager.FsmoRoleOwner)!);
             }
             catch (COMException e)
             {
@@ -908,7 +907,7 @@ namespace System.DirectoryServices.ActiveDirectory
                             Marshal.PtrToStructure(currentItem, dsNameResultItem);
                             if (dsNameResultItem.status == NativeMethods.DsNameNoError)
                             {
-                                string siteName = Utils.GetDNComponents(dsNameResultItem.name)[0].Value;
+                                string siteName = Utils.GetDNComponents(dsNameResultItem.name!)[0].Value!;
                                 // an existing site
                                 sites.Add(new ActiveDirectorySite(_context, siteName, true));
                             }
@@ -987,7 +986,7 @@ namespace System.DirectoryServices.ActiveDirectory
             propertiesToLoad[1] = PropertyManager.NCName;
 
             ADSearcher searcher = new ADSearcher(partitionsEntry, filter, propertiesToLoad, SearchScope.OneLevel);
-            SearchResultCollection resCol = null;
+            SearchResultCollection? resCol = null;
             try
             {
                 resCol = searcher.FindAll();
@@ -999,15 +998,15 @@ namespace System.DirectoryServices.ActiveDirectory
                 {
                     // add the name of the appNC only if it is not
                     // the Schema or Configuration partition
-                    string nCName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.NCName);
+                    string nCName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.NCName)!;
                     if ((!(nCName.Equals(schemaNamingContext)))
                         && (!(nCName.Equals(configurationNamingContext))))
                     {
                         // create a new context to be passed on to the appNC object
                         // (pass the dns name of the appliction partition as the target)
-                        string dnsName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot);
+                        string dnsName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot)!;
                         DirectoryContext appNCContext = Utils.GetNewDirectoryContext(dnsName, DirectoryContextType.ApplicationPartition, _context);
-                        appNCs.Add(new ApplicationPartition(appNCContext, nCName, (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot), ApplicationPartitionType.ADApplicationPartition, new DirectoryEntryManager(appNCContext)));
+                        appNCs.Add(new ApplicationPartition(appNCContext, nCName, (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot)!, ApplicationPartitionType.ADApplicationPartition, new DirectoryEntryManager(appNCContext)));
                     }
                 }
             }
@@ -1056,14 +1055,14 @@ namespace System.DirectoryServices.ActiveDirectory
             propertiesToLoad[0] = PropertyManager.DnsRoot;
 
             ADSearcher searcher = new ADSearcher(partitionsEntry, filter, propertiesToLoad, SearchScope.OneLevel);
-            SearchResultCollection resCol = null;
+            SearchResultCollection? resCol = null;
             try
             {
                 resCol = searcher.FindAll();
 
                 foreach (SearchResult res in resCol)
                 {
-                    string domainName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot);
+                    string domainName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot)!;
                     DirectoryContext domainContext = Utils.GetNewDirectoryContext(domainName, DirectoryContextType.Domain, _context);
                     domains.Add(new Domain(domainContext, domainName));
                 }
@@ -1106,9 +1105,9 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        private TrustRelationshipInformationCollection GetTrustsHelper(string targetForestName)
+        private TrustRelationshipInformationCollection GetTrustsHelper(string? targetForestName)
         {
-            string serverName = null;
+            string? serverName = null;
             IntPtr domains = (IntPtr)0;
             int count = 0;
             TrustRelationshipInformationCollection collection = new TrustRelationshipInformationCollection();
@@ -1156,8 +1155,8 @@ namespace System.DirectoryServices.ActiveDirectory
                         if (targetForestName != null)
                         {
                             bool sameTarget = false;
-                            string tmpDNSName = null;
-                            string tmpNetBIOSName = null;
+                            string? tmpDNSName = null;
+                            string? tmpNetBIOSName = null;
 
                             if (unmanagedTrust.DnsDomainName != (IntPtr)0)
                                 tmpDNSName = Marshal.PtrToStringUni(unmanagedTrust.DnsDomainName);

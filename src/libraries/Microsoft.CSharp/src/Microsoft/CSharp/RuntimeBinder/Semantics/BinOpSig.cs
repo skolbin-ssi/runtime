@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CSharp.RuntimeBinder.Syntax;
 
 namespace Microsoft.CSharp.RuntimeBinder.Semantics
@@ -75,6 +75,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                 Set the values of the BinOpFullSig from the given BinOpSig. The ExpressionBinder is needed to get
                 the predefined types. Returns true iff the predef types are found.
             ***************************************************************************************************/
+            [RequiresUnreferencedCode(Binder.TrimmerWarning)]
             public BinOpFullSig(ExpressionBinder fnc, BinOpSig bos)
             {
                 this.pt1 = bos.pt1;

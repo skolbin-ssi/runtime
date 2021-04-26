@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Xml;
 using System.Text;
@@ -8,7 +7,7 @@ using System.Text;
 namespace System.Security.Cryptography.Xml
 {
     // the class that provides node subset state and canonicalization function to XmlSignificantWhitespace
-    internal class CanonicalXmlSignificantWhitespace : XmlSignificantWhitespace, ICanonicalizableNode
+    internal sealed class CanonicalXmlSignificantWhitespace : XmlSignificantWhitespace, ICanonicalizableNode
     {
         private bool _isInNodeSet;
 

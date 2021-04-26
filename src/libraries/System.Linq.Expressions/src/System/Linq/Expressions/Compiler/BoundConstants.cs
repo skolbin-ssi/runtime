@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Dynamic.Utils;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Dynamic.Utils;
 using static System.Linq.Expressions.CachedReflectionInfo;
 
 namespace System.Linq.Expressions.Compiler
@@ -43,7 +43,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 return object.ReferenceEquals(Value, other.Value) && Type.Equals(other.Type);
             }
-            public override bool Equals(object? obj)
+            public override bool Equals([NotNullWhen(true)] object? obj)
             {
                 return obj is TypedConstant typedConstant && Equals(typedConstant);
             }

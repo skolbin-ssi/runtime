@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel.Composition.Primitives;
@@ -8,7 +7,7 @@ using System.Globalization;
 
 namespace System.ComponentModel.Composition.ReflectionModel
 {
-    internal class ReflectionMemberExportDefinition : ExportDefinition, ICompositionElement
+    internal sealed class ReflectionMemberExportDefinition : ExportDefinition, ICompositionElement
     {
         private readonly LazyMemberInfo _member;
         private readonly ExportDefinition _exportDefinition;
@@ -79,12 +78,7 @@ namespace System.ComponentModel.Composition.ReflectionModel
             return ExportingLazyMember.ToReflectionMember();
         }
 
-        private string GetDisplayName()
-        {
-            return string.Format(CultureInfo.CurrentCulture,
-                   "{0} (ContractName=\"{1}\")",    // NOLOC
-                   ToReflectionMember().GetDisplayName(),
-                   ContractName);
-        }
+        private string GetDisplayName() =>
+            $"{ToReflectionMember().GetDisplayName()} (ContractName=\"{ContractName}\")";    // NOLOC
     }
 }

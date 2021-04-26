@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -11,7 +10,7 @@ namespace System.Collections.Immutable
     /// <summary>
     /// Object pooling utilities.
     /// </summary>
-    internal class SecureObjectPool
+    internal static class SecureObjectPool
     {
         /// <summary>
         /// The ever-incrementing (and wrap-on-overflow) integer for owner id's.
@@ -39,7 +38,7 @@ namespace System.Collections.Immutable
         }
     }
 
-    internal class SecureObjectPool<T, TCaller>
+    internal sealed class SecureObjectPool<T, TCaller>
         where TCaller : ISecurePooledObjectUser
     {
         public void TryAdd(TCaller caller, SecurePooledObject<T> item)
@@ -80,7 +79,7 @@ namespace System.Collections.Immutable
         int PoolUserId { get; }
     }
 
-    internal class SecurePooledObject<T>
+    internal sealed class SecurePooledObject<T>
     {
         private readonly T _value;
         private int _owner;
@@ -125,7 +124,7 @@ namespace System.Collections.Immutable
             }
             else
             {
-                value = default(T)!;
+                value = default;
                 return false;
             }
         }

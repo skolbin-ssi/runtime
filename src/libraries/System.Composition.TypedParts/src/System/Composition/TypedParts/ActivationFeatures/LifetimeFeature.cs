@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Composition.Hosting.Core;
@@ -12,7 +11,7 @@ namespace System.Composition.TypedParts.ActivationFeatures
     /// Modifies the activators of parts so that they a) get associated with the correct
     /// scope, and b) obtain their dependencies from the correct scope.
     /// </summary>
-    internal class LifetimeFeature : ActivationFeature
+    internal sealed class LifetimeFeature : ActivationFeature
     {
         public const string SharingBoundaryPartMetadataName = "SharingBoundary";
 

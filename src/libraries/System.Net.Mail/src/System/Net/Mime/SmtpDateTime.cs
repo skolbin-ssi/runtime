@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Collections.Generic;
@@ -32,7 +31,7 @@ namespace System.Net.Mime
     // stores a Date and a Time Zone.  These are parsed and formatted according to the
     // rules in RFC 2822 section 3.3.
     // This class is immutable
-    internal class SmtpDateTime
+    internal sealed class SmtpDateTime
     {
         #region constants
 
@@ -108,7 +107,7 @@ namespace System.Net.Mime
 
         // true if the time zone is unspecified i.e. -0000
         // the time zone will usually be specified
-        private readonly bool _unknownTimeZone = false;
+        private readonly bool _unknownTimeZone;
 
         #endregion
 

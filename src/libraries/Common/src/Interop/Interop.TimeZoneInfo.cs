@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 
@@ -8,14 +7,6 @@ internal static partial class Interop
 {
     internal static partial class Globalization
     {
-        // needs to be kept in sync with TimeZoneDisplayNameType in System.Globalization.Native
-        internal enum TimeZoneDisplayNameType
-        {
-            Generic = 0,
-            Standard = 1,
-            DaylightSavings = 2,
-        }
-
         [DllImport(Libraries.GlobalizationNative, CharSet = CharSet.Unicode, EntryPoint = "GlobalizationNative_GetTimeZoneDisplayName")]
         internal static extern unsafe ResultCode GetTimeZoneDisplayName(
             string localeName,
@@ -23,5 +14,11 @@ internal static partial class Interop
             TimeZoneDisplayNameType type,
             char* result,
             int resultLength);
+
+        [DllImport(Libraries.GlobalizationNative, CharSet = CharSet.Unicode, EntryPoint = "GlobalizationNative_WindowsIdToIanaId")]
+        internal static extern unsafe int WindowsIdToIanaId(string windowsId, [MarshalAs(UnmanagedType.LPStr)] string? region, char* ianaId, int ianaIdLength);
+
+        [DllImport(Libraries.GlobalizationNative, CharSet = CharSet.Unicode, EntryPoint = "GlobalizationNative_IanaIdToWindowsId")]
+        internal static extern unsafe int IanaIdToWindowsId(string ianaId, char* windowsId, int windowsIdLength);
     }
 }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -25,17 +24,15 @@ namespace System.DirectoryServices.AccountManagement
         internal static ContextOptions ADDefaultContextOption = ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing;
     }
 
-    internal class LdapConstants
+    internal static class LdapConstants
     {
         public static int LDAP_SSL_PORT = 636;
         public static int LDAP_PORT = 389;
         internal static DateTime defaultUtcTime = new DateTime(1601, 1, 1, 0, 0, 0);
-        private LdapConstants() { }
     }
     // The string constants used internally to specify each property
-    internal class PropertyNames
+    internal static class PropertyNames
     {
-        private PropertyNames() { }
         // Principal
         internal const string PrincipalDisplayName = "Principal.DisplayName";
         internal const string PrincipalDescription = "Principal.Description";
@@ -96,15 +93,14 @@ namespace System.DirectoryServices.AccountManagement
 
         // these two are not publicly exposed properties, but are used internally to track ResetPassword/ExpirePasswordNow
         // operations against unpersisted principals, so that they can be performed once the principal has been Saved
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Suppression approved. Not a password.")]
         internal const string PwdInfoPassword = "AuthenticablePrincipal.PasswordInfo.Password";
         internal const string PwdInfoExpireImmediately = "AuthenticablePrincipal.PasswordInfo.ExpireImmediately";
     }
 
     // Given an internal property name (from PropertyNames), returns the external form of the name for use in error-reporting
-    internal class PropertyNamesExternal
+    internal static class PropertyNamesExternal
     {
-        private PropertyNamesExternal() { }
-
         private static readonly int s_acctInfoPrefixLength = PropertyNames.AcctInfoPrefix.Length;
         private static readonly int s_pwdInfoPrefixLength = PropertyNames.PwdInfoPrefix.Length;
 
@@ -131,29 +127,13 @@ namespace System.DirectoryServices.AccountManagement
     //
     //  Group.Members
     //
-    internal class ReferentialProperties
+    internal static class ReferentialProperties
     {
-        private ReferentialProperties() { }
-
         // Maps from Type of the Principal object --> ArrayList of the object's referential property names
         // (expressed as strings from the PropertyNames class)
-        internal static readonly Hashtable Properties;
-
-        static ReferentialProperties()
+        internal static readonly Hashtable Properties = new Hashtable()
         {
-            Properties = new Hashtable();
-
-            // Referential properties for groups
-            ArrayList groupList = new ArrayList(1);
-            groupList.Add(PropertyNames.GroupMembers);
-
-            Properties[typeof(GroupPrincipal)] = groupList;
-
-            // Referential properties for users
-            // None at this time.
-
-            // Referential properties for computers
-            // None at this time.
-        }
+            { typeof(GroupPrincipal), new ArrayList(1) { PropertyNames.GroupMembers } }
+        };
     }
 }

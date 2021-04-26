@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 using System;
 using System.IO;
 using System.Text;
@@ -17,7 +15,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace System.Xml
 {
-    internal partial class XmlTextReaderImpl
+    internal sealed partial class XmlTextReaderImpl
     {
         //
         // ParsingState
@@ -26,7 +24,7 @@ namespace System.Xml
         private struct ParsingState
         {
             // character buffer
-            internal char[]? chars;
+            internal char[] chars;
             internal int charPos;
             internal int charsUsed;
             internal Encoding? encoding;
@@ -66,7 +64,7 @@ namespace System.Xml
 
             internal void Clear()
             {
-                chars = null;
+                chars = null!;
                 charPos = 0;
                 charsUsed = 0;
                 encoding = null;
@@ -121,7 +119,7 @@ namespace System.Xml
         //
         // XmlContext
         //
-        private class XmlContext
+        private sealed class XmlContext
         {
             internal XmlSpace xmlSpace;
             internal string xmlLang;
@@ -148,7 +146,7 @@ namespace System.Xml
         //
         // NoNamespaceManager
         //
-        private class NoNamespaceManager : XmlNamespaceManager
+        private sealed class NoNamespaceManager : XmlNamespaceManager
         {
             public NoNamespaceManager() : base() { }
             public override string DefaultNamespace { get { return string.Empty; } }
@@ -158,7 +156,7 @@ namespace System.Xml
             public override void RemoveNamespace(string prefix, string uri) { }
             public override IEnumerator GetEnumerator() { return null!; }
             public override IDictionary<string, string> GetNamespacesInScope(XmlNamespaceScope scope) { return null!; }
-            public override string LookupNamespace(string prefix) { return string.Empty; }
+            public override string LookupNamespace(string? prefix) { return string.Empty; }
             public override string? LookupPrefix(string uri) { return null; }
             public override bool HasNamespace(string prefix) { return false; }
         }
@@ -166,7 +164,7 @@ namespace System.Xml
         //
         // DtdParserProxy: IDtdParserAdapter proxy for XmlTextReaderImpl
         //
-        internal partial class DtdParserProxy : IDtdParserAdapterV1
+        internal sealed partial class DtdParserProxy : IDtdParserAdapterV1
         {
             // Fields
             private readonly XmlTextReaderImpl _reader;
@@ -200,7 +198,7 @@ namespace System.Xml
                 get { return _reader.DtdParserProxy_IsEof; }
             }
 
-            char[]? IDtdParserAdapter.ParsingBuffer
+            char[] IDtdParserAdapter.ParsingBuffer
             {
                 get { return _reader.DtdParserProxy_ParsingBuffer; }
             }
@@ -246,22 +244,22 @@ namespace System.Xml
                 return _reader.DtdParserProxy_ReadData();
             }
 
-            int IDtdParserAdapter.ParseNumericCharRef(StringBuilder internalSubsetBuilder)
+            int IDtdParserAdapter.ParseNumericCharRef(StringBuilder? internalSubsetBuilder)
             {
                 return _reader.DtdParserProxy_ParseNumericCharRef(internalSubsetBuilder);
             }
 
-            int IDtdParserAdapter.ParseNamedCharRef(bool expand, StringBuilder internalSubsetBuilder)
+            int IDtdParserAdapter.ParseNamedCharRef(bool expand, StringBuilder? internalSubsetBuilder)
             {
                 return _reader.DtdParserProxy_ParseNamedCharRef(expand, internalSubsetBuilder);
             }
 
-            void IDtdParserAdapter.ParsePI(StringBuilder sb)
+            void IDtdParserAdapter.ParsePI(StringBuilder? sb)
             {
                 _reader.DtdParserProxy_ParsePI(sb);
             }
 
-            void IDtdParserAdapter.ParseComment(StringBuilder sb)
+            void IDtdParserAdapter.ParseComment(StringBuilder? sb)
             {
                 _reader.DtdParserProxy_ParseComment(sb);
             }
@@ -276,7 +274,7 @@ namespace System.Xml
                 return _reader.DtdParserProxy_PopEntity(out oldEntity, out newEntityId);
             }
 
-            bool IDtdParserAdapter.PushExternalSubset(string systemId, string publicId)
+            bool IDtdParserAdapter.PushExternalSubset(string? systemId, string? publicId)
             {
                 return _reader.DtdParserProxy_PushExternalSubset(systemId, publicId);
             }
@@ -287,6 +285,7 @@ namespace System.Xml
                 _reader.DtdParserProxy_PushInternalDtd(baseUri, internalDtd);
             }
 
+            [DoesNotReturn]
             void IDtdParserAdapter.Throw(Exception e)
             {
                 _reader.DtdParserProxy_Throw(e);
@@ -331,7 +330,7 @@ namespace System.Xml
         //
         // NodeData
         //
-        private class NodeData : IComparable
+        private sealed class NodeData : IComparable
         {
             // static instance with no data - is used when XmlTextReader is closed
             private static volatile NodeData? s_None;
@@ -721,7 +720,7 @@ namespace System.Xml
         // DtdDefaultAttributeInfoToNodeDataComparer
         //
         // Compares IDtdDefaultAttributeInfo to NodeData
-        private class DtdDefaultAttributeInfoToNodeDataComparer : IComparer<object>
+        private sealed class DtdDefaultAttributeInfoToNodeDataComparer : IComparer<object>
         {
             private static readonly IComparer<object> s_instance = new DtdDefaultAttributeInfoToNodeDataComparer();
 

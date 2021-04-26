@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using System.Linq;
@@ -172,7 +171,6 @@ namespace System.Reflection.Tests
                 Assembly a = lc.LoadFromByteArray(TestData.s_AssemblyReferencesTestImage);
                 AssemblyName[] ans = a.GetReferencedAssemblies();
                 Assert.Equal(3, ans.Length);
-
                 {
                     AssemblyName an = ans.Single(an2 => an2.Name == "mscorlib");
                     Assert.Equal(default(AssemblyNameFlags), an.Flags);
@@ -212,7 +210,7 @@ namespace System.Reflection.Tests
                     Assert.Equal(2, v.Minor);
                     Assert.Equal(3, v.Build);
                     Assert.Equal(4, v.Revision);
-                    Assert.Equal("ar-LY", an.CultureName);
+                    Assert.Equal("pl-PL", an.CultureName);
                     Assert.Null(an.GetPublicKey());
                     Assert.Equal(0, an.GetPublicKeyToken().Length);
                 }

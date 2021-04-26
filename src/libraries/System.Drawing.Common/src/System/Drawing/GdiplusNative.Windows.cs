@@ -1,8 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-#pragma warning disable BCL0015 // We know these APIs are only on Windows
 
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -11,9 +8,9 @@ using System.Runtime.InteropServices;
 
 namespace System.Drawing
 {
-    internal static unsafe partial class SafeNativeMethods
+    internal static partial class SafeNativeMethods
     {
-        internal static partial class Gdip
+        internal static unsafe partial class Gdip
         {
             private const string LibraryName = "gdiplus.dll";
 
@@ -250,27 +247,6 @@ namespace System.Drawing
 
             [DllImport(LibraryName, ExactSpelling = true)]
             internal static extern int GdipGetImagePaletteSize(HandleRef image, out int size);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipGetPropertyCount(HandleRef image, out int count);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipGetPropertyIdList(HandleRef image, int count, int[] list);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipGetPropertyItemSize(HandleRef image, int propid, out int size);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipGetPropertyItem(HandleRef image, int propid, int size, IntPtr buffer);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipGetPropertySize(HandleRef image, out int totalSize, ref int count);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipGetAllPropertyItems(HandleRef image, int totalSize, int count, IntPtr buffer);
-
-            [DllImport(LibraryName, ExactSpelling = true)]
-            internal static extern int GdipSetPropertyItem(HandleRef image, PropertyItemInternal propitem);
 
             [DllImport(LibraryName, ExactSpelling = true)]
             internal static extern int GdipImageForceValidation(IntPtr image);

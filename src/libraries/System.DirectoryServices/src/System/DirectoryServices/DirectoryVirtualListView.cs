@@ -1,19 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.DirectoryServices
 {
     public class DirectoryVirtualListView
     {
-        private int _beforeCount = 0;
-        private int _afterCount = 0;
-        private int _offset = 0;
+        private int _beforeCount;
+        private int _afterCount;
+        private int _offset;
         private string _target = "";
-        private int _approximateTotal = 0;
-        private int _targetPercentage = 0;
+        private int _approximateTotal;
+        private int _targetPercentage;
 
         public DirectoryVirtualListView()
         {
@@ -31,14 +31,14 @@ namespace System.DirectoryServices
             Offset = offset;
         }
 
-        public DirectoryVirtualListView(int beforeCount, int afterCount, string target)
+        public DirectoryVirtualListView(int beforeCount, int afterCount, string? target)
         {
             BeforeCount = beforeCount;
             AfterCount = afterCount;
             Target = target;
         }
 
-        public DirectoryVirtualListView(int beforeCount, int afterCount, int offset, DirectoryVirtualListViewContext context)
+        public DirectoryVirtualListView(int beforeCount, int afterCount, int offset, DirectoryVirtualListViewContext? context)
         {
             BeforeCount = beforeCount;
             AfterCount = afterCount;
@@ -46,7 +46,7 @@ namespace System.DirectoryServices
             DirectoryVirtualListViewContext = context;
         }
 
-        public DirectoryVirtualListView(int beforeCount, int afterCount, string target, DirectoryVirtualListViewContext context)
+        public DirectoryVirtualListView(int beforeCount, int afterCount, string? target, DirectoryVirtualListViewContext? context)
         {
             BeforeCount = beforeCount;
             AfterCount = afterCount;
@@ -124,6 +124,7 @@ namespace System.DirectoryServices
         }
 
         [DefaultValue("")]
+        [AllowNull]
         public string Target
         {
             get => _target;
@@ -146,6 +147,6 @@ namespace System.DirectoryServices
         }
 
         [DefaultValue(null)]
-        public DirectoryVirtualListViewContext DirectoryVirtualListViewContext { get; set; }
+        public DirectoryVirtualListViewContext? DirectoryVirtualListViewContext { get; set; }
     }
 }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Specialized;
@@ -9,7 +8,7 @@ using System.Net.Mime;
 
 namespace System.Net.Mail
 {
-    internal class MailWriter : BaseWriter
+    internal sealed class MailWriter : BaseWriter
     {
         /// <summary>
         /// ctor.
@@ -28,11 +27,11 @@ namespace System.Net.Mail
             if (headers == null)
                 throw new ArgumentNullException(nameof(headers));
 
-            foreach (string? key in headers) // TODO-NULLABLE: https://github.com/dotnet/csharplang/issues/3214
+            foreach (string key in headers)
             {
                 string[] values = headers!.GetValues(key)!;
                 foreach (string value in values)
-                    WriteHeader(key!, value, allowUnicode);
+                    WriteHeader(key, value, allowUnicode);
             }
         }
 

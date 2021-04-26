@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -20,7 +19,7 @@ namespace System.Linq.Parallel
     /// convenient methods for tracing significant ETW events, waiting on tasks, propagating
     /// exceptions, and performing cancellation activities.
     /// </summary>
-    internal class QueryTaskGroupState
+    internal sealed class QueryTaskGroupState
     {
         private Task? _rootTask; // The task under which all query tasks root.
         private int _alreadyEnded; // Whether the tasks have been waited on already.
@@ -128,7 +127,7 @@ namespace System.Linq.Parallel
 
                     // if all the exceptions were OCE(externalToken), then we will propagate only a single OCE(externalToken) below
                     // otherwise, we flatten the aggregate (because the WaitAll above already aggregated) and rethrow.
-                    if (!allOCEsOnTrackedExternalCancellationToken)
+                    if (!allOCEsOnTrackedExternalCancellationToken || flattenedAE.InnerExceptions.Count == 0)
                         throw flattenedAE;  // Case #1
                 }
                 finally

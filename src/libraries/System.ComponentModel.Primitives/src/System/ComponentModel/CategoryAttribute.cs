@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.ComponentModel
 {
@@ -198,7 +197,7 @@ namespace System.ComponentModel
         /// <summary>
         /// Looks up the localized name of a given category.
         /// </summary>
-        protected virtual string? GetLocalizedString(string value) => SR.GetResourceString("PropertyCategory" + value, null);
+        protected virtual string? GetLocalizedString(string value) => SR.GetResourceString("PropertyCategory" + value);
 
         public override bool IsDefaultAttribute() => Category == Default.Category;
     }

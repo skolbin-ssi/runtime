@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 
@@ -26,6 +25,7 @@ namespace Microsoft.Extensions.Logging.Testing
         }
 
         public string Name { get; set; }
+        public int IsEnabledCallCount { get; private set; }
 
         public IDisposable BeginScope<TState>(TState state)
         {
@@ -61,6 +61,7 @@ namespace Microsoft.Extensions.Logging.Testing
 
         public bool IsEnabled(LogLevel logLevel)
         {
+            IsEnabledCallCount++;
             return logLevel != LogLevel.None && _filter(logLevel);
         }
 

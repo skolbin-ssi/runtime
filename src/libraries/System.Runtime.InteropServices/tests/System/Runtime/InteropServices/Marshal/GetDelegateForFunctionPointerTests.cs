@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +10,7 @@ using Xunit;
 
 namespace System.Runtime.InteropServices.Tests
 {
+    [ActiveIssue("https://github.com/dotnet/runtime/issues/39187", TestPlatforms.Browser)]
     public class GetDelegateForFunctionPointerTests
     {
         [Theory]
@@ -73,6 +73,16 @@ namespace System.Runtime.InteropServices.Tests
             Delegate functionDelegate = Marshal.GetDelegateForFunctionPointer<MulticastDelegate>(ptr);
             GC.KeepAlive(d);
             VerifyDelegate(functionDelegate, targetMethod);
+        }
+
+        [Fact]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/48379", TestRuntimes.Mono)]
+        public void GetDelegateForFunctionPointer_MulticastDelegate_ThrowsMustBeDelegate()
+        {
+            IntPtr ptr = Marshal.AllocHGlobal(16);
+            AssertExtensions.Throws<ArgumentException>("t", () => Marshal.GetDelegateForFunctionPointer(ptr, typeof(MulticastDelegate)));
+            AssertExtensions.Throws<ArgumentException>("t", () => Marshal.GetDelegateForFunctionPointer<MulticastDelegate>(ptr));
+            Marshal.FreeHGlobal(ptr);
         }
 
         private static void VerifyDelegate(Delegate d, MethodInfo expectedMethod)

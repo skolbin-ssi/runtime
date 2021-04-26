@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -249,7 +248,7 @@ namespace System.Buffers
                 int currentLength = startSegment.Memory.Length - startIndex;
 
                 // Position in start segment, defer to single segment seek
-                if (currentLength > offset)
+                if (currentLength > offset || offset == 0)
                     goto IsSingleSegment;
 
                 if (currentLength < 0)

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 /*============================================================
 **
@@ -252,16 +251,7 @@ namespace System.Diagnostics
             }
         }
 
-        // Wait until we hit EOF. This is called from Process.WaitForExit
-        // We will lose some information if we don't do this.
-        internal void WaitUtilEOF()
-        {
-            if (_readToBufferTask != null)
-            {
-                _readToBufferTask.GetAwaiter().GetResult();
-                _readToBufferTask = null;
-            }
-        }
+        internal Task EOF => _readToBufferTask ?? Task.CompletedTask;
 
         public void Dispose()
         {

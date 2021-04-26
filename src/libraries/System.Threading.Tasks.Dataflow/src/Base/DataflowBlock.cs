@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -26,7 +25,7 @@ namespace System.Threading.Tasks.Dataflow
     /// <summary>
     /// Provides a set of static (Shared in Visual Basic) methods for working with dataflow blocks.
     /// </summary>
-    public static class DataflowBlock
+    public static partial class DataflowBlock
     {
         #region LinkTo
         /// <summary>Links the <see cref="ISourceBlock{TOutput}"/> to the specified <see cref="ITargetBlock{TOutput}"/>.</summary>
@@ -134,7 +133,7 @@ namespace System.Threading.Tasks.Dataflow
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Targets/Member[@name="OfferMessage"]/*' />
 #pragma warning disable 8617
-            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
+            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T>? source, bool consumeToAccept)
 #pragma warning restore 8617
             {
                 // Validate arguments.  Some targets may have a null source, but FilteredLinkPropagator
@@ -155,8 +154,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-            [return: MaybeNull]
-            T ISourceBlock<T>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T> target, out bool messageConsumed)
+            T? ISourceBlock<T>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T> target, out bool messageConsumed)
             {
                 // This message should have only made it to the target if it passes the filter, so we shouldn't need to check again.
                 // The real source will also be doing verifications, so we don't need to validate args here.
@@ -199,10 +197,7 @@ namespace System.Threading.Tasks.Dataflow
                 {
                     var displaySource = _source as IDebuggerDisplay;
                     var displayTarget = _target as IDebuggerDisplay;
-                    return string.Format("{0} Source=\"{1}\", Target=\"{2}\"",
-                        Common.GetNameForDebugger(this),
-                        displaySource != null ? displaySource.Content : _source,
-                        displayTarget != null ? displayTarget.Content : _target);
+                    return $"{Common.GetNameForDebugger(this)} Source=\"{(displaySource != null ? displaySource.Content : _source)}\", Target=\"{(displayTarget != null ? displayTarget.Content : _target)}\"";
                 }
             }
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
@@ -622,8 +617,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <summary>Called by the target to consume the buffered message.</summary>
-            [return: MaybeNull]
-            TOutput ISourceBlock<TOutput>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
+            TOutput? ISourceBlock<TOutput>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
             {
                 // Validate arguments
                 if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -729,10 +723,7 @@ namespace System.Threading.Tasks.Dataflow
                 get
                 {
                     var displayTarget = _target as IDebuggerDisplay;
-                    return string.Format("{0} Message={1}, Target=\"{2}\"",
-                        Common.GetNameForDebugger(this),
-                        _messageValue,
-                        displayTarget != null ? displayTarget.Content : _target);
+                    return $"{Common.GetNameForDebugger(this)} Message={_messageValue}, Target=\"{(displayTarget != null ? displayTarget.Content : _target)}\"";
                 }
             }
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
@@ -942,7 +933,7 @@ namespace System.Threading.Tasks.Dataflow
 
             // Do fast path checks for both cancellation and data already existing.
             cancellationToken.ThrowIfCancellationRequested();
-            TOutput fastCheckedItem;
+            TOutput? fastCheckedItem;
             var receivableSource = source as IReceivableSourceBlock<TOutput>;
             if (receivableSource != null && receivableSource.TryReceive(null, out fastCheckedItem))
             {
@@ -998,7 +989,7 @@ namespace System.Threading.Tasks.Dataflow
                 {
                     try
                     {
-                        TOutput fastCheckedItem;
+                        TOutput? fastCheckedItem;
                         if (receivableSource.TryReceive(null, out fastCheckedItem))
                         {
                             return Task.FromResult<TOutput>(fastCheckedItem);
@@ -1094,7 +1085,7 @@ namespace System.Threading.Tasks.Dataflow
                 // So we are racing to dispose of the unlinker.
                 if (Volatile.Read(ref target._cleanupReserved))
                 {
-                    IDisposable disposableUnlink = Interlocked.CompareExchange(ref target._unlink, null, unlink);
+                    IDisposable? disposableUnlink = Interlocked.CompareExchange<IDisposable?>(ref target._unlink, null, unlink);
                     if (disposableUnlink != null) disposableUnlink.Dispose();
                 }
             }
@@ -1130,8 +1121,7 @@ namespace System.Threading.Tasks.Dataflow
             };
 
             /// <summary>The received value if we accepted a value from the source.</summary>
-            [AllowNull, MaybeNull]
-            private T _receivedValue = default!;
+            private T? _receivedValue;
 
             /// <summary>The cancellation token source representing both external and internal cancellation.</summary>
             internal readonly CancellationTokenSource _cts = new CancellationTokenSource();
@@ -1177,7 +1167,7 @@ namespace System.Threading.Tasks.Dataflow
                     {
                         // Accept the message if possible and complete this task with the message's value.
                         bool consumed = true;
-                        T acceptedValue = consumeToAccept ? source!.ConsumeMessage(messageHeader, this, out consumed) : messageValue;
+                        T? acceptedValue = consumeToAccept ? source!.ConsumeMessage(messageHeader, this, out consumed) : messageValue;
                         if (consumed)
                         {
                             status = DataflowMessageStatus.Accepted;
@@ -1369,14 +1359,8 @@ namespace System.Threading.Tasks.Dataflow
             Task IDataflowBlock.Completion { get { throw new NotSupportedException(SR.NotSupported_MemberNotNeeded); } }
 
             /// <summary>The data to display in the debugger display attribute.</summary>
-            private object DebuggerDisplayContent
-            {
-                get
-                {
-                    return string.Format("{0} IsCompleted={1}",
-                        Common.GetNameForDebugger(this), base.Task.IsCompleted);
-                }
-            }
+            private object DebuggerDisplayContent => $"{Common.GetNameForDebugger(this)} IsCompleted={base.Task.IsCompleted}";
+
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
             object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
         }
@@ -1563,14 +1547,8 @@ namespace System.Threading.Tasks.Dataflow
             Task IDataflowBlock.Completion { get { throw new NotSupportedException(SR.NotSupported_MemberNotNeeded); } }
 
             /// <summary>The data to display in the debugger display attribute.</summary>
-            private object DebuggerDisplayContent
-            {
-                get
-                {
-                    return string.Format("{0} IsCompleted={1}",
-                        Common.GetNameForDebugger(this), base.Task.IsCompleted);
-                }
-            }
+            private object DebuggerDisplayContent => $"{Common.GetNameForDebugger(this)} IsCompleted={base.Task.IsCompleted}";
+
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
             object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
         }
@@ -1665,8 +1643,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-            [return: MaybeNull]
-            public TOutput ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
+            public TOutput? ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
             {
                 return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
             }
@@ -1690,10 +1667,7 @@ namespace System.Threading.Tasks.Dataflow
                 {
                     var displayTarget = _target as IDebuggerDisplay;
                     var displaySource = _source as IDebuggerDisplay;
-                    return string.Format("{0} Target=\"{1}\", Source=\"{2}\"",
-                        Common.GetNameForDebugger(this),
-                        displayTarget != null ? displayTarget.Content : _target,
-                        displaySource != null ? displaySource.Content : _source);
+                    return $"{Common.GetNameForDebugger(this)} Target=\"{(displayTarget != null ? displayTarget.Content : _target)}\", Source=\"{(displaySource != null ? displaySource.Content : _source)}\"";
                 }
             }
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
@@ -1967,7 +1941,7 @@ namespace System.Threading.Tasks.Dataflow
             Debug.Assert(scheduler != null, "Expected a non-null scheduler");
 
             // Try to receive from the source.  If we can't, bail.
-            T result;
+            T? result;
             var receivableSource = source as IReceivableSourceBlock<T>;
             if (receivableSource == null || !receivableSource.TryReceive(out result))
             {
@@ -2203,7 +2177,7 @@ namespace System.Threading.Tasks.Dataflow
                     if (consumeToAccept)
                     {
                         bool consumed;
-                        messageValue = source!.ConsumeMessage(messageHeader, this, out consumed);
+                        messageValue = source!.ConsumeMessage(messageHeader, this, out consumed)!;
                         if (!consumed) return DataflowMessageStatus.NotAvailable;
                     }
 
@@ -2227,14 +2201,8 @@ namespace System.Threading.Tasks.Dataflow
             Task IDataflowBlock.Completion { get { throw new NotSupportedException(SR.NotSupported_MemberNotNeeded); } }
 
             /// <summary>The data to display in the debugger display attribute.</summary>
-            private object DebuggerDisplayContent
-            {
-                get
-                {
-                    return string.Format("{0} IsCompleted={1}",
-                        Common.GetNameForDebugger(this), base.Task.IsCompleted);
-                }
-            }
+            private object DebuggerDisplayContent => $"{Common.GetNameForDebugger(this)} IsCompleted={base.Task.IsCompleted}";
+
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
             object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
         }
@@ -2416,9 +2384,7 @@ namespace System.Threading.Tasks.Dataflow
                 get
                 {
                     var displaySource = _source as IDebuggerDisplay;
-                    return string.Format("Observers={0}, Block=\"{1}\"",
-                        _observersState.Observers.Count,
-                        displaySource != null ? displaySource.Content : _source);
+                    return $"Observers={_observersState.Observers.Count}, Block=\"{(displaySource != null ? displaySource.Content : _source)}\"";
                 }
             }
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
@@ -2676,8 +2642,7 @@ namespace System.Threading.Tasks.Dataflow
                 get
                 {
                     var displayTarget = _target as IDebuggerDisplay;
-                    return string.Format("Block=\"{0}\"",
-                        displayTarget != null ? displayTarget.Content : _target);
+                    return $"Block=\"{(displayTarget != null ? displayTarget.Content : _target)}\"";
                 }
             }
             /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
@@ -2700,7 +2665,7 @@ namespace System.Threading.Tasks.Dataflow
         /// Target block that synchronously accepts all messages offered to it and drops them.
         /// </summary>
         /// <typeparam name="TInput">The type of the messages this block can accept.</typeparam>
-        private class NullTargetBlock<TInput> : ITargetBlock<TInput>
+        private sealed class NullTargetBlock<TInput> : ITargetBlock<TInput>
         {
             private Task? _completion;
 

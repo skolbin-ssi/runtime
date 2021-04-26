@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Configuration;
 
 namespace System.Diagnostics
 {
-    internal class PerfCounterSection : ConfigurationElement
+    internal sealed class PerfCounterSection : ConfigurationElement
     {
         private static readonly ConfigurationProperty s_propFileMappingSize = new ConfigurationProperty("filemappingsize", typeof(int), 524288, ConfigurationPropertyOptions.None);
         private static readonly ConfigurationPropertyCollection s_properties = new ConfigurationPropertyCollection { s_propFileMappingSize };

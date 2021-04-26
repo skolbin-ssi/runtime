@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // This file contains the IDN functions and implementation.
 //
@@ -25,6 +24,7 @@
 //  RFC 3492 - Punycode: A Bootstring encoding of Unicode for Internationalized Domain Names in Applications (IDNA)
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -143,7 +143,7 @@ namespace System.Globalization
             }
         }
 
-        public override bool Equals(object? obj) =>
+        public override bool Equals([NotNullWhen(true)] object? obj) =>
             obj is IdnMapping that &&
             _allowUnassigned == that._allowUnassigned &&
             _useStd3AsciiRules == that._useStd3AsciiRules;
@@ -152,10 +152,19 @@ namespace System.Globalization
             (_allowUnassigned ? 100 : 200) + (_useStd3AsciiRules ? 1000 : 2000);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe string GetStringForOutput(string originalString, char* input, int inputLength, char* output, int outputLength) =>
-            originalString.Length == inputLength && new ReadOnlySpan<char>(input, inputLength).SequenceEqual(new ReadOnlySpan<char>(output, outputLength)) ?
-                originalString :
-                new string(output, 0, outputLength);
+        private static unsafe string GetStringForOutput(string originalString, char* input, int inputLength, char* output, int outputLength)
+        {
+            Debug.Assert(inputLength > 0);
+
+            if (originalString.Length == inputLength &&
+                inputLength == outputLength &&
+                Ordinal.EqualsIgnoreCase(ref *input, ref *output, inputLength))
+            {
+                return originalString;
+            }
+
+            return new string(output, 0, outputLength);
+        }
 
         //
         // Invariant implementation

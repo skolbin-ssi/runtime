@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -18,15 +17,15 @@ namespace System.ComponentModel.Composition.Hosting
     ///     It is threadsafe, notifications are not marshalled using a SynchronizationContext.
     ///     It is Disposable.
     /// </summary>
-    internal class ComposablePartCatalogCollection : ICollection<ComposablePartCatalog>, INotifyComposablePartCatalogChanged, IDisposable
+    internal sealed class ComposablePartCatalogCollection : ICollection<ComposablePartCatalog>, INotifyComposablePartCatalogChanged, IDisposable
     {
         private readonly Lock _lock = new Lock();
         private readonly Action<ComposablePartCatalogChangeEventArgs>? _onChanged;
         private readonly Action<ComposablePartCatalogChangeEventArgs>? _onChanging;
         private List<ComposablePartCatalog> _catalogs = new List<ComposablePartCatalog>();
-        private volatile bool _isCopyNeeded = false;
-        private volatile bool _isDisposed = false;
-        private bool _hasChanged = false;
+        private volatile bool _isCopyNeeded;
+        private volatile bool _isDisposed;
+        private bool _hasChanged;
 
         public ComposablePartCatalogCollection(
             IEnumerable<ComposablePartCatalog>? catalogs,
@@ -252,7 +251,7 @@ namespace System.ComponentModel.Composition.Hosting
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (disposing)
             {

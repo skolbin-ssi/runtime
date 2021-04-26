@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Linq;
 using System.Reflection;
@@ -10,7 +9,7 @@ using System.Composition.Hosting.Util;
 
 namespace System.Composition.Hosting.Providers.ExportFactory
 {
-    internal class ExportFactoryExportDescriptorProvider : ExportDescriptorProvider
+    internal sealed class ExportFactoryExportDescriptorProvider : ExportDescriptorProvider
     {
         private static readonly MethodInfo s_getExportFactoryDefinitionsMethod = typeof(ExportFactoryExportDescriptorProvider).GetTypeInfo().GetDeclaredMethod("GetExportFactoryDescriptors");
 

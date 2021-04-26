@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -17,7 +16,7 @@ namespace System.Linq.Parallel
     /// A linked list of array chunks. Allows direct access to its arrays.
     /// </summary>
     /// <typeparam name="TInputOutput">The elements held within.</typeparam>
-    internal class ListChunk<TInputOutput> : IEnumerable<TInputOutput>
+    internal sealed class ListChunk<TInputOutput> : IEnumerable<TInputOutput>
     {
         internal TInputOutput[] _chunk;
         private int _chunkCount;

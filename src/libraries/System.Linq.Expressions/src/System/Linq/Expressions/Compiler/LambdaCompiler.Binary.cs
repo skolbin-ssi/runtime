@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Dynamic.Utils;
@@ -10,7 +9,7 @@ using static System.Linq.Expressions.CachedReflectionInfo;
 
 namespace System.Linq.Expressions.Compiler
 {
-    internal partial class LambdaCompiler
+    internal sealed partial class LambdaCompiler
     {
         private void EmitBinaryExpression(Expression expr)
         {
@@ -476,10 +475,12 @@ namespace System.Linq.Expressions.Compiler
             FreeLocal(locLeft);
             FreeLocal(locRight);
 
-            EmitBinaryOperator(op, leftType.GetNonNullableType(), rightType.GetNonNullableType(), resultType.GetNonNullableType(), liftedToNull: false);
+            Type resultNonNullableType = resultType.GetNonNullableType();
+
+            EmitBinaryOperator(op, leftType.GetNonNullableType(), rightType.GetNonNullableType(), resultNonNullableType, liftedToNull: false);
 
             // construct result type
-            ConstructorInfo ci = resultType.GetConstructor(new Type[] { resultType.GetNonNullableType() })!;
+            ConstructorInfo ci = TypeUtils.GetNullableConstructor(resultType, resultNonNullableType);
             _ilg.Emit(OpCodes.Newobj, ci);
             _ilg.Emit(OpCodes.Stloc, locResult);
             _ilg.Emit(OpCodes.Br_S, labEnd);

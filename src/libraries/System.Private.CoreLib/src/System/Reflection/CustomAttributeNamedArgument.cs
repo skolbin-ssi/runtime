@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Reflection
 {
@@ -46,7 +45,7 @@ namespace System.Reflection
             if (m_memberInfo == null)
                 return base.ToString()!;
 
-            return string.Format("{0} = {1}", MemberInfo.Name, TypedValue.ToString(ArgumentType != typeof(object)));
+            return $"{MemberInfo.Name} = {TypedValue.ToString(ArgumentType != typeof(object))}";
         }
 
         public override int GetHashCode()

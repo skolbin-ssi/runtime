@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers.Binary;
 
@@ -42,7 +41,7 @@ namespace System.Buffers.Text
                     return true;
                 }
 
-                if (4 < (uint)source.Length)
+                if (source.Length > 4)
                 {
                     if (dw == 0x534c4146 /* 'SLAF' */ && (source[4] & ~0x20) == 'E')
                     {

@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -14,6 +12,15 @@ namespace System.Diagnostics
         private FileVersionInfo(string fileName)
         {
             _fileName = fileName;
+
+            // First make sure it's a file we can actually read from.  Only regular files are relevant,
+            // and attempting to open and read from a file such as a named pipe file could cause us to
+            // stop responding (waiting for someone else to open and write to the file).
+            if (Interop.Sys.Stat(_fileName, out Interop.Sys.FileStatus fileStatus) != 0 ||
+                (fileStatus.Mode & Interop.Sys.FileTypes.S_IFMT) != Interop.Sys.FileTypes.S_IFREG)
+            {
+                throw new FileNotFoundException(SR.Format(SR.IO_FileNotFound_FileName, _fileName), _fileName);
+            }
 
             // For managed assemblies, read the file version information from the assembly's metadata.
             // This isn't quite what's done on Windows, which uses the Win32 GetFileVersionInfo to read
@@ -33,28 +40,14 @@ namespace System.Diagnostics
             }
         }
 
-        // -----------------------------
-        // ---- PAL layer ends here ----
-        // -----------------------------
-
         /// <summary>Attempt to load our fields from the metadata of the file, if it's a managed assembly.</summary>
         /// <returns>true if the file is a managed assembly; otherwise, false.</returns>
         private bool TryLoadManagedAssemblyMetadata()
         {
-            // First make sure it's a file we can actually read from.  Only regular files are relevant,
-            // and attempting to open and read from a file such as a named pipe file could cause us to
-            // stop responding (waiting for someone else to open and write to the file).
-            Interop.Sys.FileStatus fileStatus;
-            if (Interop.Sys.Stat(_fileName, out fileStatus) != 0 ||
-                (fileStatus.Mode & Interop.Sys.FileTypes.S_IFMT) != Interop.Sys.FileTypes.S_IFREG)
-            {
-                throw new FileNotFoundException(SR.Format(SR.IO_FileNotFound_FileName, _fileName), _fileName);
-            }
-
             try
             {
                 // Try to load the file using the managed metadata reader
-                using (FileStream assemblyStream = new FileStream(_fileName, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 0x1000, useAsync: false))
+                using (FileStream assemblyStream = File.OpenRead(_fileName))
                 using (PEReader peReader = new PEReader(assemblyStream))
                 {
                     if (peReader.HasMetadata)
@@ -68,7 +61,14 @@ namespace System.Diagnostics
                     }
                 }
             }
-            catch (BadImageFormatException) { }
+            catch
+            {
+                // Obtaining this information is best effort and should not throw.
+                // Possible exceptions include BadImageFormatException if the file isn't an assembly,
+                // UnauthorizedAccessException if the caller doesn't have permissions to read the file,
+                // and other potential exceptions thrown by the FileStream ctor.
+            }
+
             return false;
         }
 
@@ -224,6 +224,7 @@ namespace System.Diagnostics
 
         /// <summary>Parses a string as a UInt16 until it hits a non-digit.</summary>
         /// <param name="s">The string to parse.</param>
+        /// <param name="endedEarly">Whether parsing ended prior to reaching the end of the input.</param>
         /// <returns>The parsed value.</returns>
         private static ushort ParseUInt16UntilNonDigit(string s, out bool endedEarly)
         {

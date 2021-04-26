@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Net.Sockets;
@@ -9,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace System.Net.NetworkInformation
 {
     // Specifies the unicast addresses for an interface.
-    internal class SystemUnicastIPAddressInformation : UnicastIPAddressInformation
+    internal sealed class SystemUnicastIPAddressInformation : UnicastIPAddressInformation
     {
         private readonly long _dhcpLeaseLifetime;
         private readonly SystemIPAddressInformation _innerInfo;

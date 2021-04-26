@@ -1,21 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using Microsoft.Win32.SafeHandles;
 
-internal partial class Interop
+internal static partial class Interop
 {
-    internal partial class WinHttp
+    internal static partial class WinHttp
     {
         internal class SafeWinHttpHandle : SafeHandleZeroOrMinusOneIsInvalid
         {
-            private SafeWinHttpHandle? _parentHandle = null;
+            private SafeWinHttpHandle? _parentHandle;
 
             public SafeWinHttpHandle() : base(true)
             {

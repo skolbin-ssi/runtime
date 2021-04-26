@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Security.Principal;
@@ -17,8 +16,7 @@ namespace System.DirectoryServices.AccountManagement.Tests
         private void RefreshContext()
         {
             string username = "Administrator";
-            string password = "Adrumble@6";
-
+            string password = Environment.GetEnvironmentVariable("TESTPASSWORD");
             string OU = "Tests";
             string baseDomain = WindowsIdentity.GetCurrent().Name.Split(new char[] { '\\' })[1] + "-TEST";
             string domain = $"{baseDomain}.nttest.microsoft.com";

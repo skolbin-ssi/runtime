@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -18,7 +17,8 @@ namespace System.ComponentModel
         /// specified value to the specified type, and using the U.S. English culture as the
         /// translation context.
         /// </summary>
-        public AmbientValueAttribute(Type type, string value)
+        [RequiresUnreferencedCode(TypeConverter.RequiresUnreferencedCodeMessage)]
+        public AmbientValueAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type, string value)
         {
             // The try/catch here is because attributes should never throw exceptions. We would fail to
             // load an otherwise normal class.

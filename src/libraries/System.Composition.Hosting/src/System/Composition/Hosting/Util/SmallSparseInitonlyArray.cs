@@ -1,21 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Composition.Hosting.Util
 {
     // Extremely performance-sensitive.
     // Always safe for reading, even under concurrent writes,
     // only one writer at a time allowed.
-    internal class SmallSparseInitonlyArray
+    internal sealed class SmallSparseInitonlyArray
     {
-        private class Element { public int Index; public object Value; }
+        private sealed class Element { public int Index; public object Value; }
 
         private const int ElementsCapacity = 128;
         private const int ElementIndexMask = 127;
         private const int LocalOffsetMax = 3;
 
-        private Element[] _elements = null;
+        private Element[] _elements;
         private SmallSparseInitonlyArray _overflow;
 
         public void Add(int index, object value)

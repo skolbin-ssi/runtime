@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using System.Linq;
@@ -17,7 +16,6 @@ namespace System.Net.Sockets.Tests
     public class UnixDomainSocketTest
     {
         private readonly ITestOutputHelper _log;
-        private static Random _random = new Random();
 
         public UnixDomainSocketTest(ITestOutputHelper output)
         {
@@ -59,9 +57,9 @@ namespace System.Net.Sockets.Tests
 
                 SocketAsyncEventArgs args = new SocketAsyncEventArgs();
                 args.RemoteEndPoint = endPoint;
-                args.Completed += (s, e) => ((TaskCompletionSource<bool>)e.UserToken).SetResult(true);
+                args.Completed += (s, e) => ((TaskCompletionSource)e.UserToken).SetResult();
 
-                var complete = new TaskCompletionSource<bool>();
+                var complete = new TaskCompletionSource();
                 args.UserToken = complete;
 
                 using (Socket sock = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
@@ -94,9 +92,9 @@ namespace System.Net.Sockets.Tests
             {
                 SocketAsyncEventArgs args = new SocketAsyncEventArgs();
                 args.RemoteEndPoint = endPoint;
-                args.Completed += (s, e) => ((TaskCompletionSource<bool>)e.UserToken).SetResult(true);
+                args.Completed += (s, e) => ((TaskCompletionSource)e.UserToken).SetResult();
 
-                var complete = new TaskCompletionSource<bool>();
+                var complete = new TaskCompletionSource();
                 args.UserToken = complete;
 
                 using (Socket sock = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
@@ -252,7 +250,7 @@ namespace System.Net.Sockets.Tests
         public async Task Socket_SendReceiveAsync_PropagateToStream_Success(int iterations, int writeBufferSize, int readBufferSize)
         {
             var writeBuffer = new byte[writeBufferSize * iterations];
-            new Random().NextBytes(writeBuffer);
+            Random.Shared.NextBytes(writeBuffer);
             var readData = new MemoryStream();
 
             string path = GetRandomNonExistingFilePath();
@@ -318,7 +316,7 @@ namespace System.Net.Sockets.Tests
                 const int Iters = 25;
                 byte[] sendData = new byte[Iters];
                 byte[] receiveData = new byte[sendData.Length];
-                new Random().NextBytes(sendData);
+                Random.Shared.NextBytes(sendData);
 
                 string path = GetRandomNonExistingFilePath();
 
@@ -360,7 +358,7 @@ namespace System.Net.Sockets.Tests
                 const int Iters = 2048;
                 byte[] sendData = new byte[Iters];
                 byte[] receiveData = new byte[sendData.Length];
-                new Random().NextBytes(sendData);
+                Random.Shared.NextBytes(sendData);
 
                 string path = GetRandomNonExistingFilePath();
 
@@ -499,7 +497,7 @@ namespace System.Net.Sockets.Tests
             do
             {
                 // get random name and append random number of characters to get variable name length.
-                result = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + new string('A', _random.Next(1, 32)));
+                result = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + new string('A', Random.Shared.Next(1, 32)));
             }
             while (File.Exists(result));
 

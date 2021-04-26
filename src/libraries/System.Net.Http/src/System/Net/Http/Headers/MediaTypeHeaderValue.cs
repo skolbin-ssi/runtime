@@ -1,11 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Text;
 
 namespace System.Net.Http.Headers
@@ -78,14 +76,7 @@ namespace System.Net.Http.Headers
             Debug.Assert(source != null);
 
             _mediaType = source._mediaType;
-
-            if (source._parameters != null)
-            {
-                foreach (var parameter in source._parameters)
-                {
-                    this.Parameters.Add((NameValueHeaderValue)((ICloneable)parameter).Clone());
-                }
-            }
+            _parameters = source._parameters.Clone();
         }
 
         public MediaTypeHeaderValue(string mediaType)
@@ -96,13 +87,18 @@ namespace System.Net.Http.Headers
 
         public override string ToString()
         {
+            if (_parameters is null || _parameters.Count == 0)
+            {
+                return _mediaType ?? string.Empty;
+            }
+
             var sb = StringBuilderCache.Acquire();
             sb.Append(_mediaType);
             NameValueHeaderValue.ToString(_parameters, ';', true, sb);
             return StringBuilderCache.GetStringAndRelease(sb);
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             MediaTypeHeaderValue? other = obj as MediaTypeHeaderValue;
 

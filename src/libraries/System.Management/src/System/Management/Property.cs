@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -17,7 +16,7 @@ namespace System.Management
     // RuntimeHelpers.GetObjectValue.  This returns reference types right back to the caller, but if passed
     // a boxed non-primitive value type, it will return a boxed copy.  We cannot use GetObjectValue for primitives
     // because its implementation does not copy boxed primitives.
-    internal class ValueTypeSafety
+    internal static class ValueTypeSafety
     {
         public static object GetSafeObject(object theValue)
         {
@@ -84,7 +83,7 @@ namespace System.Management
         private readonly string propertyName;
 
         private object propertyValue;
-        private long propertyNullEnumValue = 0;
+        private long propertyNullEnumValue;
         private int propertyType;
         private int propertyFlavor;
         private QualifierDataCollection qualifiers;

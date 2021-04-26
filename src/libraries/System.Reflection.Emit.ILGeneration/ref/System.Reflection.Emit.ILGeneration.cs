@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 // ------------------------------------------------------------------------------
 // Changes to this file must follow the https://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
@@ -54,7 +53,7 @@ namespace System.Reflection.Emit
         public virtual void EndExceptionBlock() { }
         public virtual void EndScope() { }
         public virtual void MarkLabel(System.Reflection.Emit.Label loc) { }
-        public virtual void ThrowException(System.Type excType) { }
+        public virtual void ThrowException([System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] System.Type excType) { }
         public virtual void UsingNamespace(string usingNamespace) { }
     }
     public readonly partial struct Label : System.IEquatable<System.Reflection.Emit.Label>

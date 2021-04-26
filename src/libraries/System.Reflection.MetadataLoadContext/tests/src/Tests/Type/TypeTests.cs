@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using SampleMetadata;
 using System.Collections;
@@ -179,7 +178,7 @@ namespace System.Reflection.Tests
             bool expectedDefaultValue = true;
 
             Type et = typeof(long).Project();
-            Type t = typeof(long[]).Project(); ;
+            Type t = typeof(long[]).Project();
             TypeInfo ti = t.GetTypeInfo();
             MethodInfo m = ti.GetDeclaredMethod("Set");
             Assert.Equal(MethodAttributes.Public | MethodAttributes.PrivateScope, m.Attributes);
@@ -214,8 +213,8 @@ namespace System.Reflection.Tests
         {
             bool expectedDefaultValue = true;
 
-            Type et = typeof(long).Project(); ;
-            Type t = typeof(long[]).Project(); ;
+            Type et = typeof(long).Project();
+            Type t = typeof(long[]).Project();
             TypeInfo ti = t.GetTypeInfo();
             MethodInfo m = ti.GetDeclaredMethod("Address");
             Assert.Equal(MethodAttributes.Public | MethodAttributes.PrivateScope, m.Attributes);
@@ -241,8 +240,8 @@ namespace System.Reflection.Tests
         {
             bool expectedDefaultValue = true;
 
-            Type et = typeof(long).Project(); ;
-            Type t = typeof(long[]).Project(); ;
+            Type et = typeof(long).Project();
+            Type t = typeof(long[]).Project();
             TypeInfo ti = t.GetTypeInfo();
             ConstructorInfo[] ctors = ti.DeclaredConstructors.ToArray();
             Assert.Equal(1, ctors.Length);
@@ -469,6 +468,29 @@ namespace System.Reflection.Tests
                 MethodInfo m = gi.GetMethod("Hoo", bf, binder, types, null);
                 Assert.Equal(11, m.GetMark());
             }
+
+            {
+                Type mgc = typeof(MyGenericClass<>).Project();
+                Type mgcClosed = mgc.MakeGenericType(typeof(int).Project());
+                Assert.Equal(mgc, mgcClosed.GetGenericTypeDefinition());
+
+                Type gi = t.MakeGenericType(typeof(int).Project());
+                Type[] types = { mgcClosed, typeof(string).Project() };
+                MethodInfo m = gi.GetMethod("Foo", bf, binder, types, null);
+                Assert.Equal(10060, m.GetMark());
+            }
+
+            {
+                Type[] types = { typeof(int).Project(), typeof(short).Project() };
+                MethodInfo m = typeof(MethodHolderDerived<>).Project().GetMethod("Foo", bf, binder, types, null);
+                Assert.Equal(10070, m.GetMark());
+            }
+
+            {
+                Type[] types = { typeof(int).Project(), typeof(int).Project() };
+                MethodInfo m = typeof(MethodHolderDerived<>).Project().GetMethod("Foo", bf, binder, types, null);
+                Assert.Equal(10070, m.GetMark());
+            }
         }
 
         [Fact]
@@ -524,7 +546,7 @@ namespace System.Reflection.Tests
         {
             using (MetadataLoadContext lc = new MetadataLoadContext(new EmptyCoreMetadataAssemblyResolver()))
             {
-                Assembly a = lc.LoadFromAssemblyPath(typeof(SampleMetadata.NS0.SameNamedType).Assembly.Location);
+                Assembly a = lc.LoadFromAssemblyPath(AssemblyPathHelper.GetAssemblyLocation(typeof(SampleMetadata.NS0.SameNamedType).Assembly));
                 // Create big hash collisions in GetTypeCoreCache.
                 for (int i = 0; i < 16; i++)
                 {
@@ -543,7 +565,7 @@ namespace System.Reflection.Tests
             using (MetadataLoadContext lc = new MetadataLoadContext(new EmptyCoreMetadataAssemblyResolver()))
             {
                 // Make sure the tricky corner case of a null/empty namespace is covered.
-                Assembly a = lc.LoadFromAssemblyPath(typeof(TopLevelType).Assembly.Location);
+                Assembly a = lc.LoadFromAssemblyPath(AssemblyPathHelper.GetAssemblyLocation(typeof(TopLevelType).Assembly));
                 Type t = a.GetType("TopLevelType", throwOnError: true, ignoreCase: false);
                 Assert.Null(t.Namespace);
                 Assert.Equal("TopLevelType", t.Name);

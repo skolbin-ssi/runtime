@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -60,7 +59,7 @@ namespace System.Linq.Expressions
         /// <param name="object">The <see cref="Object"/> property of the result.</param>
         /// <param name="arguments">The <see cref="Arguments"/> property of the result.</param>
         /// <returns>This expression if no children changed, or an expression with the updated children.</returns>
-        public MethodCallExpression Update(Expression @object, IEnumerable<Expression>? arguments)
+        public MethodCallExpression Update(Expression? @object, IEnumerable<Expression>? arguments)
         {
             if (@object == Object)
             {
@@ -89,13 +88,13 @@ namespace System.Linq.Expressions
             return Call(@object, Method, arguments);
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual bool SameArguments(ICollection<Expression>? arguments)
         {
             throw ContractUtils.Unreachable;
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual ReadOnlyCollection<Expression> GetOrMakeArguments()
         {
             throw ContractUtils.Unreachable;
@@ -117,7 +116,7 @@ namespace System.Linq.Expressions
         /// This helper is provided to allow re-writing of nodes to not depend on the specific optimized
         /// subclass of MethodCallExpression which is being used.
         /// </summary>
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual MethodCallExpression Rewrite(Expression instance, IReadOnlyList<Expression>? args)
         {
             throw ContractUtils.Unreachable;
@@ -130,7 +129,7 @@ namespace System.Linq.Expressions
         /// </summary>
         /// <param name="index">The index of the argument expression to get.</param>
         /// <returns>The expression representing the argument at the specified <paramref name="index"/>.</returns>
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         public virtual Expression GetArgument(int index)
         {
             throw ContractUtils.Unreachable;
@@ -139,7 +138,7 @@ namespace System.Linq.Expressions
         /// <summary>
         /// Gets the number of argument expressions of the node.
         /// </summary>
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         public virtual int ArgumentCount
         {
             get { throw ContractUtils.Unreachable; }
@@ -1138,6 +1137,7 @@ namespace System.Linq.Expressions
         /// <exception cref="ArgumentNullException">
         /// <paramref name="instance"/> or <paramref name="methodName"/> is null.</exception>
         /// <exception cref="InvalidOperationException">No method whose name is <paramref name="methodName"/>, whose type parameters match <paramref name="typeArguments"/>, and whose parameter types match <paramref name="arguments"/> is found in <paramref name="instance"/>.Type or its base types.-or-More than one method whose name is <paramref name="methodName"/>, whose type parameters match <paramref name="typeArguments"/>, and whose parameter types match <paramref name="arguments"/> is found in <paramref name="instance"/>.Type or its base types.</exception>
+        [RequiresUnreferencedCode(ExpressionRequiresUnreferencedCode)]
         public static MethodCallExpression Call(Expression instance, string methodName, Type[]? typeArguments, params Expression[]? arguments)
         {
             ContractUtils.RequiresNotNull(instance, nameof(instance));
@@ -1163,7 +1163,12 @@ namespace System.Linq.Expressions
         /// <exception cref="ArgumentNullException">
         /// <paramref name="type"/> or <paramref name="methodName"/> is null.</exception>
         /// <exception cref="InvalidOperationException">No method whose name is <paramref name="methodName"/>, whose type parameters match <paramref name="typeArguments"/>, and whose parameter types match <paramref name="arguments"/> is found in <paramref name="type"/> or its base types.-or-More than one method whose name is <paramref name="methodName"/>, whose type parameters match <paramref name="typeArguments"/>, and whose parameter types match <paramref name="arguments"/> is found in <paramref name="type"/> or its base types.</exception>
-        public static MethodCallExpression Call(Type type, string methodName, Type[]? typeArguments, params Expression[]? arguments)
+        [RequiresUnreferencedCode(GenericMethodRequiresUnreferencedCode)]
+        public static MethodCallExpression Call(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type,
+            string methodName,
+            Type[]? typeArguments,
+            params Expression[]? arguments)
         {
             ContractUtils.RequiresNotNull(type, nameof(type));
             ContractUtils.RequiresNotNull(methodName, nameof(methodName));
@@ -1288,7 +1293,13 @@ namespace System.Linq.Expressions
             return ExpressionUtils.TryQuote(parameterType, ref argument);
         }
 
-        private static MethodInfo? FindMethod(Type type, string methodName, Type[]? typeArgs, Expression[] args, BindingFlags flags)
+        [RequiresUnreferencedCode(GenericMethodRequiresUnreferencedCode)]
+        private static MethodInfo? FindMethod(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type,
+            string methodName,
+            Type[]? typeArgs,
+            Expression[] args,
+            BindingFlags flags)
         {
             int count = 0;
             MethodInfo? method = null;
@@ -1357,6 +1368,7 @@ namespace System.Linq.Expressions
             return true;
         }
 
+        [RequiresUnreferencedCode(GenericMethodRequiresUnreferencedCode)]
         private static MethodInfo? ApplyTypeArgs(MethodInfo m, Type[]? typeArgs)
         {
             if (typeArgs == null || typeArgs.Length == 0)
@@ -1421,7 +1433,7 @@ namespace System.Linq.Expressions
                 }
             }
 
-            MethodInfo mi = array.Type.GetMethod("Get", BindingFlags.Public | BindingFlags.Instance)!;
+            MethodInfo mi = TypeUtils.GetArrayGetMethod(array.Type);
             return Call(array, mi, indexList);
         }
 

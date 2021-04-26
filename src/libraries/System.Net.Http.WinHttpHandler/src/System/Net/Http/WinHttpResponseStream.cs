@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers;
 using System.Diagnostics;
@@ -17,11 +16,14 @@ namespace System.Net.Http
     {
         private volatile bool _disposed;
         private readonly WinHttpRequestState _state;
+        private readonly HttpResponseMessage _responseMessage;
         private SafeWinHttpHandle _requestHandle;
+        private bool _readTrailingHeaders;
 
-        internal WinHttpResponseStream(SafeWinHttpHandle requestHandle, WinHttpRequestState state)
+        internal WinHttpResponseStream(SafeWinHttpHandle requestHandle, WinHttpRequestState state, HttpResponseMessage responseMessage)
         {
             _state = state;
+            _responseMessage = responseMessage;
             _requestHandle = requestHandle;
         }
 
@@ -127,6 +129,7 @@ namespace System.Net.Http
                     int bytesAvailable = await _state.LifecycleAwaitable;
                     if (bytesAvailable == 0)
                     {
+                        ReadResponseTrailers();
                         break;
                     }
                     Debug.Assert(bytesAvailable > 0);
@@ -143,12 +146,17 @@ namespace System.Net.Http
                     int bytesRead = await _state.LifecycleAwaitable;
                     if (bytesRead == 0)
                     {
+                        ReadResponseTrailers();
                         break;
                     }
                     Debug.Assert(bytesRead > 0);
 
                     // Write that data out to the output stream
+#if NETSTANDARD2_1
+                    await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+#else
                     await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+#endif
                 }
             }
             finally
@@ -199,7 +207,7 @@ namespace System.Net.Http
             return ReadAsyncCore(buffer, offset, count, token);
         }
 
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state) =>
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) =>
             TaskToApm.Begin(ReadAsync(buffer, offset, count, CancellationToken.None), callback, state);
 
         public override int EndRead(IAsyncResult asyncResult) =>
@@ -241,12 +249,48 @@ namespace System.Net.Http
                     }
                 }
 
-                return await _state.LifecycleAwaitable;
+                int bytesRead = await _state.LifecycleAwaitable;
+
+                if (bytesRead == 0)
+                {
+                    ReadResponseTrailers();
+                }
+
+                return bytesRead;
             }
             finally
             {
                 _state.AsyncReadInProgress = false;
                 ctr.Dispose();
+            }
+        }
+
+        private void ReadResponseTrailers()
+        {
+            // Only load response trailers if:
+            // 1. WINHTTP_QUERY_FLAG_TRAILERS is supported by the OS
+            // 2. HTTP/2 or later (WINHTTP_QUERY_FLAG_TRAILERS does not work with HTTP/1.1)
+            // 3. Response trailers not already loaded
+            if (!WinHttpTrailersHelper.OsSupportsTrailers || _responseMessage.Version < WinHttpHandler.HttpVersion20 || _readTrailingHeaders)
+            {
+                return;
+            }
+
+            _readTrailingHeaders = true;
+
+            var bufferLength = WinHttpResponseParser.GetResponseHeaderCharBufferLength(_requestHandle, isTrailingHeaders: true);
+
+            if (bufferLength != 0)
+            {
+                char[] trailersBuffer = ArrayPool<char>.Shared.Rent(bufferLength);
+                try
+                {
+                    WinHttpResponseParser.ParseResponseTrailers(_requestHandle, _responseMessage, trailersBuffer);
+                }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(trailersBuffer);
+                }
             }
         }
 
@@ -309,18 +353,15 @@ namespace System.Net.Http
         // a pending operation, it would cause random failures in the other threads when we expect a valid handle.
         private void CancelPendingResponseStreamReadOperation()
         {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(this);
             lock (_state.Lock)
             {
                 if (_state.AsyncReadInProgress)
                 {
-                    if (NetEventSource.IsEnabled) NetEventSource.Info("before dispose");
+                    if (NetEventSource.Log.IsEnabled()) NetEventSource.Info("before dispose");
                     _requestHandle?.Dispose(); // null check necessary to handle race condition between stream disposal and cancellation
-                    if (NetEventSource.IsEnabled) NetEventSource.Info("after dispose");
+                    if (NetEventSource.Log.IsEnabled()) NetEventSource.Info("after dispose");
                 }
             }
-
-            if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
         }
     }
 }

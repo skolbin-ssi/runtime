@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 
@@ -9,7 +8,7 @@ namespace System.Collections.Immutable
     /// <summary>
     /// A simple view of the immutable collection that the debugger can show to the developer.
     /// </summary>
-    internal class ImmutableSortedSetBuilderDebuggerProxy<T>
+    internal sealed class ImmutableSortedSetBuilderDebuggerProxy<T>
     {
         /// <summary>
         /// The collection to be enumerated.
@@ -34,7 +33,7 @@ namespace System.Collections.Immutable
         {
             get
             {
-                return _set.ToArray(_set.Count); ;
+                return _set.ToArray(_set.Count);
             }
         }
     }

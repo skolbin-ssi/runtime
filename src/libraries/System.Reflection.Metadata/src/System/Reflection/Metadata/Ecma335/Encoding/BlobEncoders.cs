@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
 
@@ -916,7 +915,7 @@ namespace System.Reflection.Metadata.Ecma335
         public void Type(EntityHandle type, bool isValueType)
         {
             // Get the coded index before we start writing anything (might throw argument exception):
-            // Note: We don't allow TypeSpec as per https://github.com/dotnet/runtime/blob/master/src/libraries/System.Reflection.Metadata/specs/Ecma-335-Issues.md#proposed-specification-change
+            // Note: We don't allow TypeSpec as per https://github.com/dotnet/runtime/blob/main/src/libraries/System.Reflection.Metadata/specs/Ecma-335-Issues.md#proposed-specification-change
             int codedIndex = CodedIndex.TypeDefOrRef(type);
 
             ClassOrValue(isValueType);
@@ -979,7 +978,7 @@ namespace System.Reflection.Metadata.Ecma335
             }
 
             // Get the coded index before we start writing anything (might throw argument exception):
-            // Note: We don't allow TypeSpec as per https://github.com/dotnet/runtime/blob/master/src/libraries/System.Reflection.Metadata/specs/Ecma-335-Issues.md#proposed-specification-change
+            // Note: We don't allow TypeSpec as per https://github.com/dotnet/runtime/blob/main/src/libraries/System.Reflection.Metadata/specs/Ecma-335-Issues.md#proposed-specification-change
             int codedIndex = CodedIndex.TypeDefOrRef(genericType);
 
             Builder.WriteByte((byte)SignatureTypeCode.GenericTypeInstance);

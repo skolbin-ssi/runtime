@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Text;
 using System.Collections;
@@ -8,6 +7,7 @@ using System.Globalization;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.DirectoryServices.ActiveDirectory
 {
@@ -27,21 +27,21 @@ namespace System.DirectoryServices.ActiveDirectory
     public class Domain : ActiveDirectoryPartition
     {
         /// Private Variables
-        private string _crossRefDN = null;
-        private string _trustParent = null;
+        private string? _crossRefDN;
+        private string? _trustParent;
 
         // internal variables corresponding to public properties
-        private DomainControllerCollection _cachedDomainControllers = null;
-        private DomainCollection _cachedChildren = null;
+        private DomainControllerCollection? _cachedDomainControllers;
+        private DomainCollection? _cachedChildren;
         private DomainMode _currentDomainMode = (DomainMode)(-1);
         private int _domainModeLevel = -1;
-        private DomainController _cachedPdcRoleOwner = null;
-        private DomainController _cachedRidRoleOwner = null;
-        private DomainController _cachedInfrastructureRoleOwner = null;
-        private Domain _cachedParent = null;
-        private Forest _cachedForest = null;
+        private DomainController? _cachedPdcRoleOwner;
+        private DomainController? _cachedRidRoleOwner;
+        private DomainController? _cachedInfrastructureRoleOwner;
+        private Domain? _cachedParent;
+        private Forest? _cachedForest;
         // this is needed because null value for parent is valid
-        private bool _isParentInitialized = false;
+        private bool _isParentInitialized;
 
         #region constructors
         // internal constructors
@@ -98,8 +98,8 @@ namespace System.DirectoryServices.ActiveDirectory
             // bind to the rootDSE of the domain specified in the context
             // and get the dns name
             DirectoryEntryManager directoryEntryMgr = new DirectoryEntryManager(context);
-            DirectoryEntry rootDSE = null;
-            string defaultDomainNC = null;
+            DirectoryEntry? rootDSE = null;
+            string? defaultDomainNC = null;
             try
             {
                 rootDSE = directoryEntryMgr.GetCachedDirectoryEntry(WellKnownDN.RootDSE);
@@ -107,7 +107,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 {
                     throw new ActiveDirectoryObjectNotFoundException(SR.Format(SR.DCNotFound, context.Name), typeof(Domain), null);
                 }
-                defaultDomainNC = (string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.DefaultNamingContext);
+                defaultDomainNC = (string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.DefaultNamingContext)!;
             }
             catch (COMException e)
             {
@@ -136,7 +136,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
         public static Domain GetComputerDomain()
         {
-            string computerDomainName = DirectoryContext.GetDnsDomainName(null);
+            string? computerDomainName = DirectoryContext.GetDnsDomainName(null);
             if (computerDomainName == null)
             {
                 throw new ActiveDirectoryObjectNotFoundException(SR.ComputerNotJoinedToDomain, typeof(Domain), null);
@@ -167,7 +167,7 @@ namespace System.DirectoryServices.ActiveDirectory
             DomainMode existingDomainMode = DomainMode;
 
             // set the forest mode on AD
-            DirectoryEntry domainEntry = null;
+            DirectoryEntry? domainEntry = null;
 
             // CurrentDomain          Valid domainMode      Action
             // -----------------
@@ -270,7 +270,7 @@ namespace System.DirectoryServices.ActiveDirectory
             existingDomainMode = GetDomainMode();
 
             // set the forest mode on AD
-            DirectoryEntry domainEntry = null;
+            DirectoryEntry? domainEntry = null;
 
             // CurrentDomain          Valid RequestedDomain      Action
             // -----------------
@@ -796,7 +796,7 @@ namespace System.DirectoryServices.ActiveDirectory
             // first try to reset the secure channel
             try
             {
-                direction = GetTrustRelationship(targetDomain.Name).TrustDirection;
+                direction = GetTrustRelationship(targetDomain.Name!).TrustDirection;
 
                 // verify outbound trust first
                 if ((direction & TrustDirection.Outbound) != 0)
@@ -844,8 +844,8 @@ namespace System.DirectoryServices.ActiveDirectory
                 {
                     // get the name of rootDomainNamingContext
                     DirectoryEntry rootDSE = directoryEntryMgr.GetCachedDirectoryEntry(WellKnownDN.RootDSE);
-                    string rootDomainNC = (string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.RootDomainNamingContext);
-                    string forestName = Utils.GetDnsNameFromDN(rootDomainNC);
+                    string rootDomainNC = (string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.RootDomainNamingContext)!;
+                    string? forestName = Utils.GetDnsNameFromDN(rootDomainNC);
                     DirectoryContext forestContext = Utils.GetNewDirectoryContext(forestName, DirectoryContextType.Forest, context);
                     _cachedForest = new Forest(forestContext, forestName);
                 }
@@ -905,7 +905,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        public Domain Parent
+        public Domain? Parent
         {
             get
             {
@@ -966,7 +966,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
         private int GetDomainModeLevel()
         {
-            DirectoryEntry domainEntry = null;
+            DirectoryEntry? domainEntry = null;
             DirectoryEntry rootDSE = DirectoryEntryManager.GetDirectoryEntry(context, WellKnownDN.RootDSE);
             int domainFunctionality = 0;
 
@@ -974,7 +974,7 @@ namespace System.DirectoryServices.ActiveDirectory
             {
                 if (rootDSE.Properties.Contains(PropertyManager.DomainFunctionality))
                 {
-                    domainFunctionality = int.Parse((string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.DomainFunctionality), NumberFormatInfo.InvariantInfo);
+                    domainFunctionality = int.Parse((string)PropertyManager.GetPropertyValue(context, rootDSE, PropertyManager.DomainFunctionality)!, NumberFormatInfo.InvariantInfo);
                 }
             }
             catch (COMException e)
@@ -1005,7 +1005,7 @@ namespace System.DirectoryServices.ActiveDirectory
             // if domainFunctionality is 5 ==> Windows2012
             // if domainFunctionality is 6 ==> Windows2012R2
             DomainMode domainMode;
-            DirectoryEntry domainEntry = null;
+            DirectoryEntry? domainEntry = null;
             int domainFunctionality = DomainModeLevel;
 
             try
@@ -1017,7 +1017,7 @@ namespace System.DirectoryServices.ActiveDirectory
                     case 0:
                         {
                             domainEntry = DirectoryEntryManager.GetDirectoryEntry(context, directoryEntryMgr.ExpandWellKnownDN(WellKnownDN.DefaultNamingContext));
-                            int ntMixedDomain = (int)PropertyManager.GetPropertyValue(context, domainEntry, PropertyManager.NTMixedDomain);
+                            int ntMixedDomain = (int)PropertyManager.GetPropertyValue(context, domainEntry, PropertyManager.NTMixedDomain)!;
 
                             if (ntMixedDomain == 0)
                             {
@@ -1073,9 +1073,9 @@ namespace System.DirectoryServices.ActiveDirectory
         /// <returns>Returns a DomainController object for the DC that holds the specified FSMO role</returns>
         private DomainController GetRoleOwner(ActiveDirectoryRole role)
         {
-            DirectoryEntry entry = null;
+            DirectoryEntry? entry = null;
 
-            string dcName = null;
+            string? dcName = null;
             try
             {
                 switch (role)
@@ -1101,7 +1101,7 @@ namespace System.DirectoryServices.ActiveDirectory
                         break;
                 }
 
-                dcName = Utils.GetDnsHostNameFromNTDSA(context, (string)PropertyManager.GetPropertyValue(context, entry, PropertyManager.FsmoRoleOwner));
+                dcName = Utils.GetDnsHostNameFromNTDSA(context, (string)PropertyManager.GetPropertyValue(context, entry, PropertyManager.FsmoRoleOwner)!);
             }
             catch (COMException e)
             {
@@ -1121,9 +1121,10 @@ namespace System.DirectoryServices.ActiveDirectory
             return new DomainController(dcContext, dcName);
         }
 
+        [MemberNotNull(nameof(_crossRefDN))]
         private void LoadCrossRefAttributes()
         {
-            DirectoryEntry partitionsEntry = null;
+            DirectoryEntry? partitionsEntry = null;
             try
             {
                 partitionsEntry = DirectoryEntryManager.GetDirectoryEntry(context, directoryEntryMgr.ExpandWellKnownDN(WellKnownDN.PartitionsContainer));
@@ -1147,7 +1148,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 str.Append(")(");
                 str.Append(PropertyManager.DnsRoot);
                 str.Append('=');
-                str.Append(Utils.GetEscapedFilterValue(partitionName));
+                str.Append(Utils.GetEscapedFilterValue(partitionName!));
                 str.Append("))");
 
                 string filter = str.ToString();
@@ -1157,14 +1158,14 @@ namespace System.DirectoryServices.ActiveDirectory
                 propertiesToLoad[1] = PropertyManager.TrustParent;
 
                 ADSearcher searcher = new ADSearcher(partitionsEntry, filter, propertiesToLoad, SearchScope.OneLevel, false /*not paged search*/, false /*no cached results*/);
-                SearchResult res = searcher.FindOne();
+                SearchResult res = searcher.FindOne()!;
 
-                _crossRefDN = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DistinguishedName);
+                _crossRefDN = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DistinguishedName)!;
 
                 // "trustParent" attribute may not be set
                 if (res.Properties[PropertyManager.TrustParent].Count > 0)
                 {
-                    _trustParent = (string)res.Properties[PropertyManager.TrustParent][0];
+                    _trustParent = (string?)res.Properties[PropertyManager.TrustParent][0];
                 }
             }
             catch (COMException e)
@@ -1180,7 +1181,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        private Domain GetParent()
+        private Domain? GetParent()
         {
             if (_crossRefDN == null)
             {
@@ -1189,12 +1190,12 @@ namespace System.DirectoryServices.ActiveDirectory
             if (_trustParent != null)
             {
                 DirectoryEntry parentCrossRef = DirectoryEntryManager.GetDirectoryEntry(context, _trustParent);
-                string parentDomainName = null;
-                DirectoryContext domainContext = null;
+                string? parentDomainName = null;
+                DirectoryContext? domainContext = null;
                 try
                 {
                     // create a new directory context for the parent domain
-                    parentDomainName = (string)PropertyManager.GetPropertyValue(context, parentCrossRef, PropertyManager.DnsRoot);
+                    parentDomainName = (string)PropertyManager.GetPropertyValue(context, parentCrossRef, PropertyManager.DnsRoot)!;
                     domainContext = Utils.GetNewDirectoryContext(parentDomainName, DirectoryContextType.Domain, context);
                 }
                 finally
@@ -1216,8 +1217,8 @@ namespace System.DirectoryServices.ActiveDirectory
                 LoadCrossRefAttributes();
             }
 
-            DirectoryEntry partitionsEntry = null;
-            SearchResultCollection resCol = null;
+            DirectoryEntry? partitionsEntry = null;
+            SearchResultCollection? resCol = null;
             try
             {
                 partitionsEntry = DirectoryEntryManager.GetDirectoryEntry(context, directoryEntryMgr.ExpandWellKnownDN(WellKnownDN.PartitionsContainer));
@@ -1254,7 +1255,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
                 foreach (SearchResult res in resCol)
                 {
-                    string childDomainName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot);
+                    string childDomainName = (string)PropertyManager.GetSearchResultPropertyValue(res, PropertyManager.DnsRoot)!;
                     DirectoryContext childContext = Utils.GetNewDirectoryContext(childDomainName, DirectoryContextType.Domain, context);
                     childDomains.Add(new Domain(childContext, childDomainName));
                 }
@@ -1277,22 +1278,22 @@ namespace System.DirectoryServices.ActiveDirectory
             return childDomains;
         }
 
-        private ArrayList GetTrustsHelper(string targetDomainName)
+        private ArrayList GetTrustsHelper(string? targetDomainName)
         {
-            string serverName = null;
+            string? serverName = null;
             IntPtr domains = (IntPtr)0;
             int count = 0;
             ArrayList unmanagedTrustList = new ArrayList();
             ArrayList tmpTrustList = new ArrayList();
             int localDomainIndex = 0;
-            string localDomainParent = null;
+            string? localDomainParent = null;
             int error = 0;
             bool impersonated = false;
 
             // first decide which server to go to
             if (context.isServer())
             {
-                serverName = context.Name;
+                serverName = context.Name!;
             }
             else
             {
@@ -1340,7 +1341,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
                     for (int i = 0; i < unmanagedTrustList.Count; i++)
                     {
-                        DS_DOMAIN_TRUSTS unmanagedTrust = (DS_DOMAIN_TRUSTS)unmanagedTrustList[i];
+                        DS_DOMAIN_TRUSTS unmanagedTrust = (DS_DOMAIN_TRUSTS)unmanagedTrustList[i]!;
 
                         // make sure this is the trust object that we want
                         if ((unmanagedTrust.Flags & (int)(DS_DOMAINTRUST_FLAG.DS_DOMAIN_PRIMARY | DS_DOMAINTRUST_FLAG.DS_DOMAIN_DIRECT_OUTBOUND | DS_DOMAINTRUST_FLAG.DS_DOMAIN_DIRECT_INBOUND)) == 0)
@@ -1389,7 +1390,7 @@ namespace System.DirectoryServices.ActiveDirectory
                             if ((obj.Flags & (int)DS_DOMAINTRUST_FLAG.DS_DOMAIN_TREE_ROOT) == 0)
                             {
                                 // get the parent domain name
-                                DS_DOMAIN_TRUSTS parentTrust = (DS_DOMAIN_TRUSTS)unmanagedTrustList[obj.ParentIndex];
+                                DS_DOMAIN_TRUSTS parentTrust = (DS_DOMAIN_TRUSTS)unmanagedTrustList[obj.ParentIndex]!;
                                 if (parentTrust.DnsDomainName != (IntPtr)0)
                                     localDomainParent = Marshal.PtrToStringUni(parentTrust.DnsDomainName);
                             }
@@ -1410,7 +1411,7 @@ namespace System.DirectoryServices.ActiveDirectory
                     // now determine the trust type
                     for (int i = 0; i < tmpTrustList.Count; i++)
                     {
-                        TrustObject tmpObject = (TrustObject)tmpTrustList[i];
+                        TrustObject tmpObject = (TrustObject)tmpTrustList[i]!;
                         // local domain case, trust type has been determined
                         if (i == localDomainIndex)
                             continue;
@@ -1428,15 +1429,15 @@ namespace System.DirectoryServices.ActiveDirectory
                         if ((tmpObject.Flags & (int)DS_DOMAINTRUST_FLAG.DS_DOMAIN_IN_FOREST) != 0)
                         {
                             // child domain
-                            if (tmpObject.ParentIndex == ((TrustObject)tmpTrustList[localDomainIndex]).OriginalIndex)
+                            if (tmpObject.ParentIndex == ((TrustObject)tmpTrustList[localDomainIndex]!).OriginalIndex)
                             {
                                 tmpObject.TrustType = TrustType.ParentChild;
                             }
                             // tree root
                             else if ((tmpObject.Flags & (int)DS_DOMAINTRUST_FLAG.DS_DOMAIN_TREE_ROOT) != 0 &&
-                              (((TrustObject)tmpTrustList[localDomainIndex]).Flags & (int)DS_DOMAINTRUST_FLAG.DS_DOMAIN_TREE_ROOT) != 0)
+                              (((TrustObject)tmpTrustList[localDomainIndex]!).Flags & (int)DS_DOMAINTRUST_FLAG.DS_DOMAIN_TREE_ROOT) != 0)
                             {
-                                string tmpForestName = null;
+                                string? tmpForestName = null;
                                 string rootDomainNC = directoryEntryMgr.ExpandWellKnownDN(WellKnownDN.RootDomainNamingContext);
                                 tmpForestName = Utils.GetDnsNameFromDN(rootDomainNC);
 

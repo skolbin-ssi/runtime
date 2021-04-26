@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // Originally in System.Drawing.gdipFunctions.cs
 
@@ -46,5 +45,20 @@ namespace System.Drawing
 
         [DllImport("libX11", EntryPoint = "XFree")]
         internal static extern void XFree(IntPtr data);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct XVisualInfo
+    {
+        internal IntPtr visual;
+        internal IntPtr visualid;
+        internal int screen;
+        internal uint depth;
+        internal int klass;
+        internal IntPtr red_mask;
+        internal IntPtr green_mask;
+        internal IntPtr blue_mask;
+        internal int colormap_size;
+        internal int bits_per_rgb;
     }
 }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers;
 using System.Collections.Generic;
@@ -23,10 +22,10 @@ namespace System.IO.Enumeration
         private string? _currentPath;
         private IntPtr _directoryHandle;
         private bool _lastEntryFound;
-        private Queue<string>? _pending;
+        private Queue<(string Path, int RemainingDepth)>? _pending;
 
         private Interop.Sys.DirectoryEntry _entry;
-        private TResult _current = default!;
+        private TResult? _current;
 
         // Used for creating full paths
         private char[]? _pathBuffer;
@@ -145,12 +144,12 @@ namespace System.IO.Enumeration
 
                         if (isDirectory && !isSpecialDirectory)
                         {
-                            if (_options.RecurseSubdirectories && ShouldRecurseIntoEntry(ref entry))
+                            if (_options.RecurseSubdirectories && _remainingRecursionDepth > 0 && ShouldRecurseIntoEntry(ref entry))
                             {
                                 // Recursion is on and the directory was accepted, Queue it
                                 if (_pending == null)
-                                    _pending = new Queue<string>();
-                                _pending.Enqueue(Path.Join(_currentPath, entry.FileName));
+                                    _pending = new Queue<(string Path, int RemainingDepth)>();
+                                _pending.Enqueue((Path.Join(_currentPath, entry.FileName), _remainingRecursionDepth - 1));
                             }
                         }
 
@@ -216,7 +215,7 @@ namespace System.IO.Enumeration
                 if (_pending == null || _pending.Count == 0)
                     return false;
 
-                _currentPath = _pending.Dequeue();
+                (_currentPath, _remainingRecursionDepth) = _pending.Dequeue();
                 _directoryHandle = CreateDirectoryHandle(_currentPath, ignoreNotFound: true);
             }
 

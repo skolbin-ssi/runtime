@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -18,7 +17,7 @@ using System.DirectoryServices;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal partial class SAMStoreCtx : StoreCtx
+    internal sealed partial class SAMStoreCtx : StoreCtx
     {
         //
         // Native <--> Principal
@@ -722,17 +721,17 @@ namespace System.DirectoryServices.AccountManagement
             {PropertyNames.PwdInfoAllowReversiblePasswordEncryption, typeof(ComputerPrincipal),       null,   null,   new ToWinNTConverterDelegate(ExceptionToWinNTConverter)}
         };
 
-        private static readonly Hashtable s_userPropertyMappingTableByProperty = null;
-        private static readonly Hashtable s_userPropertyMappingTableByWinNT = null;
+        private static readonly Hashtable s_userPropertyMappingTableByProperty;
+        private static readonly Hashtable s_userPropertyMappingTableByWinNT;
 
-        private static readonly Hashtable s_groupPropertyMappingTableByProperty = null;
-        private static readonly Hashtable s_groupPropertyMappingTableByWinNT = null;
+        private static readonly Hashtable s_groupPropertyMappingTableByProperty;
+        private static readonly Hashtable s_groupPropertyMappingTableByWinNT;
 
-        private static readonly Hashtable s_computerPropertyMappingTableByProperty = null;
-        private static readonly Hashtable s_computerPropertyMappingTableByWinNT = null;
+        private static readonly Hashtable s_computerPropertyMappingTableByProperty;
+        private static readonly Hashtable s_computerPropertyMappingTableByWinNT;
 
-        private static readonly Dictionary<string, ObjectMask> s_validPropertyMap = null;
-        private static readonly Dictionary<Type, ObjectMask> s_maskMap = null;
+        private static readonly Dictionary<string, ObjectMask> s_validPropertyMap;
+        private static readonly Dictionary<Type, ObjectMask> s_maskMap;
 
         [Flags]
         private enum ObjectMask
@@ -744,7 +743,7 @@ namespace System.DirectoryServices.AccountManagement
             Principal = User | Computer | Group
         }
 
-        private class PropertyMappingTableEntry
+        private sealed class PropertyMappingTableEntry
         {
             internal string propertyName;                  // PAPI name
             internal string suggestedWinNTPropertyName;    // WinNT attribute name

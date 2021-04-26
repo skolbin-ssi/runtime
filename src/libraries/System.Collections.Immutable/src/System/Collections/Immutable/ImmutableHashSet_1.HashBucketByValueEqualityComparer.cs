@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -15,7 +14,7 @@ namespace System.Collections.Immutable
         /// Compares equality between two <see cref="HashBucket"/> instances
         /// by value.
         /// </summary>
-        private class HashBucketByValueEqualityComparer : IEqualityComparer<HashBucket>
+        private sealed class HashBucketByValueEqualityComparer : IEqualityComparer<HashBucket>
         {
             /// <summary>
             /// The instance to use when the value comparer is <see cref="EqualityComparer{T}.Default"/>.

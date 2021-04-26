@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Microsoft.Win32.SafeHandles;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.Serialization;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,6 +21,7 @@ namespace System.Diagnostics
     ///       processes. Enables you to start and stop system processes.
     ///    </para>
     /// </devdoc>
+    [Designer("System.Diagnostics.Design.ProcessDesigner, System.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")]
     public partial class Process : Component
     {
         private bool _haveProcessId;
@@ -81,7 +83,7 @@ namespace System.Diagnostics
         internal bool _pendingOutputRead;
         internal bool _pendingErrorRead;
 
-        private static int s_cachedSerializationSwitch = 0;
+        private static int s_cachedSerializationSwitch;
 
         /// <devdoc>
         ///    <para>
@@ -252,12 +254,10 @@ namespace System.Diagnostics
             }
         }
 
-        /// <devdoc>
-        ///    <para>
-        ///       Gets or sets the maximum allowable working set for the associated
-        ///       process.
-        ///    </para>
-        /// </devdoc>
+        /// <summary>
+        /// Gets or sets the maximum allowable working set for the associated process.
+        /// </summary>
+        /// <remarks>On macOS and FreeBSD, setting the value works only for the current process.</remarks>
         public IntPtr MaxWorkingSet
         {
             get
@@ -265,18 +265,19 @@ namespace System.Diagnostics
                 EnsureWorkingSetLimits();
                 return _maxWorkingSet;
             }
+            [SupportedOSPlatform("windows")]
+            [SupportedOSPlatform("macos")]
+            [SupportedOSPlatform("freebsd")]
             set
             {
                 SetWorkingSetLimits(null, value);
             }
         }
 
-        /// <devdoc>
-        ///    <para>
-        ///       Gets or sets the minimum allowable working set for the associated
-        ///       process.
-        ///    </para>
-        /// </devdoc>
+        /// <summary>
+        /// Gets or sets the minimum allowable working set for the associated process.
+        /// </summary>
+        /// <remarks>On macOS and FreeBSD, setting the value works only for the current process.</remarks>
         public IntPtr MinWorkingSet
         {
             get
@@ -284,6 +285,9 @@ namespace System.Diagnostics
                 EnsureWorkingSetLimits();
                 return _minWorkingSet;
             }
+            [SupportedOSPlatform("windows")]
+            [SupportedOSPlatform("macos")]
+            [SupportedOSPlatform("freebsd")]
             set
             {
                 SetWorkingSetLimits(value, null);
@@ -312,7 +316,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.NonpagedSystemMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.NonpagedSystemMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int NonpagedSystemMemorySize
         {
             get
@@ -332,7 +336,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.PagedMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PagedMemorySize
         {
             get
@@ -352,7 +356,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedSystemMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.PagedSystemMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PagedSystemMemorySize
         {
             get
@@ -372,7 +376,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakPagedMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.PeakPagedMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakPagedMemorySize
         {
             get
@@ -391,7 +395,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakWorkingSet64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.PeakWorkingSet64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakWorkingSet
         {
             get
@@ -410,7 +414,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakVirtualMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.PeakVirtualMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakVirtualMemorySize
         {
             get
@@ -485,7 +489,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PrivateMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.PrivateMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int PrivateMemorySize
         {
             get
@@ -628,7 +632,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.VirtualMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.VirtualMemorySize64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int VirtualMemorySize
         {
             get
@@ -679,6 +683,7 @@ namespace System.Diagnostics
         {
             get
             {
+                CheckDisposed();
                 if (_standardInput == null)
                 {
                     throw new InvalidOperationException(SR.CantGetStandardIn);
@@ -696,6 +701,7 @@ namespace System.Diagnostics
         {
             get
             {
+                CheckDisposed();
                 if (_standardOutput == null)
                 {
                     throw new InvalidOperationException(SR.CantGetStandardOut);
@@ -721,6 +727,7 @@ namespace System.Diagnostics
         {
             get
             {
+                CheckDisposed();
                 if (_standardError == null)
                 {
                     throw new InvalidOperationException(SR.CantGetStandardError);
@@ -748,7 +755,7 @@ namespace System.Diagnostics
             }
         }
 
-        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.WorkingSet64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("This property has been deprecated because the type of the property can't represent all valid results. Please use System.Diagnostics.Process.WorkingSet64 instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public int WorkingSet
         {
             get
@@ -1070,7 +1077,7 @@ namespace System.Diagnostics
         /// </devdoc>
         public static Process GetCurrentProcess()
         {
-            return new Process(".", false, GetCurrentProcessId(), null);
+            return new Process(".", false, Environment.ProcessId, null);
         }
 
         /// <devdoc>
@@ -1083,7 +1090,14 @@ namespace System.Diagnostics
             EventHandler? exited = _onExited;
             if (exited != null)
             {
-                exited(this, EventArgs.Empty);
+                if (SynchronizingObject is ISynchronizeInvoke syncObj && syncObj.InvokeRequired)
+                {
+                    syncObj.BeginInvoke(exited, new object[] { this, EventArgs.Empty });
+                }
+                else
+                {
+                    exited(this, EventArgs.Empty);
+                }
             }
         }
 
@@ -1117,7 +1131,9 @@ namespace System.Diagnostics
         public void Refresh()
         {
             _processInfo = null;
+            _threads?.Dispose();
             _threads = null;
+            _modules?.Dispose();
             _modules = null;
             _exited = false;
             _haveWorkingSetLimits = false;
@@ -1137,10 +1153,7 @@ namespace System.Diagnostics
             if (!_haveProcessHandle)
             {
                 //Cannot open a new process handle if the object has been disposed, since finalization has been suppressed.
-                if (_disposed)
-                {
-                    throw new ObjectDisposedException(GetType().Name);
-                }
+                CheckDisposed();
 
                 SetProcessHandle(GetProcessHandle());
             }
@@ -1184,6 +1197,8 @@ namespace System.Diagnostics
         ///       component.
         ///    </para>
         /// </devdoc>
+        [UnsupportedOSPlatform("ios")]
+        [UnsupportedOSPlatform("tvos")]
         public bool Start()
         {
             Close();
@@ -1205,16 +1220,13 @@ namespace System.Diagnostics
             {
                 throw new InvalidOperationException(SR.StandardErrorEncodingNotAllowed);
             }
-            if (!string.IsNullOrEmpty(startInfo.Arguments) && startInfo.ArgumentList.Count > 0)
+            if (!string.IsNullOrEmpty(startInfo.Arguments) && startInfo.HasArgumentList)
             {
                 throw new InvalidOperationException(SR.ArgumentAndArgumentListInitialized);
             }
 
             //Cannot start a new process and store its handle if the object has been disposed, since finalization has been suppressed.
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(GetType().Name);
-            }
+            CheckDisposed();
 
             SerializationGuard.ThrowIfDeserializationInProgress("AllowProcessCreation", ref s_cachedSerializationSwitch);
 
@@ -1228,6 +1240,8 @@ namespace System.Diagnostics
         ///       component.
         ///    </para>
         /// </devdoc>
+        [UnsupportedOSPlatform("ios")]
+        [UnsupportedOSPlatform("tvos")]
         public static Process Start(string fileName)
         {
             // the underlying Start method can only return null on Windows platforms,
@@ -1244,12 +1258,35 @@ namespace System.Diagnostics
         ///       component.
         ///    </para>
         /// </devdoc>
+        [UnsupportedOSPlatform("ios")]
+        [UnsupportedOSPlatform("tvos")]
         public static Process Start(string fileName, string arguments)
         {
             // the underlying Start method can only return null on Windows platforms,
             // when the ProcessStartInfo.UseShellExecute property is set to true.
             // We can thus safely assert non-nullability for tihs overload.
             return Start(new ProcessStartInfo(fileName, arguments))!;
+        }
+
+        /// <summary>
+        /// Starts a process resource by specifying the name of an application and a set of command line arguments
+        /// </summary>
+        [UnsupportedOSPlatform("ios")]
+        [UnsupportedOSPlatform("tvos")]
+        public static Process Start(string fileName, IEnumerable<string> arguments)
+        {
+            if (fileName == null)
+                throw new ArgumentNullException(nameof(fileName));
+            if (arguments == null)
+                throw new ArgumentNullException(nameof(arguments));
+
+            var startInfo = new ProcessStartInfo(fileName);
+            foreach (string argument in arguments)
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+
+            return Start(startInfo)!;
         }
 
         /// <devdoc>
@@ -1260,6 +1297,8 @@ namespace System.Diagnostics
         ///       component.
         ///    </para>
         /// </devdoc>
+        [UnsupportedOSPlatform("ios")]
+        [UnsupportedOSPlatform("tvos")]
         public static Process? Start(ProcessStartInfo startInfo)
         {
             Process process = new Process();
@@ -1316,7 +1355,7 @@ namespace System.Diagnostics
                 string processName = ProcessName;
                 if (processName.Length != 0)
                 {
-                    return string.Format(CultureInfo.CurrentCulture, "{0} ({1})", base.ToString(), processName);
+                    return $"{base.ToString()} ({processName})";
                 }
             }
             return base.ToString();
@@ -1420,15 +1459,16 @@ namespace System.Diagnostics
                 // exception up to the user
                 if (HasExited)
                 {
+                    await WaitUntilOutputEOF(cancellationToken).ConfigureAwait(false);
                     return;
                 }
 
                 throw;
             }
 
-            var tcs = new TaskCompletionSourceWithCancellation<bool>();
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler handler = (s, e) => tcs.TrySetResult(true);
+            EventHandler handler = (_, _) => tcs.TrySetResult();
             Exited += handler;
 
             try
@@ -1436,15 +1476,35 @@ namespace System.Diagnostics
                 if (HasExited)
                 {
                     // CASE 1.2 & CASE 3.2: Handle race where the process exits before registering the handler
-                    return;
+                }
+                else
+                {
+                    // CASE 1.1 & CASE 3.1: Process exits or is canceled here
+                    using (cancellationToken.UnsafeRegister(static (s, cancellationToken) => ((TaskCompletionSource)s!).TrySetCanceled(cancellationToken), tcs))
+                    {
+                        await tcs.Task.ConfigureAwait(false);
+                    }
                 }
 
-                // CASE 1.1 & CASE 3.1: Process exits or is canceled here
-                await tcs.WaitWithCancellationAsync(cancellationToken).ConfigureAwait(false);
+                // Wait until output streams have been drained
+                await WaitUntilOutputEOF(cancellationToken).ConfigureAwait(false);
             }
             finally
             {
                 Exited -= handler;
+            }
+
+            async Task WaitUntilOutputEOF(CancellationToken cancellationToken)
+            {
+                if (_output is not null)
+                {
+                    await _output.EOF.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                if (_error is not null)
+                {
+                    await _error.EOF.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
         }
 
@@ -1533,6 +1593,7 @@ namespace System.Diagnostics
         /// </devdoc>
         public void CancelOutputRead()
         {
+            CheckDisposed();
             if (_output != null)
             {
                 _output.CancelOperation();
@@ -1553,6 +1614,7 @@ namespace System.Diagnostics
         /// </devdoc>
         public void CancelErrorRead()
         {
+            CheckDisposed();
             if (_error != null)
             {
                 _error.CancelOperation();
@@ -1571,8 +1633,16 @@ namespace System.Diagnostics
             DataReceivedEventHandler? outputDataReceived = OutputDataReceived;
             if (outputDataReceived != null)
             {
+                // Call back to user informing data is available
                 DataReceivedEventArgs e = new DataReceivedEventArgs(data);
-                outputDataReceived(this, e);  // Call back to user informing data is available
+                if (SynchronizingObject is ISynchronizeInvoke syncObj && syncObj.InvokeRequired)
+                {
+                    syncObj.Invoke(outputDataReceived, new object[] { this, e });
+                }
+                else
+                {
+                    outputDataReceived(this, e);
+                }
             }
         }
 
@@ -1582,19 +1652,26 @@ namespace System.Diagnostics
             DataReceivedEventHandler? errorDataReceived = ErrorDataReceived;
             if (errorDataReceived != null)
             {
+                // Call back to user informing data is available.
                 DataReceivedEventArgs e = new DataReceivedEventArgs(data);
-                errorDataReceived(this, e); // Call back to user informing data is available.
+                if (SynchronizingObject is ISynchronizeInvoke syncObj && syncObj.InvokeRequired)
+                {
+                    syncObj.Invoke(errorDataReceived, new object[] { this, e });
+                }
+                else
+                {
+                    errorDataReceived(this, e);
+                }
             }
         }
 
-        private static void AppendArguments(StringBuilder stringBuilder, Collection<string> argumentList)
+        /// <summary>Throws a System.ObjectDisposedException if the Proces was disposed</summary>
+        /// <exception cref="System.ObjectDisposedException">If the Proces has been disposed.</exception>
+        private void CheckDisposed()
         {
-            if (argumentList.Count > 0)
+            if (_disposed)
             {
-                foreach (string argument in argumentList)
-                {
-                    PasteArguments.AppendArgument(stringBuilder, argument);
-                }
+                throw new ObjectDisposedException(GetType().Name);
             }
         }
 

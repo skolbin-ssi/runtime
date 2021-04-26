@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -197,7 +196,7 @@ new SecurityIdentifier(Utils.TranslateStringConstFormatSidToStandardFormatSid(si
                 rawAcl = new RawAcl(0, 1);
                 opaque = new byte[4];
                 gAce = new CustomAce(AceType.MaxDefinedAceType + 1,
-                    AceFlags.InheritanceFlags | AceFlags.AuditFlags, opaque); ;
+                    AceFlags.InheritanceFlags | AceFlags.AuditFlags, opaque);
                 rawAcl.InsertAce(0, gAce);
                 systemAcl = new SystemAcl(isContainer, isDS, rawAcl);
                 //After Mark changes design to make ACL with any CustomAce, CompoundAce uncanonical and

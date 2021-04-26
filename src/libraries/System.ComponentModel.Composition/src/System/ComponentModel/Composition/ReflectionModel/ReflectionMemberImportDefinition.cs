@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel.Composition.Primitives;
@@ -44,13 +43,7 @@ namespace System.ComponentModel.Composition.ReflectionModel
             get { return _importingLazyMember; }
         }
 
-        protected override string GetDisplayName()
-        {
-            return string.Format(
-                CultureInfo.CurrentCulture,
-                "{0} (ContractName=\"{1}\")",    // NOLOC
-                ImportingLazyMember.ToReflectionMember().GetDisplayName(),
-                ContractName);
-        }
+        protected override string GetDisplayName() =>
+            $"{ImportingLazyMember.ToReflectionMember().GetDisplayName()} (ContractName=\"{ContractName}\")";    // NOLOC
     }
 }

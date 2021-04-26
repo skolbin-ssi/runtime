@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +10,7 @@ namespace System.Threading.Tasks.Tests
 {
     public class TaskAwaiterTests
     {
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         [InlineData(false, false)]
         [InlineData(false, true)]
         [InlineData(false, null)]
@@ -67,7 +66,7 @@ namespace System.Threading.Tasks.Tests
             }
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         [InlineData(false, false)]
         [InlineData(false, true)]
         [InlineData(false, null)]
@@ -124,7 +123,7 @@ namespace System.Threading.Tasks.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public async Task Await_TaskCompletesOnNonDefaultSyncCtx_ContinuesOnDefaultSyncCtx()
         {
             await Task.Run(async delegate // escape xunit's sync context
@@ -133,14 +132,14 @@ namespace System.Threading.Tasks.Tests
                 Assert.Same(TaskScheduler.Default, TaskScheduler.Current);
 
                 var ctx = new ValidateCorrectContextSynchronizationContext();
-                var tcs = new TaskCompletionSource<bool>();
+                var tcs = new TaskCompletionSource();
                 var ignored = Task.Delay(1).ContinueWith(_ =>
                 {
                     SynchronizationContext orig = SynchronizationContext.Current;
                     SynchronizationContext.SetSynchronizationContext(ctx);
                     try
                     {
-                        tcs.SetResult(true);
+                        tcs.SetResult();
                     }
                     finally
                     {
@@ -154,7 +153,7 @@ namespace System.Threading.Tasks.Tests
             });
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public async Task Await_TaskCompletesOnNonDefaultScheduler_ContinuesOnDefaultScheduler()
         {
             await Task.Run(async delegate // escape xunit's sync context
@@ -162,8 +161,8 @@ namespace System.Threading.Tasks.Tests
                 Assert.Null(SynchronizationContext.Current);
                 Assert.Same(TaskScheduler.Default, TaskScheduler.Current);
 
-                var tcs = new TaskCompletionSource<bool>();
-                var ignored = Task.Delay(1).ContinueWith(_ => tcs.SetResult(true), new QUWITaskScheduler());
+                var tcs = new TaskCompletionSource();
+                var ignored = Task.Delay(1).ContinueWith(_ => tcs.SetResult(), new QUWITaskScheduler());
                 await tcs.Task;
 
                 Assert.Null(SynchronizationContext.Current);
@@ -180,7 +179,7 @@ namespace System.Threading.Tasks.Tests
                             yield return new object[] { numContinuations, runContinuationsAsynchronously, valueTask, scheduler };
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         [MemberData(nameof(Await_MultipleAwaits_FirstCompletesAccordingToOptions_RestCompleteAsynchronously_MemberData))]
         public async Task Await_MultipleAwaits_FirstCompletesAccordingToOptions_RestCompleteAsynchronously(
             int numContinuations, bool runContinuationsAsynchronously, bool valueTask, object scheduler)
@@ -192,7 +191,7 @@ namespace System.Threading.Tasks.Tests
                     SynchronizationContext.SetSynchronizationContext(sc);
                 }
 
-                var tcs = runContinuationsAsynchronously ? new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously) : new TaskCompletionSource<bool>();
+                var tcs = runContinuationsAsynchronously ? new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) : new TaskCompletionSource();
 
                 var tl = new ThreadLocal<int>();
                 var tasks = new List<Task>();
@@ -239,7 +238,7 @@ namespace System.Threading.Tasks.Tests
                 Assert.All(tasks, t => Assert.Equal(TaskStatus.WaitingForActivation, t.Status));
 
                 tl.Value = 42;
-                tcs.SetResult(true);
+                tcs.SetResult();
                 tl.Value = 0;
 
                 SynchronizationContext.SetSynchronizationContext(null);
@@ -336,6 +335,118 @@ namespace System.Threading.Tasks.Tests
         }
 
         [Fact]
+        public static void ConfigureAwait_InvalidTimeout_Throws()
+        {
+            foreach (TimeSpan timeout in new[] { TimeSpan.FromMilliseconds(-2), TimeSpan.MaxValue, TimeSpan.MinValue })
+            {
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => new TaskCompletionSource().Task.WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => new TaskCompletionSource().Task.WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => new TaskCompletionSource().Task.WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => new TaskCompletionSource<int>().Task.WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => new TaskCompletionSource<int>().Task.WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => new TaskCompletionSource<int>().Task.WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.CompletedTask.WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.CompletedTask.WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.CompletedTask.WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromResult(42).WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromResult(42).WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromResult(42).WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromCanceled(new CancellationToken(true)).WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromCanceled(new CancellationToken(true)).WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromCanceled(new CancellationToken(true)).WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromCanceled<int>(new CancellationToken(true)).WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromCanceled<int>(new CancellationToken(true)).WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromCanceled<int>(new CancellationToken(true)).WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromException(new FormatException()).WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromException(new FormatException()).WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromException(new FormatException()).WaitAsync(timeout, new CancellationToken(true)));
+
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromException<int>(new FormatException()).WaitAsync(timeout));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromException<int>(new FormatException()).WaitAsync(timeout, CancellationToken.None));
+                AssertExtensions.Throws<ArgumentOutOfRangeException>("timeout", () => Task.FromException<int>(new FormatException()).WaitAsync(timeout, new CancellationToken(true)));
+            }
+        }
+
+        [Fact]
+        public static async Task ConfigureAwait_CanceledAndTimedOut_AlreadyCompleted_UsesTaskResult()
+        {
+            await Task.CompletedTask.WaitAsync(TimeSpan.Zero);
+            await Task.CompletedTask.WaitAsync(new CancellationToken(true));
+            await Task.CompletedTask.WaitAsync(TimeSpan.Zero, new CancellationToken(true));
+
+            Assert.Equal(42, await Task.FromResult(42).WaitAsync(TimeSpan.Zero));
+            Assert.Equal(42, await Task.FromResult(42).WaitAsync(new CancellationToken(true)));
+            Assert.Equal(42, await Task.FromResult(42).WaitAsync(TimeSpan.Zero, new CancellationToken(true)));
+
+            await Assert.ThrowsAsync<FormatException>(() => Task.FromException(new FormatException()).WaitAsync(TimeSpan.Zero));
+            await Assert.ThrowsAsync<FormatException>(() => Task.FromException(new FormatException()).WaitAsync(new CancellationToken(true)));
+            await Assert.ThrowsAsync<FormatException>(() => Task.FromException(new FormatException()).WaitAsync(TimeSpan.Zero, new CancellationToken(true)));
+
+            await Assert.ThrowsAsync<FormatException>(() => Task.FromException<int>(new FormatException()).WaitAsync(TimeSpan.Zero));
+            await Assert.ThrowsAsync<FormatException>(() => Task.FromException<int>(new FormatException()).WaitAsync(new CancellationToken(true)));
+            await Assert.ThrowsAsync<FormatException>(() => Task.FromException<int>(new FormatException()).WaitAsync(TimeSpan.Zero, new CancellationToken(true)));
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.FromCanceled(new CancellationToken(true)).WaitAsync(TimeSpan.Zero));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.FromCanceled(new CancellationToken(true)).WaitAsync(new CancellationToken(true)));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.FromCanceled(new CancellationToken(true)).WaitAsync(TimeSpan.Zero, new CancellationToken(true)));
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.FromCanceled<int>(new CancellationToken(true)).WaitAsync(TimeSpan.Zero));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.FromCanceled<int>(new CancellationToken(true)).WaitAsync(new CancellationToken(true)));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.FromCanceled<int>(new CancellationToken(true)).WaitAsync(TimeSpan.Zero, new CancellationToken(true)));
+        }
+
+        [Fact]
+        public static async Task ConfigureAwait_TimeoutOrCanceled_Throws()
+        {
+            var tcs = new TaskCompletionSource<int>();
+            var cts = new CancellationTokenSource();
+
+            await Assert.ThrowsAsync<TimeoutException>(() => ((Task)tcs.Task).WaitAsync(TimeSpan.Zero));
+            await Assert.ThrowsAsync<TimeoutException>(() => ((Task)tcs.Task).WaitAsync(TimeSpan.FromMilliseconds(1)));
+            await Assert.ThrowsAsync<TimeoutException>(() => ((Task)tcs.Task).WaitAsync(TimeSpan.FromMilliseconds(1), cts.Token));
+
+            await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WaitAsync(TimeSpan.Zero));
+            await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(1)));
+            await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(1), cts.Token));
+
+            Task assert1 = Assert.ThrowsAsync<TaskCanceledException>(() => ((Task)tcs.Task).WaitAsync(cts.Token));
+            Task assert2 = Assert.ThrowsAsync<TaskCanceledException>(() => ((Task)tcs.Task).WaitAsync(Timeout.InfiniteTimeSpan, cts.Token));
+            Task assert3 = Assert.ThrowsAsync<TaskCanceledException>(() => tcs.Task.WaitAsync(cts.Token));
+            Task assert4 = Assert.ThrowsAsync<TaskCanceledException>(() => tcs.Task.WaitAsync(Timeout.InfiniteTimeSpan, cts.Token));
+            Assert.False(assert1.IsCompleted);
+            Assert.False(assert2.IsCompleted);
+            Assert.False(assert3.IsCompleted);
+            Assert.False(assert4.IsCompleted);
+
+            cts.Cancel();
+            await Task.WhenAll(assert1, assert2, assert3, assert4);
+        }
+
+        [Fact]
+        public static async Task ConfigureAwait_NoCancellationOrTimeoutOccurs_Success()
+        {
+            CancellationTokenSource cts = new CancellationTokenSource();
+
+            var tcs = new TaskCompletionSource();
+            Task t = tcs.Task.WaitAsync(TimeSpan.FromDays(1), cts.Token);
+            Assert.False(t.IsCompleted);
+            tcs.SetResult();
+            await t;
+
+            var tcsg = new TaskCompletionSource<int>();
+            Task<int> tg = tcsg.Task.WaitAsync(TimeSpan.FromDays(1), cts.Token);
+            Assert.False(tg.IsCompleted);
+            tcsg.SetResult(42);
+            Assert.Equal(42, await tg);
+        }
+
+        [Fact]
         public static void AwaiterAndAwaitableEquality()
         {
             var completed = new TaskCompletionSource<string>();
@@ -365,7 +476,7 @@ namespace System.Threading.Tasks.Tests
             Assert.NotEqual(task.ConfigureAwait(true).GetAwaiter(), task.ConfigureAwait(false).GetAwaiter());
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public static void BaseSynchronizationContext_SameAsNoSynchronizationContext()
         {
             var quwi = new QUWITaskScheduler();
@@ -376,8 +487,8 @@ namespace System.Threading.Tasks.Tests
                 RunWithSchedulerAsCurrent(quwi, delegate
                 {
                     ManualResetEventSlim mres = new ManualResetEventSlim();
-                    var tcs = new TaskCompletionSource<object>();
-                    var awaiter = ((Task)tcs.Task).GetAwaiter();
+                    var tcs = new TaskCompletionSource();
+                    var awaiter = tcs.Task.GetAwaiter();
 
                     bool ranOnScheduler = false;
                     bool ranWithoutSyncCtx = false;
@@ -389,7 +500,7 @@ namespace System.Threading.Tasks.Tests
                     });
                     Assert.False(mres.IsSet, "Callback should not yet have run.");
 
-                    Task.Run(delegate { tcs.SetResult(null); });
+                    Task.Run(delegate { tcs.SetResult(); });
                     mres.Wait();
 
                     Assert.True(ranOnScheduler, "Should have run on scheduler");
@@ -402,7 +513,7 @@ namespace System.Threading.Tasks.Tests
             }
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         [MemberData(nameof(CanceledTasksAndExpectedCancellationExceptions))]
         public static void OperationCanceledException_PropagatesThroughCanceledTask(int lineNumber, Task task, OperationCanceledException expected)
         {

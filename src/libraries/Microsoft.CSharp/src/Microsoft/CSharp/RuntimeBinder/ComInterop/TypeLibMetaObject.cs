@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Dynamic;
@@ -8,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace Microsoft.CSharp.RuntimeBinder.ComInterop
 {
-    internal class TypeLibMetaObject : DynamicMetaObject {
+    internal sealed class TypeLibMetaObject : DynamicMetaObject {
         private readonly ComTypeLibDesc _lib;
 
         internal TypeLibMetaObject(Expression expression, ComTypeLibDesc lib)

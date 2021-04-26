@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -120,13 +119,17 @@ namespace System.Net.Mail
 
         private static bool TryParse(string address, string? displayName, Encoding? displayNameEncoding, out (string displayName, string user, string host, Encoding displayNameEncoding) parsedData, bool throwExceptionIfFail)
         {
-            if (address == null)
+            if (string.IsNullOrEmpty(address))
             {
-                throw new ArgumentNullException(nameof(address));
-            }
-            if (address == string.Empty)
-            {
-                throw new ArgumentException(SR.Format(SR.net_emptystringcall, nameof(address)), nameof(address));
+                if (throwExceptionIfFail)
+                {
+                    throw address is null ?
+                        new ArgumentNullException(nameof(address)) :
+                        new ArgumentException(SR.Format(SR.net_emptystringcall, nameof(address)), nameof(address));
+                }
+
+                parsedData = default;
+                return false;
             }
 
             displayNameEncoding ??= Encoding.GetEncoding(MimeBasePart.DefaultCharSet);
@@ -258,11 +261,11 @@ namespace System.Net.Mail
             }
             else
             {
-                return "\"" + DisplayName + "\" " + SmtpAddress;
+                return "\"" + DisplayName.Replace("\"", "\\\"") + "\" " + SmtpAddress;
             }
         }
 
-        public override bool Equals(object? value)
+        public override bool Equals([NotNullWhen(true)] object? value)
         {
             if (value == null)
             {
@@ -273,7 +276,7 @@ namespace System.Net.Mail
 
         public override int GetHashCode()
         {
-            return ToString().GetHashCode();
+            return StringComparer.InvariantCultureIgnoreCase.GetHashCode(ToString());
         }
 
         private static readonly EncodedStreamFactory s_encoderFactory = new EncodedStreamFactory();
@@ -283,7 +286,6 @@ namespace System.Net.Mail
         {
             string encodedAddress = string.Empty;
             IEncodableStream encoder;
-            byte[] buffer;
 
             Debug.Assert(Address != null, "address was null");
 
@@ -302,8 +304,7 @@ namespace System.Net.Mail
                 {
                     //encode the displayname since it's non-ascii
                     encoder = s_encoderFactory.GetEncoderForHeader(_displayNameEncoding, false, charsConsumed);
-                    buffer = _displayNameEncoding.GetBytes(_displayName);
-                    encoder.EncodeBytes(buffer, 0, buffer.Length);
+                    encoder.EncodeString(_displayName, _displayNameEncoding);
                     encodedAddress = encoder.GetEncodedString();
                 }
 

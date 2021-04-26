@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 //
 //  Class used to manage timeouts in complex system operations.
@@ -19,7 +18,7 @@ namespace System.Data.ProviderBase
     //   Get remaining time in appropriate format to pass to subsystem timeouts
     //   Check for timeout via IsExpired for checks in managed code.
     //   Simply abandon to GC when done.
-    internal class TimeoutTimer
+    internal sealed class TimeoutTimer
     {
         //-------------------
         // Fields

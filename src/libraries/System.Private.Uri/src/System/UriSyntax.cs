@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // This file utilizes partial class feature and contains
 // only internal implementation of UriParser type
@@ -109,7 +108,7 @@ namespace System
         internal const int NoDefaultPort = -1;
         private const int c_InitialTableSize = 25;
 
-        private class BuiltInUriParser : UriParser
+        private sealed class BuiltInUriParser : UriParser
         {
             //
             // All BuiltIn parsers use that ctor. They are marked with "simple" and "built-in" flags

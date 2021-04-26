@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -85,7 +84,7 @@ namespace System.Linq.Tests
         public void SameResultsRepeatCallsStringQuery()
         {
             var q1 = from x1 in new string[] { "Alen", "Felix", null, null, "X", "Have Space", "Clinton", "" }
-                     select x1; ;
+                     select x1;
 
             var q2 = from x2 in new int[] { 55, 49, 9, -100, 24, 25, -1, 0 }
                      select x2;

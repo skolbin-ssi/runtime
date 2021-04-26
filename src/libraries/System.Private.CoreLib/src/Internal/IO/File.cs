@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Security;
 using System.IO;
 
@@ -11,7 +11,7 @@ namespace Internal.IO
 {
     //
     // Subsetted clone of System.IO.File for internal runtime use.
-    // Keep in sync with https://github.com/dotnet/runtime/tree/master/src/libraries/System.IO.FileSystem.
+    // Keep in sync with https://github.com/dotnet/runtime/tree/main/src/libraries/System.IO.FileSystem.
     //
     internal static partial class File
     {
@@ -19,7 +19,7 @@ namespace Internal.IO
         // given by the specified path exists; otherwise, the result is
         // false.  Note that if path describes a directory,
         // Exists will return true.
-        public static bool Exists(string? path)
+        public static bool Exists([NotNullWhen(true)] string? path)
         {
             try
             {
@@ -42,8 +42,6 @@ namespace Internal.IO
                 return InternalExists(path);
             }
             catch (ArgumentException) { }
-            catch (NotSupportedException) { } // Security can throw this on ":"
-            catch (SecurityException) { }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
 
@@ -66,7 +64,7 @@ namespace Internal.IO
                 {
                     int n = fs.Read(bytes, index, count);
                     if (n == 0)
-                        throw Error.GetEndOfFile();
+                        ThrowHelper.ThrowEndOfFileException();
                     index += n;
                     count -= n;
                 }

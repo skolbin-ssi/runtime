@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Text
 {
     public sealed class DecoderReplacementFallback : DecoderFallback
     {
+        internal static readonly DecoderReplacementFallback s_default = new DecoderReplacementFallback();
+
         // Our variables
         private readonly string _strDefault;
 
@@ -23,13 +25,13 @@ namespace System.Text
 
             // Make sure it doesn't have bad surrogate pairs
             bool bFoundHigh = false;
-            for (int i = 0; i < replacement.Length; i++)
+            foreach (char c in replacement)
             {
                 // Found a surrogate?
-                if (char.IsSurrogate(replacement, i))
+                if (char.IsSurrogate(c))
                 {
                     // High or Low?
-                    if (char.IsHighSurrogate(replacement, i))
+                    if (char.IsHighSurrogate(c))
                     {
                         // if already had a high one, stop
                         if (bFoundHigh)
@@ -68,7 +70,7 @@ namespace System.Text
         // Maximum number of characters that this instance of this fallback could return
         public override int MaxCharCount => _strDefault.Length;
 
-        public override bool Equals(object? value) =>
+        public override bool Equals([NotNullWhen(true)] object? value) =>
             value is DecoderReplacementFallback that &&
             _strDefault == that._strDefault;
 

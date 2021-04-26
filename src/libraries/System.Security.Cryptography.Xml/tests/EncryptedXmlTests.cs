@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
@@ -12,6 +11,7 @@ namespace System.Security.Cryptography.Xml.Tests
     public static class EncryptedXmlTests
     {
         [Fact]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49871", TestPlatforms.Android)]
         public static void DecryptWithCertificate_NotInStore()
         {
             const string SecretMessage = "Grilled cheese is tasty";

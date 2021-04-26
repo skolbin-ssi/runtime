@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using Microsoft.CSharp.RuntimeBinder.Errors;
@@ -21,6 +21,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         internal bool IsChecked => _binder.Context.Checked;
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public RuntimeBinder(Type contextType, bool isChecked = false)
         {
             AggregateSymbol context;
@@ -39,6 +40,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             _binder = new ExpressionBinder(new BindingContext(context, isChecked));
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public Expression Bind(ICSharpBinder payload, Expression[] parameters, DynamicMetaObject[] args, out DynamicMetaObject deferredBinding)
         {
             // The lock is here to protect this instance of the binder from itself
@@ -64,6 +66,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             }
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expression BindCore(
             ICSharpBinder payload,
             Expression[] parameters,
@@ -126,6 +129,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             Debug.Assert(System.Threading.Monitor.IsEntered(s_bindLock));
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private bool DeferBinding(
             ICSharpBinder payload,
             ArgumentObject[] arguments,
@@ -181,6 +185,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             return false;
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static Expression CreateExpressionTreeFromResult(Expression[] parameters, Scope pScope, Expr pResult)
         {
             // (3) - Place the result in a return statement and create the ExprBoundLambda.
@@ -194,6 +199,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             return e;
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Type GetArgumentType(ICSharpBinder p, CSharpArgumentInfo argInfo, Expression param, DynamicMetaObject arg, int index)
         {
             Type t = argInfo.UseCompileTimeType ? param.Type : arg.LimitType;
@@ -233,6 +239,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private ArgumentObject[] CreateArgumentArray(
                 ICSharpBinder payload,
                 Expression[] parameters,
@@ -255,6 +262,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal static void PopulateSymbolTableWithPayloadInformation(
             ICSharpInvokeOrInvokeMemberBinder callOrInvoke, Type callingType, ArgumentObject[] arguments)
         {
@@ -293,6 +301,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static void AddConversionsForArguments(ArgumentObject[] arguments)
         {
             foreach (ArgumentObject arg in arguments)
@@ -303,6 +312,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal ExprWithArgs DispatchPayload(ICSharpInvokeOrInvokeMemberBinder payload, ArgumentObject[] arguments, LocalVariableSymbol[] locals) =>
             BindCall(payload, CreateCallingObjectForCall(payload, arguments, locals), arguments, locals);
 
@@ -313,6 +323,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         // we have a call off of a struct for example. If thats the case, don't treat the
         // local as a ref type.
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static LocalVariableSymbol[] PopulateLocalScope(
             ICSharpBinder payload,
             Scope pScope,
@@ -356,6 +367,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static ExprBoundLambda GenerateBoundLambda(Scope pScope, Expr call)
         {
             // We don't actually need the real delegate type here - we just need SOME delegate type.
@@ -368,6 +380,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expr CreateLocal(Type type, bool isOut, LocalVariableSymbol local)
         {
             CType ctype;
@@ -394,6 +407,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr CreateArgumentListEXPR(
             ArgumentObject[] arguments,
             LocalVariableSymbol[] locals,
@@ -427,6 +441,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expr CreateArgumentEXPR(ArgumentObject argument, LocalVariableSymbol local)
         {
             Expr arg;
@@ -496,6 +511,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static ExprMemberGroup CreateMemberGroupExpr(
             string Name,
             Type[] typeArguments,
@@ -563,19 +579,6 @@ namespace Microsoft.CSharp.RuntimeBinder
                 }
             }
 
-            // If this is a WinRT type we have to add all collection interfaces that have this method
-            // as well so that overload resolution can find them.
-            if (callingType.IsWindowsRuntimeType)
-            {
-                foreach (AggregateType t in callingType.WinRTCollectionIfacesAll.Items)
-                {
-                    if (SymbolTable.AggregateContainsMethod(t.OwningAggregate, Name, mask) && distinctCallingTypes.Add(t))
-                    {
-                        callingTypes.Add(t);
-                    }
-                }
-            }
-
             EXPRFLAG flags = EXPRFLAG.EXF_USERCALLABLE;
             // If its a delegate, mark that on the memgroup.
             if (Name == SpecialNames.Invoke && callingObject.Type.IsDelegateType)
@@ -611,6 +614,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expr CreateProperty(
             SymWithType swt,
             Expr callingObject,
@@ -630,6 +634,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private ExprWithArgs CreateIndexer(SymWithType swt, Expr callingObject, Expr arguments, BindingFlag bindFlags)
         {
             IndexerSymbol index = swt.Sym as IndexerSymbol;
@@ -641,6 +646,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expr CreateArray(Expr callingObject, Expr optionalIndexerArguments)
         {
             return _binder.BindArrayIndexCore(callingObject, optionalIndexerArguments);
@@ -648,6 +654,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expr CreateField(
             SymWithType swt,
             Expr callingObject)
@@ -671,6 +678,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         #region Calls
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private Expr CreateCallingObjectForCall(
             ICSharpInvokeOrInvokeMemberBinder payload,
             ArgumentObject[] arguments,
@@ -709,6 +717,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private ExprWithArgs BindCall(
             ICSharpInvokeOrInvokeMemberBinder payload,
             Expr callingObject,
@@ -796,16 +805,6 @@ namespace Microsoft.CSharp.RuntimeBinder
                     BindImplicitConversion(new ArgumentObject[] { arguments[1] }, eventType, locals, false);
                 }
                 memGroup.Flags &= ~EXPRFLAG.EXF_USERCALLABLE;
-
-                if (swtEvent.Sym.getKind() == SYMKIND.SK_EventSymbol && swtEvent.Event().IsWindowsRuntimeEvent)
-                {
-                    return BindWinRTEventAccessor(
-                                    new EventWithType(swtEvent.Event(), swtEvent.Ats),
-                                    callingObject,
-                                    arguments,
-                                    locals,
-                                    payload.Name.StartsWith("add_", StringComparison.Ordinal)); //isAddAccessor?
-                }
             }
 
             // Check if we have a potential call to an indexed property accessor.
@@ -826,57 +825,6 @@ namespace Microsoft.CSharp.RuntimeBinder
             return result;
         }
 
-        private ExprWithArgs BindWinRTEventAccessor(EventWithType ewt, Expr callingObject, ArgumentObject[] arguments, LocalVariableSymbol[] locals, bool isAddAccessor)
-        {
-            // We want to generate either:
-            // WindowsRuntimeMarshal.AddEventHandler<delegType>(new Func<delegType, EventRegistrationToken>(x.add_foo), new Action<EventRegistrationToken>(x.remove_foo), value)
-            // or
-            // WindowsRuntimeMarshal.RemoveEventHandler<delegType>(new Action<EventRegistrationToken>(x.remove_foo), value)
-
-            Type evtType = ewt.Event().type.AssociatedSystemType;
-
-            // Get new Action<EventRegistrationToken>(x.remove_foo)
-            MethPropWithInst removemwi = new MethPropWithInst(ewt.Event().methRemove, ewt.Ats);
-            ExprMemberGroup removeMethGrp = ExprFactory.CreateMemGroup(callingObject, removemwi);
-            removeMethGrp.Flags &= ~EXPRFLAG.EXF_USERCALLABLE;
-            Type eventRegistrationTokenType = SymbolTable.EventRegistrationTokenType;
-            Type actionType = Expression.GetActionType(eventRegistrationTokenType);
-            Expr removeMethArg = _binder.mustConvert(removeMethGrp, SymbolTable.GetCTypeFromType(actionType));
-
-            // The value
-            Expr delegateVal = CreateArgumentEXPR(arguments[1], locals[1]);
-            ExprList args;
-            string methodName;
-
-            if (isAddAccessor)
-            {
-                // Get new Func<delegType, EventRegistrationToken>(x.add_foo)
-                MethPropWithInst addmwi = new MethPropWithInst(ewt.Event().methAdd, ewt.Ats);
-                ExprMemberGroup addMethGrp = ExprFactory.CreateMemGroup(callingObject, addmwi);
-                addMethGrp.Flags &= ~EXPRFLAG.EXF_USERCALLABLE;
-                Type funcType = Expression.GetFuncType(evtType, eventRegistrationTokenType);
-                Expr addMethArg = _binder.mustConvert(addMethGrp, SymbolTable.GetCTypeFromType(funcType));
-
-                args = ExprFactory.CreateList(addMethArg, removeMethArg, delegateVal);
-                methodName = NameManager.GetPredefinedName(PredefinedName.PN_ADDEVENTHANDLER).Text;
-            }
-            else
-            {
-                args = ExprFactory.CreateList(removeMethArg, delegateVal);
-                methodName = NameManager.GetPredefinedName(PredefinedName.PN_REMOVEEVENTHANDLER).Text;
-            }
-
-            // WindowsRuntimeMarshal.Add\RemoveEventHandler(...)
-            Type windowsRuntimeMarshalType = SymbolTable.WindowsRuntimeMarshalType;
-            SymbolTable.PopulateSymbolTableWithName(methodName, new List<Type> { evtType }, windowsRuntimeMarshalType);
-            ExprClass marshalClass = ExprFactory.CreateClass(SymbolTable.GetCTypeFromType(windowsRuntimeMarshalType));
-            ExprMemberGroup addEventGrp = CreateMemberGroupExpr(methodName, new[] { evtType }, marshalClass, SYMKIND.SK_MethodSymbol);
-            return _binder.BindMethodGroupToArguments(
-                BindingFlag.BIND_RVALUEREQUIRED | BindingFlag.BIND_STMTEXPRONLY,
-                addEventGrp,
-                args);
-        }
-
         private static void CheckForConditionalMethodError(ExprCall call)
         {
             MethodSymbol method = call.MethWithInst.Meth();
@@ -887,6 +835,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             }
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private void ReorderArgumentsForNamedAndOptional(Expr callingObject, ExprWithArgs result)
         {
             Expr arguments = result.OptionalArguments;
@@ -987,6 +936,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         #region UnaryOperators
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindUnaryOperation(
             CSharpUnaryOperationBinder payload,
             ArgumentObject[] arguments,
@@ -1026,6 +976,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindBinaryOperation(
                 CSharpBinaryOperationBinder payload,
                 ArgumentObject[] arguments,
@@ -1148,6 +1099,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         #region Properties
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindProperty(
             ICSharpBinder payload,
             ArgumentObject argument,
@@ -1231,6 +1183,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         #region Casts
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindImplicitConversion(
             ArgumentObject[] arguments,
             Type returnType,
@@ -1269,6 +1222,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindExplicitConversion(ArgumentObject[] arguments, Type returnType, LocalVariableSymbol[] locals)
         {
             Debug.Assert(arguments.Length == 1);
@@ -1288,6 +1242,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindAssignment(
             ICSharpBinder payload,
             ArgumentObject[] arguments,
@@ -1327,6 +1282,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         #region Events
         /////////////////////////////////////////////////////////////////////////////////
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal Expr BindIsEvent(
             CSharpIsEventBinder binder,
             ArgumentObject[] arguments,

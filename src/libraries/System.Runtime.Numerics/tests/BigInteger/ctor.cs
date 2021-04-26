@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
@@ -678,6 +677,10 @@ namespace System.Numerics.Tests
             // ctor(byte[]): array is 1 byte
             tempUInt64 = (uint)s_random.Next(0, 256);
             tempByteArray = BitConverter.GetBytes(tempUInt64);
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(tempByteArray);
+            }
             if (tempByteArray[0] > 127)
             {
                 VerifyCtorByteArray(new byte[] { tempByteArray[0] });
@@ -720,6 +723,10 @@ namespace System.Numerics.Tests
             {
                 tempUInt64 = unchecked((uint)s_random.Next(int.MinValue, int.MaxValue));
                 tempByteArray = BitConverter.GetBytes(tempUInt64);
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
 
                 VerifyCtorByteArray(
                     new byte[] {
@@ -742,6 +749,10 @@ namespace System.Numerics.Tests
             {
                 tempUInt64 = unchecked((uint)s_random.Next(int.MinValue, int.MaxValue));
                 tempByteArray = BitConverter.GetBytes(tempUInt64);
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
 
                 if (tempUInt64 > int.MaxValue)
                 {
@@ -782,6 +793,10 @@ namespace System.Numerics.Tests
                 tempUInt64 <<= 8;
                 tempUInt64 += (ulong)s_random.Next(0, 256);
                 tempByteArray = BitConverter.GetBytes(tempUInt64);
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
 
                 if (tempUInt64 >= (ulong)0x00080000)
                 {
@@ -824,6 +839,10 @@ namespace System.Numerics.Tests
                 tempUInt64 <<= 32;
                 tempUInt64 += unchecked((uint)s_random.Next(int.MinValue, int.MaxValue));
                 tempByteArray = BitConverter.GetBytes(tempUInt64);
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
 
                 if (tempUInt64 > long.MaxValue)
                 {
@@ -1074,11 +1093,21 @@ namespace System.Numerics.Tests
                     tempBigInteger = tempBigInteger + (new BigInteger(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0xFF }));
                 }
 
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
                 Assert.Equal(BitConverter.ToInt64(tempByteArray, 0), (long)tempBigInteger);
             }
             else
             {
-                Assert.Equal(BitConverter.ToInt64(value, 0), (long)bigInteger);
+                byte[] tempByteArray = new byte[8];
+                Array.Copy(value, tempByteArray, 8);
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
+                Assert.Equal(BitConverter.ToInt64(tempByteArray, 0), (long)bigInteger);
             }
 
             if (IsOutOfRangeUInt64(value))
@@ -1109,11 +1138,21 @@ namespace System.Numerics.Tests
                     }
                 }
 
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
                 Assert.Equal(BitConverter.ToUInt64(tempByteArray, 0), (ulong)tempBigInteger);
             }
             else
             {
-                Assert.Equal(BitConverter.ToUInt64(value, 0), (ulong)bigInteger);
+                byte[] tempByteArray = new byte[8];
+                Array.Copy(value, tempByteArray, 8);
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray);
+                }
+                Assert.Equal(BitConverter.ToUInt64(tempByteArray, 0), (ulong)bigInteger);
             }
 
             VerifyBigIntegerUsingIdentities(bigInteger, isZero);

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Security.Cryptography
 {
@@ -79,7 +80,7 @@ namespace System.Security.Cryptography
             return _name ?? string.Empty;
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             return obj is HashAlgorithmName && Equals((HashAlgorithmName)obj);
         }

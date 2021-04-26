@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #include "pal_signverify.h"
 
-#if !defined(TARGET_IOS) && !defined(TARGET_TVOS)
+#if !defined(TARGET_MACCATALYST) && !defined(TARGET_IOS) && !defined(TARGET_TVOS)
 static int32_t ExecuteSignTransform(SecTransformRef signer, CFDataRef* pSignatureOut, CFErrorRef* pErrorOut);
 static int32_t ExecuteVerifyTransform(SecTransformRef verifier, CFErrorRef* pErrorOut);
 
@@ -85,9 +84,14 @@ static int32_t VerifySignature(SecKeyRef publicKey,
     if (pErrorOut != NULL)
         *pErrorOut = NULL;
 
-    if (publicKey == NULL || pbDataHash == NULL || cbDataHash < 0 || pbSignature == NULL || cbSignature < 0 ||
-        pErrorOut == NULL)
+    if (publicKey == NULL || cbDataHash < 0 || pbSignature == NULL || cbSignature < 0 || pErrorOut == NULL)
         return kErrorBadInput;
+
+    // A null hash is automatically the wrong length, so the signature will fail.
+    if (pbDataHash == NULL)
+    {
+        return 0;
+    }
 
     CFDataRef dataHash = CFDataCreateWithBytesNoCopy(NULL, pbDataHash, cbDataHash, kCFAllocatorNull);
 

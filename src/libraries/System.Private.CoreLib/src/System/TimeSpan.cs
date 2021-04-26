@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -26,7 +25,7 @@ namespace System
     // an appropriate custom ILMarshaler to keep WInRT interop scenarios enabled.
     //
     [Serializable]
-    public readonly struct TimeSpan : IComparable, IComparable<TimeSpan>, IEquatable<TimeSpan>, IFormattable, ISpanFormattable
+    public readonly struct TimeSpan : IComparable, IComparable<TimeSpan>, IEquatable<TimeSpan>, ISpanFormattable
     {
         public const long TicksPerMillisecond = 10000;
 
@@ -167,7 +166,7 @@ namespace System
             return new TimeSpan(_ticks >= 0 ? _ticks : -_ticks);
         }
 
-        public override bool Equals(object? value)
+        public override bool Equals([NotNullWhen(true)] object? value)
         {
             if (value is TimeSpan)
             {

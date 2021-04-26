@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -205,7 +204,7 @@ namespace System.Threading.Tasks
     ///    2) Every thread joining to service the parallel loop calls RegisterWorker to grab a
     ///       RangeWorker struct to wrap the state it will need to find and execute work,
     ///       and they keep interacting with that struct until the end of the loop
-    internal class RangeManager
+    internal sealed class RangeManager
     {
         internal readonly IndexRange[] _indexRanges;
         internal readonly bool _use32BitCurrentIndex;

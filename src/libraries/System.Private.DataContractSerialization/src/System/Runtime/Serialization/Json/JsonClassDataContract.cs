@@ -1,25 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Threading;
 using System.Xml;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Runtime.Serialization.Json
 {
-    internal class JsonClassDataContract : JsonDataContract
+    internal sealed class JsonClassDataContract : JsonDataContract
     {
         private readonly JsonClassDataContractCriticalHelper _helper;
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         public JsonClassDataContract(ClassDataContract traditionalDataContract)
             : base(new JsonClassDataContractCriticalHelper(traditionalDataContract))
         {
-            _helper = base.Helper as JsonClassDataContractCriticalHelper;
+            _helper = (base.Helper as JsonClassDataContractCriticalHelper)!;
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         private JsonFormatClassReaderDelegate CreateJsonFormatReaderDelegate()
         {
             return new ReflectionJsonClassReader(TraditionalClassDataContract).ReflectionReadClass;
@@ -27,6 +29,7 @@ namespace System.Runtime.Serialization.Json
 
         internal JsonFormatClassReaderDelegate JsonFormatReaderDelegate
         {
+            [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
             get
             {
                 if (_helper.JsonFormatReaderDelegate == null)
@@ -54,6 +57,7 @@ namespace System.Runtime.Serialization.Json
             }
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         private JsonFormatClassWriterDelegate CreateJsonFormatWriterDelegate()
         {
             return new ReflectionJsonFormatWriter().ReflectionWriteClass;
@@ -61,6 +65,7 @@ namespace System.Runtime.Serialization.Json
 
         internal JsonFormatClassWriterDelegate JsonFormatWriterDelegate
         {
+            [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
             get
             {
                 if (_helper.JsonFormatWriterDelegate == null)
@@ -88,13 +93,14 @@ namespace System.Runtime.Serialization.Json
             }
         }
 
-        internal XmlDictionaryString[] MemberNames => _helper.MemberNames;
+        internal XmlDictionaryString[]? MemberNames => _helper.MemberNames;
 
         internal override string TypeName => _helper.TypeName;
 
         private ClassDataContract TraditionalClassDataContract => _helper.TraditionalClassDataContract;
 
-        public override object ReadJsonValueCore(XmlReaderDelegator jsonReader, XmlObjectSerializerReadContextComplexJson context)
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
+        public override object? ReadJsonValueCore(XmlReaderDelegator jsonReader, XmlObjectSerializerReadContextComplexJson? context)
         {
             jsonReader.Read();
             object o = JsonFormatReaderDelegate(jsonReader, context, XmlDictionaryString.Empty, MemberNames);
@@ -102,20 +108,23 @@ namespace System.Runtime.Serialization.Json
             return o;
         }
 
-        public override void WriteJsonValueCore(XmlWriterDelegator jsonWriter, object obj, XmlObjectSerializerWriteContextComplexJson context, RuntimeTypeHandle declaredTypeHandle)
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
+        public override void WriteJsonValueCore(XmlWriterDelegator jsonWriter, object obj, XmlObjectSerializerWriteContextComplexJson? context, RuntimeTypeHandle declaredTypeHandle)
         {
+            Debug.Assert(context != null);
             jsonWriter.WriteAttributeString(null, JsonGlobals.typeString, null, JsonGlobals.objectString);
             JsonFormatWriterDelegate(jsonWriter, obj, context, TraditionalClassDataContract, MemberNames);
         }
 
-        private class JsonClassDataContractCriticalHelper : JsonDataContractCriticalHelper
+        private sealed class JsonClassDataContractCriticalHelper : JsonDataContractCriticalHelper
         {
-            private JsonFormatClassReaderDelegate _jsonFormatReaderDelegate;
-            private JsonFormatClassWriterDelegate _jsonFormatWriterDelegate;
-            private XmlDictionaryString[] _memberNames;
+            private JsonFormatClassReaderDelegate? _jsonFormatReaderDelegate;
+            private JsonFormatClassWriterDelegate? _jsonFormatWriterDelegate;
+            private XmlDictionaryString[]? _memberNames;
             private readonly ClassDataContract _traditionalClassDataContract;
             private readonly string _typeName;
 
+            [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
             public JsonClassDataContractCriticalHelper(ClassDataContract traditionalDataContract)
                 : base(traditionalDataContract)
             {
@@ -124,19 +133,19 @@ namespace System.Runtime.Serialization.Json
                 CopyMembersAndCheckDuplicateNames();
             }
 
-            internal JsonFormatClassReaderDelegate JsonFormatReaderDelegate
+            internal JsonFormatClassReaderDelegate? JsonFormatReaderDelegate
             {
                 get { return _jsonFormatReaderDelegate; }
                 set { _jsonFormatReaderDelegate = value; }
             }
 
-            internal JsonFormatClassWriterDelegate JsonFormatWriterDelegate
+            internal JsonFormatClassWriterDelegate? JsonFormatWriterDelegate
             {
                 get { return _jsonFormatWriterDelegate; }
                 set { _jsonFormatWriterDelegate = value; }
             }
 
-            internal XmlDictionaryString[] MemberNames
+            internal XmlDictionaryString[]? MemberNames
             {
                 get { return _memberNames; }
             }
@@ -151,7 +160,7 @@ namespace System.Runtime.Serialization.Json
                 if (_traditionalClassDataContract.MemberNames != null)
                 {
                     int memberCount = _traditionalClassDataContract.MemberNames.Length;
-                    Dictionary<string, object> memberTable = new Dictionary<string, object>(memberCount);
+                    Dictionary<string, object?> memberTable = new Dictionary<string, object?>(memberCount);
                     XmlDictionaryString[] decodedMemberNames = new XmlDictionaryString[memberCount];
                     for (int i = 0; i < memberCount; i++)
                     {

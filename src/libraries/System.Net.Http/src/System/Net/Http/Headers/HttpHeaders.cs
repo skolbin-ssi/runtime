@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -280,28 +279,29 @@ namespace System.Net.Http.Headers
             }
         }
 
-        internal string GetHeaderString(HeaderDescriptor descriptor, object? exclude = null) =>
-            TryGetHeaderValue(descriptor, out object? info) ?
-                GetHeaderString(descriptor, info, exclude) :
-                string.Empty;
-
-        private string GetHeaderString(HeaderDescriptor descriptor, object info, object? exclude = null)
+        internal string GetHeaderString(HeaderDescriptor descriptor, object? exclude = null)
         {
-            string[] values = GetValuesAsStrings(descriptor, info, exclude);
-
-            if (values.Length == 1)
+            if (TryGetHeaderValue(descriptor, out object? info))
             {
-                return values[0];
+                string[] values = GetValuesAsStrings(descriptor, info, exclude);
+
+                if (values.Length == 1)
+                {
+                    return values[0];
+                }
+
+                // Note that if we get multiple values for a header that doesn't support multiple values, we'll
+                // just separate the values using a comma (default separator).
+                string? separator = HttpHeaderParser.DefaultSeparator;
+                if (descriptor.Parser != null && descriptor.Parser.SupportsMultipleValues)
+                {
+                    separator = descriptor.Parser.Separator;
+                }
+
+                return string.Join(separator, values);
             }
 
-            // Note that if we get multiple values for a header that doesn't support multiple values, we'll
-            // just separate the values using a comma (default separator).
-            string? separator = HttpHeaderParser.DefaultSeparator;
-            if ((descriptor.Parser != null) && (descriptor.Parser.SupportsMultipleValues))
-            {
-                separator = descriptor.Parser.Separator;
-            }
-            return string.Join(separator, values);
+            return string.Empty;
         }
 
         #region IEnumerable<KeyValuePair<string, IEnumerable<string>>> Members
@@ -346,6 +346,23 @@ namespace System.Net.Http.Headers
                     string[] values = GetValuesAsStrings(descriptor, info);
                     yield return new KeyValuePair<string, IEnumerable<string>>(descriptor.Name, values);
                 }
+            }
+        }
+
+        internal IEnumerable<KeyValuePair<string, string[]>> EnumerateWithoutValidation()
+        {
+            if (_headerStore == null)
+            {
+                yield break;
+            }
+
+            foreach (KeyValuePair<HeaderDescriptor, object> header in _headerStore)
+            {
+                string[] values = TryGetHeaderValue(header.Key, out object? info) ?
+                    GetValuesAsStrings(header.Key, info) :
+                    Array.Empty<string>();
+
+                yield return new KeyValuePair<string, string[]>(header.Key.Name, values);
             }
         }
 
@@ -555,18 +572,7 @@ namespace System.Net.Http.Headers
                     object sourceValue = header.Value;
                     if (sourceValue is HeaderStoreItemInfo info)
                     {
-                        if (!sourceHeaders.ParseRawHeaderValues(header.Key, info, removeEmptyHeader: false))
-                        {
-                            // If after trying to parse source header values no value is left (i.e. all values contain
-                            // invalid newline chars), delete it and skip to the next header.  ParseRawHeaderValues takes
-                            // a lock, and it'll only ever return false once for one thread, so we don't need to be
-                            // concerned about concurrent removals on the HttpClient.DefaultRequestHeaders source.
-                            sourceHeadersStore.Remove(header.Key);
-                        }
-                        else
-                        {
-                            AddHeaderInfo(header.Key, info);
-                        }
+                        AddHeaderInfo(header.Key, info);
                     }
                     else
                     {
@@ -581,18 +587,19 @@ namespace System.Net.Http.Headers
         {
             HeaderStoreItemInfo destinationInfo = CreateAndAddHeaderToStore(descriptor);
 
-            // We have custom header values. The parsed values are strings.
+            // Always copy raw values
+            destinationInfo.RawValue = CloneStringHeaderInfoValues(sourceInfo.RawValue);
+
             if (descriptor.Parser == null)
             {
-                Debug.Assert((sourceInfo.RawValue == null) && (sourceInfo.InvalidValue == null),
-                    "No raw or invalid values expected for custom headers.");
-
+                // We have custom header values. The parsed values are strings.
                 // Custom header values are always stored as string or list of strings.
+                Debug.Assert(sourceInfo.InvalidValue == null, "No invalid values expected for custom headers.");
                 destinationInfo.ParsedValue = CloneStringHeaderInfoValues(sourceInfo.ParsedValue);
             }
             else
             {
-                // We have a parser, so we have to copy invalid values and clone parsed values.
+                // We have a parser, so we also have to copy invalid values and clone parsed values.
 
                 // Invalid values are always strings. Strings are immutable. So we only have to clone the
                 // collection (if there is one).
@@ -801,7 +808,7 @@ namespace System.Net.Http.Headers
                 {
                     if (!TryParseAndAddRawHeaderValue(descriptor, info, rawValue, true))
                     {
-                        if (NetEventSource.IsEnabled) NetEventSource.Log.HeadersInvalidValue(descriptor.Name, rawValue);
+                        if (NetEventSource.Log.IsEnabled()) NetEventSource.Log.HeadersInvalidValue(descriptor.Name, rawValue);
                     }
                 }
             }
@@ -823,7 +830,7 @@ namespace System.Net.Http.Headers
             {
                 if (!TryParseAndAddRawHeaderValue(descriptor, info, rawValue, true))
                 {
-                    if (NetEventSource.IsEnabled) NetEventSource.Log.HeadersInvalidValue(descriptor.Name, rawValue);
+                    if (NetEventSource.Log.IsEnabled()) NetEventSource.Log.HeadersInvalidValue(descriptor.Name, rawValue);
                 }
             }
         }
@@ -1149,7 +1156,7 @@ namespace System.Net.Http.Headers
         {
             if (HttpRuleParser.ContainsInvalidNewLine(value))
             {
-                if (NetEventSource.IsEnabled) NetEventSource.Error(null, SR.Format(SR.net_http_log_headers_no_newlines, name, value));
+                if (NetEventSource.Log.IsEnabled()) NetEventSource.Error(null, SR.Format(SR.net_http_log_headers_no_newlines, name, value));
                 return true;
             }
             return false;
@@ -1310,7 +1317,7 @@ namespace System.Net.Http.Headers
 
         #region Private Classes
 
-        internal class HeaderStoreItemInfo
+        internal sealed class HeaderStoreItemInfo
         {
             internal HeaderStoreItemInfo() { }
 

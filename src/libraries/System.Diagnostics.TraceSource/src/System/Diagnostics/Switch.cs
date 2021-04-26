@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Threading;
@@ -21,14 +20,14 @@ namespace System.Diagnostics
     {
         private readonly string? _description;
         private readonly string _displayName;
-        private int _switchSetting = 0;
-        private volatile bool _initialized = false;
-        private bool _initializing = false;
+        private int _switchSetting;
+        private volatile bool _initialized;
+        private bool _initializing;
         private volatile string _switchValueString = string.Empty;
         private readonly string? _defaultValue;
         private object? _initializedLock;
 
-        private static readonly List<WeakReference> s_switches = new List<WeakReference>();
+        private static readonly List<WeakReference<Switch>> s_switches = new List<WeakReference<Switch>>();
         private static int s_LastCollectionCount;
         private StringDictionary? _attributes;
 
@@ -67,7 +66,7 @@ namespace System.Diagnostics
             lock (s_switches)
             {
                 _pruneCachedSwitches();
-                s_switches.Add(new WeakReference(this));
+                s_switches.Add(new WeakReference<Switch>(this));
             }
 
             _defaultValue = defaultSwitchValue;
@@ -79,11 +78,10 @@ namespace System.Diagnostics
             {
                 if (s_LastCollectionCount != GC.CollectionCount(2))
                 {
-                    List<WeakReference> buffer = new List<WeakReference>(s_switches.Count);
+                    List<WeakReference<Switch>> buffer = new List<WeakReference<Switch>>(s_switches.Count);
                     for (int i = 0; i < s_switches.Count; i++)
                     {
-                        Switch? s = ((Switch?)s_switches[i].Target);
-                        if (s != null)
+                        if (s_switches[i].TryGetTarget(out _))
                         {
                             buffer.Add(s_switches[i]);
                         }
@@ -237,8 +235,7 @@ namespace System.Diagnostics
                 _pruneCachedSwitches();
                 for (int i = 0; i < s_switches.Count; i++)
                 {
-                    Switch? swtch = ((Switch?)s_switches[i].Target);
-                    if (swtch != null)
+                    if (s_switches[i].TryGetTarget(out Switch? swtch))
                     {
                         swtch.Refresh();
                     }

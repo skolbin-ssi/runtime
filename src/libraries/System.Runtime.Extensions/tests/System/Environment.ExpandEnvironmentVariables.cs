@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
@@ -28,8 +27,7 @@ namespace System.Tests
             // envvar1=animal;
             // and we are going to check that the expanded %envvar1% is animal.
 
-            Random r = new Random();
-            string envVar1 = "TestVariable_ExpansionOfVariableSucceeds_" + r.Next().ToString();
+            string envVar1 = "TestVariable_ExpansionOfVariableSucceeds_" + Random.Shared.Next().ToString();
             string expectedValue = "animal";
 
             try

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -20,7 +19,7 @@ namespace System.Linq.Parallel
     /// implementations that always and consistently yield no elements.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class EmptyEnumerable<T> : ParallelQuery<T>
+    internal sealed class EmptyEnumerable<T> : ParallelQuery<T>
     {
         private EmptyEnumerable()
             : base(QuerySettings.Empty)
@@ -57,7 +56,7 @@ namespace System.Linq.Parallel
         }
     }
 
-    internal class EmptyEnumerator<T> : QueryOperatorEnumerator<T, int>, IEnumerator<T>
+    internal sealed class EmptyEnumerator<T> : QueryOperatorEnumerator<T, int>, IEnumerator<T>
     {
         internal override bool MoveNext([MaybeNullWhen(false), AllowNull] ref T currentElement, ref int currentKey)
         {

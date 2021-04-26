@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Dynamic.Utils;
@@ -68,7 +67,7 @@ namespace System.Linq.Expressions.Interpreter
         public override string ToString() => "New " + _constructor.DeclaringType!.Name + "(" + _constructor + ")";
     }
 
-    internal class ByRefNewInstruction : NewInstruction
+    internal sealed class ByRefNewInstruction : NewInstruction
     {
         private readonly ByRefUpdater[] _byrefArgs;
 

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -293,7 +292,7 @@ namespace System.Linq.Parallel.Tests
             AssertThrows.EventuallyCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }));
             AssertThrows.EventuallyCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }, i => i));
             AssertThrows.EventuallyCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }, (i, j) => i, i => i));
-            AssertThrows.EventuallyCanceled((source, canceler) => source.Aggregate(() => 0, (i, j) => { canceler(); ; return j; }, (i, j) => i, i => i));
+            AssertThrows.EventuallyCanceled((source, canceler) => source.Aggregate(() => 0, (i, j) => { canceler(); return j; }, (i, j) => i, i => i));
         }
 
         [Fact]
@@ -303,12 +302,12 @@ namespace System.Linq.Parallel.Tests
             AssertThrows.OtherTokenCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }));
             AssertThrows.OtherTokenCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }, i => i));
             AssertThrows.OtherTokenCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }, (i, j) => i, i => i));
-            AssertThrows.OtherTokenCanceled((source, canceler) => source.Aggregate(() => 0, (i, j) => { canceler(); ; return j; }, (i, j) => i, i => i));
+            AssertThrows.OtherTokenCanceled((source, canceler) => source.Aggregate(() => 0, (i, j) => { canceler(); return j; }, (i, j) => i, i => i));
             AssertThrows.SameTokenNotCanceled((source, canceler) => source.Aggregate((i, j) => { canceler(); return j; }));
             AssertThrows.SameTokenNotCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }));
             AssertThrows.SameTokenNotCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }, i => i));
             AssertThrows.SameTokenNotCanceled((source, canceler) => source.Aggregate(0, (i, j) => { canceler(); return j; }, (i, j) => i, i => i));
-            AssertThrows.SameTokenNotCanceled((source, canceler) => source.Aggregate(() => 0, (i, j) => { canceler(); ; return j; }, (i, j) => i, i => i));
+            AssertThrows.SameTokenNotCanceled((source, canceler) => source.Aggregate(() => 0, (i, j) => { canceler(); return j; }, (i, j) => i, i => i));
         }
 
         [Fact]

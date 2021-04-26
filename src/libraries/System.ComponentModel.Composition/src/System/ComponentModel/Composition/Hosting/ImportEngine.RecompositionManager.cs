@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel.Composition.Primitives;
@@ -16,7 +15,7 @@ namespace System.ComponentModel.Composition.Hosting
         ///     that will be affected by changes to exports. This allows the <see cref="ImportEngine"/> to properly
         ///     block breaking changes and also recompose imports as appropriate.
         /// </summary>
-        private class RecompositionManager
+        private sealed class RecompositionManager
         {
             private readonly WeakReferenceCollection<PartManager> _partsToIndex = new WeakReferenceCollection<PartManager>();
             private readonly WeakReferenceCollection<PartManager> _partsToUnindex = new WeakReferenceCollection<PartManager>();

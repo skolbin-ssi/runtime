@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -24,7 +23,7 @@ namespace System.Linq.Parallel
     /// order preserving merge, and so forth.
     /// </summary>
     /// <typeparam name="TInputOutput"></typeparam>
-    internal class MergeExecutor<TInputOutput> : IEnumerable<TInputOutput>
+    internal sealed class MergeExecutor<TInputOutput> : IEnumerable<TInputOutput>
     {
         // Many internal algorithms are parameterized based on the data. The IMergeHelper
         // is the pluggable interface whose implementations perform those algorithms.

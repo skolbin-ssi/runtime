@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Diagnostics;
@@ -660,7 +659,7 @@ namespace System.ServiceModel.Syndication.Tests
             XPathNodeIterator _iter = _nav.Select(expr);
             while (_iter.MoveNext())
             {
-                ((XmlDiffNavigator)_iter.Current).CurrentNode.IgnoreValue = true; ;
+                ((XmlDiffNavigator)_iter.Current).CurrentNode.IgnoreValue = true;
             }
         }
 
@@ -668,7 +667,6 @@ namespace System.ServiceModel.Syndication.Tests
         {
             if (elem.FirstChild != null)
             {
-                XmlDiffNode _first = elem.FirstChild;
                 XmlDiffNode _current = elem.FirstChild;
                 XmlDiffNode _last = elem.LastChild;
                 elem._firstChild = null;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Net.Sockets;
 
@@ -99,7 +98,7 @@ namespace System.Net.Primitives.Functional.Tests
         [Theory]
         [InlineData(AddressFamily.Packet)]
         [InlineData(AddressFamily.ControllerAreaNetwork)]
-        [PlatformSpecific(~TestPlatforms.Linux)]
+        [SkipOnPlatform(TestPlatforms.Android | TestPlatforms.Linux | TestPlatforms.Browser, "Expected behavior is different on Android, Linux, or Browser")]
         public static void ToString_UnsupportedFamily_Throws(AddressFamily family)
         {
             Assert.Throws<PlatformNotSupportedException>(() => new SocketAddress(family));

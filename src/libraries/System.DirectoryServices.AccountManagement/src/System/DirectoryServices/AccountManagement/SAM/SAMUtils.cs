@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -12,11 +11,8 @@ using System.Security.Principal;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal class SAMUtils
+    internal static class SAMUtils
     {
-        // To stop the compiler from autogenerating a constructor for this class
-        private SAMUtils() { }
-
         internal static bool IsOfObjectClass(DirectoryEntry de, string classToCompare)
         {
             return string.Equals(de.SchemaClassName, classToCompare, StringComparison.OrdinalIgnoreCase);

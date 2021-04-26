@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Configuration
 {
     // Information about a stream used in configuration
-    internal class StreamInfo
+    internal sealed class StreamInfo
     {
         // the configSource directive that generated this stream, null for a full config file
 

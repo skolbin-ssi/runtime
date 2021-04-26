@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Net;
 
@@ -12,10 +11,10 @@ namespace System.DirectoryServices
     /// </devdoc>
     public class SearchResult
     {
-        private readonly NetworkCredential _parentCredentials;
+        private readonly NetworkCredential? _parentCredentials;
         private readonly AuthenticationTypes _parentAuthenticationType;
 
-        internal SearchResult(NetworkCredential parentCredentials, AuthenticationTypes parentAuthenticationType)
+        internal SearchResult(NetworkCredential? parentCredentials, AuthenticationTypes parentAuthenticationType)
         {
             _parentCredentials = parentCredentials;
             _parentAuthenticationType = parentAuthenticationType;
@@ -39,7 +38,7 @@ namespace System.DirectoryServices
         /// <devdoc>
         /// Gets the path for this <see cref='System.DirectoryServices.SearchResult'/>.
         /// </devdoc>
-        public string Path => (string)Properties["ADsPath"][0];
+        public string Path => (string)Properties["ADsPath"][0]!;
 
         /// <devdoc>
         /// Gets a <see cref='System.DirectoryServices.ResultPropertyCollection'/>

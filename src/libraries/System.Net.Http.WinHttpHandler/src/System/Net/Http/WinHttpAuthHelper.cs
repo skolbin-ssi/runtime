@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 
@@ -8,7 +7,7 @@ using SafeWinHttpHandle = Interop.WinHttp.SafeWinHttpHandle;
 
 namespace System.Net.Http
 {
-    internal class WinHttpAuthHelper
+    internal sealed class WinHttpAuthHelper
     {
         // Fast lookup table to convert WINHTTP_AUTH constants to strings.
         // WINHTTP_AUTH_SCHEME_BASIC = 0x00000001;

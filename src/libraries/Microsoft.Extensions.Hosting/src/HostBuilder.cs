@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -10,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.Hosting
 {
@@ -29,6 +30,7 @@ namespace Microsoft.Extensions.Hosting
         private HostBuilderContext _hostBuilderContext;
         private HostingEnvironment _hostingEnvironment;
         private IServiceProvider _appServices;
+        private PhysicalFileProvider _defaultProvider;
 
         /// <summary>
         /// A central location for sharing state between components during the host building process.
@@ -121,7 +123,7 @@ namespace Microsoft.Extensions.Hosting
         {
             if (_hostBuilt)
             {
-                throw new InvalidOperationException("Build can only be called once.");
+                throw new InvalidOperationException(SR.BuildCalled);
             }
             _hostBuilt = true;
 
@@ -136,10 +138,10 @@ namespace Microsoft.Extensions.Hosting
 
         private void BuildHostConfiguration()
         {
-            var configBuilder = new ConfigurationBuilder()
+            IConfigurationBuilder configBuilder = new ConfigurationBuilder()
                 .AddInMemoryCollection(); // Make sure there's some default storage since there are no default providers
 
-            foreach (var buildAction in _configureHostConfigActions)
+            foreach (Action<IConfigurationBuilder> buildAction in _configureHostConfigActions)
             {
                 buildAction(configBuilder);
             }
@@ -161,7 +163,7 @@ namespace Microsoft.Extensions.Hosting
                 _hostingEnvironment.ApplicationName = Assembly.GetEntryAssembly()?.GetName().Name;
             }
 
-            _hostingEnvironment.ContentRootFileProvider = new PhysicalFileProvider(_hostingEnvironment.ContentRootPath);
+            _hostingEnvironment.ContentRootFileProvider = _defaultProvider = new PhysicalFileProvider(_hostingEnvironment.ContentRootPath);
         }
 
         private string ResolveContentRootPath(string contentRootPath, string basePath)
@@ -188,11 +190,11 @@ namespace Microsoft.Extensions.Hosting
 
         private void BuildAppConfiguration()
         {
-            var configBuilder = new ConfigurationBuilder()
+            IConfigurationBuilder configBuilder = new ConfigurationBuilder()
                 .SetBasePath(_hostingEnvironment.ContentRootPath)
                 .AddConfiguration(_hostConfiguration, shouldDisposeConfiguration: true);
 
-            foreach (var buildAction in _configureAppConfigActions)
+            foreach (Action<HostBuilderContext, IConfigurationBuilder> buildAction in _configureAppConfigActions)
             {
                 buildAction(_hostBuilderContext, configBuilder);
             }
@@ -215,18 +217,27 @@ namespace Microsoft.Extensions.Hosting
 #pragma warning restore CS0618 // Type or member is obsolete
             services.AddSingleton<IHostApplicationLifetime, ApplicationLifetime>();
             services.AddSingleton<IHostLifetime, ConsoleLifetime>();
-            services.AddSingleton<IHost, Internal.Host>();
-            services.AddOptions();
+            services.AddSingleton<IHost>(_ =>
+            {
+                return new Internal.Host(_appServices,
+                    _hostingEnvironment,
+                    _defaultProvider,
+                    _appServices.GetRequiredService<IHostApplicationLifetime>(),
+                    _appServices.GetRequiredService<ILogger<Internal.Host>>(),
+                    _appServices.GetRequiredService<IHostLifetime>(),
+                    _appServices.GetRequiredService<IOptions<HostOptions>>());
+            });
+            services.AddOptions().Configure<HostOptions>(options => { options.Initialize(_hostConfiguration); });
             services.AddLogging();
 
-            foreach (var configureServicesAction in _configureServicesActions)
+            foreach (Action<HostBuilderContext, IServiceCollection> configureServicesAction in _configureServicesActions)
             {
                 configureServicesAction(_hostBuilderContext, services);
             }
 
-            var containerBuilder = _serviceProviderFactory.CreateBuilder(services);
+            object containerBuilder = _serviceProviderFactory.CreateBuilder(services);
 
-            foreach (var containerAction in _configureContainerActions)
+            foreach (IConfigureContainerAdapter containerAction in _configureContainerActions)
             {
                 containerAction.ConfigureContainer(_hostBuilderContext, containerBuilder);
             }
@@ -235,7 +246,7 @@ namespace Microsoft.Extensions.Hosting
 
             if (_appServices == null)
             {
-                throw new InvalidOperationException($"The IServiceProviderFactory returned a null IServiceProvider.");
+                throw new InvalidOperationException(SR.NullIServiceProvider);
             }
 
             // resolve configuration explicitly once to mark it as resolved within the

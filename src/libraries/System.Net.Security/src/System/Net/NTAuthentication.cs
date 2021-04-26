@@ -1,14 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 using System.Security.Authentication.ExtendedProtection;
 
 namespace System.Net
 {
-    internal partial class NTAuthentication
+    internal sealed partial class NTAuthentication
     {
         internal string? AssociatedName
         {
@@ -20,7 +20,7 @@ namespace System.Net
                 }
 
                 string? name = NegotiateStreamPal.QueryContextAssociatedName(_securityContext!);
-                if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"NTAuthentication: The context is associated with [{name}]");
+                if (NetEventSource.Log.IsEnabled()) NetEventSource.Info(this, $"NTAuthentication: The context is associated with [{name}]");
                 return name;
             }
         }
@@ -86,7 +86,7 @@ namespace System.Net
             }
         }
 
-        private class InitializeCallbackContext
+        private sealed class InitializeCallbackContext
         {
             internal InitializeCallbackContext(NTAuthentication thisPtr, bool isServer, string package, NetworkCredential credential, string spn, ContextFlagsPal requestedContextFlags, ChannelBinding channelBinding)
             {
@@ -114,13 +114,11 @@ namespace System.Net
             context.ThisPtr.Initialize(context.IsServer, context.Package, context.Credential, context.Spn, context.RequestedContextFlags, context.ChannelBinding);
         }
 
-        internal int Encrypt(byte[] buffer, int offset, int count, ref byte[]? output, uint sequenceNumber)
+        internal int Encrypt(ReadOnlySpan<byte> buffer, [NotNull] ref byte[]? output, uint sequenceNumber)
         {
             return NegotiateStreamPal.Encrypt(
                 _securityContext!,
                 buffer,
-                offset,
-                count,
                 IsConfidentialityFlag,
                 IsNTLM,
                 ref output,

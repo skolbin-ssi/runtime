@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Reflection;
 using Microsoft.Internal;
@@ -15,7 +14,7 @@ namespace System.ComponentModel.Composition.ReflectionModel
     // you to go from a metadata token -> PropertyInfo like it does with types,
     // fields, and methods.
 
-    internal class ReflectionProperty : ReflectionWritableMember
+    internal sealed class ReflectionProperty : ReflectionWritableMember
     {
         private readonly MethodInfo? _getMethod;
         private readonly MethodInfo? _setMethod;

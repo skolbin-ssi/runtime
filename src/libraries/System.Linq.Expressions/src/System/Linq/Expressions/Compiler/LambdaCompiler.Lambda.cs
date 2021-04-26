@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Reflection;
@@ -13,7 +12,7 @@ namespace System.Linq.Expressions.Compiler
     /// Dynamic Language Runtime Compiler.
     /// This part compiles lambdas.
     /// </summary>
-    internal partial class LambdaCompiler
+    internal sealed partial class LambdaCompiler
     {
 #if FEATURE_COMPILE_TO_METHODBUILDER
         private static int s_counter;

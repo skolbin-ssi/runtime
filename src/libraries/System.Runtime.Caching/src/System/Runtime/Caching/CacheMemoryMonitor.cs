@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Runtime.Caching.Configuration;
@@ -225,9 +224,7 @@ namespace System.Runtime.Caching
                 }
 
 #if PERF
-                Debug.WriteLine(string.Format("CacheMemoryMonitor.GetPercentToTrim: percent={0:N}, lastTrimPercent={1:N}{Environment.NewLine}",
-                                                    percent,
-                                                    lastTrimPercent));
+                Debug.WriteLine($"CacheMemoryMonitor.GetPercentToTrim: percent={percent:N}, lastTrimPercent={lastTrimPercent:N}{Environment.NewLine}");
 #endif
             }
             return percent;

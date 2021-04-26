@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -396,7 +395,7 @@ namespace System.Reflection.Tests
                 {
                     ICustomAttributeProvider icp = mem;
                     Assert.Throws<InvalidOperationException>(() => icp.IsDefined(null, inherit: false));
-                    Assert.Throws<InvalidOperationException>(() => icp.GetCustomAttributes(null, inherit: false)); ;
+                    Assert.Throws<InvalidOperationException>(() => icp.GetCustomAttributes(null, inherit: false));
                     Assert.Throws<InvalidOperationException>(() => icp.GetCustomAttributes(inherit: false));
 
                     if (mem is MethodBase mb)
@@ -604,7 +603,7 @@ namespace System.Reflection.Tests
             Assert.True(position >= 0);
             GenericParameterAttributes attributes = type.GenericParameterAttributes;
 
-            Assert.Equal<Type>(Array.Empty<Type>(), type.GetGenericArguments());
+            Assert.Equal<Type>(Type.EmptyTypes, type.GetGenericArguments());
 
             Assert.False(type.IsByRefLike());
 

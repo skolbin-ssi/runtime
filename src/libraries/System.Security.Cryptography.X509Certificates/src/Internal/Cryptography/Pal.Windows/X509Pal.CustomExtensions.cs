@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Text;
@@ -42,14 +41,12 @@ namespace Internal.Cryptography.Pal
         {
             unsafe
             {
-                uint keyUsagesAsUint = 0;
-                encoded.DecodeObject(
+                uint keyUsagesAsUint = encoded.DecodeObject(
                     CryptDecodeObjectStructType.X509_KEY_USAGE,
-                    delegate (void* pvDecoded, int cbDecoded)
+                    static delegate (void* pvDecoded, int cbDecoded)
                     {
                         Debug.Assert(cbDecoded >= sizeof(CRYPT_BIT_BLOB));
                         CRYPT_BIT_BLOB* pBlob = (CRYPT_BIT_BLOB*)pvDecoded;
-                        keyUsagesAsUint = 0;
                         byte* pbData = pBlob->pbData;
 
                         if (pbData != null)
@@ -59,13 +56,13 @@ namespace Internal.Cryptography.Pal
                             switch (pBlob->cbData)
                             {
                                 case 1:
-                                    keyUsagesAsUint = *pbData;
-                                    break;
+                                    return *pbData;
                                 case 2:
-                                    keyUsagesAsUint = *(ushort*)(pbData);
-                                    break;
+                                    return *(ushort*)(pbData);
                             }
                         }
+
+                        return 0u;
                     }
                 );
                 keyUsages = (X509KeyUsageFlags)keyUsagesAsUint;
@@ -96,25 +93,16 @@ namespace Internal.Cryptography.Pal
         {
             unsafe
             {
-                bool localCertificateAuthority = false;
-                bool localHasPathLengthConstraint = false;
-                int localPathLengthConstraint = 0;
-
-                encoded.DecodeObject(
+                (certificateAuthority, hasPathLengthConstraint, pathLengthConstraint) = encoded.DecodeObject(
                     CryptDecodeObjectStructType.X509_BASIC_CONSTRAINTS,
-                    delegate (void* pvDecoded, int cbDecoded)
+                    static delegate (void* pvDecoded, int cbDecoded)
                     {
                         Debug.Assert(cbDecoded >= sizeof(CERT_BASIC_CONSTRAINTS_INFO));
                         CERT_BASIC_CONSTRAINTS_INFO* pBasicConstraints = (CERT_BASIC_CONSTRAINTS_INFO*)pvDecoded;
-                        localCertificateAuthority = (pBasicConstraints->SubjectType.pbData[0] & CERT_BASIC_CONSTRAINTS_INFO.CERT_CA_SUBJECT_FLAG) != 0;
-                        localHasPathLengthConstraint = pBasicConstraints->fPathLenConstraint != 0;
-                        localPathLengthConstraint = pBasicConstraints->dwPathLenConstraint;
-                    }
-                );
-
-                certificateAuthority = localCertificateAuthority;
-                hasPathLengthConstraint = localHasPathLengthConstraint;
-                pathLengthConstraint = localPathLengthConstraint;
+                        return ((pBasicConstraints->SubjectType.pbData[0] & CERT_BASIC_CONSTRAINTS_INFO.CERT_CA_SUBJECT_FLAG) != 0,
+                                pBasicConstraints->fPathLenConstraint != 0,
+                                pBasicConstraints->dwPathLenConstraint);
+                    });
             }
         }
 
@@ -122,25 +110,16 @@ namespace Internal.Cryptography.Pal
         {
             unsafe
             {
-                bool localCertificateAuthority = false;
-                bool localHasPathLengthConstraint = false;
-                int localPathLengthConstraint = 0;
-
-                encoded.DecodeObject(
+                (certificateAuthority, hasPathLengthConstraint, pathLengthConstraint) = encoded.DecodeObject(
                     CryptDecodeObjectStructType.X509_BASIC_CONSTRAINTS2,
-                    delegate (void* pvDecoded, int cbDecoded)
+                    static delegate (void* pvDecoded, int cbDecoded)
                     {
                         Debug.Assert(cbDecoded >= sizeof(CERT_BASIC_CONSTRAINTS2_INFO));
                         CERT_BASIC_CONSTRAINTS2_INFO* pBasicConstraints2 = (CERT_BASIC_CONSTRAINTS2_INFO*)pvDecoded;
-                        localCertificateAuthority = pBasicConstraints2->fCA != 0;
-                        localHasPathLengthConstraint = pBasicConstraints2->fPathLenConstraint != 0;
-                        localPathLengthConstraint = pBasicConstraints2->dwPathLenConstraint;
-                    }
-                );
-
-                certificateAuthority = localCertificateAuthority;
-                hasPathLengthConstraint = localHasPathLengthConstraint;
-                pathLengthConstraint = localPathLengthConstraint;
+                        return (pBasicConstraints2->fCA != 0,
+                                pBasicConstraints2->fPathLenConstraint != 0,
+                                pBasicConstraints2->dwPathLenConstraint);
+                    });
             }
         }
 
@@ -164,14 +143,14 @@ namespace Internal.Cryptography.Pal
 
         public void DecodeX509EnhancedKeyUsageExtension(byte[] encoded, out OidCollection usages)
         {
-            OidCollection localUsages = new OidCollection();
-
             unsafe
             {
-                encoded.DecodeObject(
+                usages = encoded.DecodeObject(
                     CryptDecodeObjectStructType.X509_ENHANCED_KEY_USAGE,
-                    delegate (void* pvDecoded, int cbDecoded)
+                    static delegate (void* pvDecoded, int cbDecoded)
                     {
+                        var localUsages = new OidCollection();
+
                         Debug.Assert(cbDecoded >= sizeof(CERT_ENHKEY_USAGE));
                         CERT_ENHKEY_USAGE* pEnhKeyUsage = (CERT_ENHKEY_USAGE*)pvDecoded;
                         int count = pEnhKeyUsage->cUsageIdentifier;
@@ -182,14 +161,13 @@ namespace Internal.Cryptography.Pal
                             Oid oid = new Oid(oidValue);
                             localUsages.Add(oid);
                         }
-                    }
-                );
-            }
 
-            usages = localUsages;
+                        return localUsages;
+                    });
+            }
         }
 
-        public byte[] EncodeX509SubjectKeyIdentifierExtension(byte[] subjectKeyIdentifier)
+        public byte[] EncodeX509SubjectKeyIdentifierExtension(ReadOnlySpan<byte> subjectKeyIdentifier)
         {
             unsafe
             {
@@ -205,17 +183,14 @@ namespace Internal.Cryptography.Pal
         {
             unsafe
             {
-                byte[] localSubjectKeyIdentifier = null!;
-                encoded.DecodeObject(
+                subjectKeyIdentifier = encoded.DecodeObject(
                     Oids.SubjectKeyIdentifier,
-                    delegate (void* pvDecoded, int cbDecoded)
+                    static delegate (void* pvDecoded, int cbDecoded)
                     {
                         Debug.Assert(cbDecoded >= sizeof(CRYPTOAPI_BLOB));
                         CRYPTOAPI_BLOB* pBlob = (CRYPTOAPI_BLOB*)pvDecoded;
-                        localSubjectKeyIdentifier = pBlob->ToByteArray();
-                    }
-                );
-                subjectKeyIdentifier = localSubjectKeyIdentifier;
+                        return pBlob->ToByteArray();
+                    });
             }
         }
 

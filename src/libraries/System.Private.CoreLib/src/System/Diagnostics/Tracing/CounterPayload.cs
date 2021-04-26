@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #if ES_BUILD_STANDALONE
 using System;
@@ -16,7 +15,7 @@ namespace System.Diagnostics.Tracing
 #endif
 {
     [EventData]
-    internal class CounterPayload : IEnumerable<KeyValuePair<string, object?>>
+    internal sealed class CounterPayload : IEnumerable<KeyValuePair<string, object?>>
     {
         public string? Name { get; set; }
 
@@ -77,7 +76,7 @@ namespace System.Diagnostics.Tracing
     }
 
     [EventData]
-    internal class IncrementingCounterPayload : IEnumerable<KeyValuePair<string, object?>>
+    internal sealed class IncrementingCounterPayload : IEnumerable<KeyValuePair<string, object?>>
     {
         public string? Name { get; set; }
 

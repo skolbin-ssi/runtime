@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -9,6 +8,7 @@ using Xunit;
 
 namespace System.Runtime.Serialization.Formatters.Tests
 {
+    [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
     public class FormatterTests
     {
         [Fact]
@@ -141,8 +141,10 @@ namespace System.Runtime.Serialization.Formatters.Tests
             public override SerializationBinder Binder { get; set; }
             public override StreamingContext Context { get; set; }
             public override ISurrogateSelector SurrogateSelector { get; set; }
+#pragma warning disable CS0672 // Member overrides obsolete member
             public override object Deserialize(Stream serializationStream) => null;
             public override void Serialize(Stream serializationStream, object graph) { }
+#pragma warning restore CS0672 // Member overrides obsolete member
         }
     }
 }

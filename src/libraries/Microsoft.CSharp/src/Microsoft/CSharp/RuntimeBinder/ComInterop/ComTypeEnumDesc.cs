@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Dynamic;
@@ -16,10 +15,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
         private readonly string[] _memberNames;
         private readonly object[] _memberValues;
 
-        public override string ToString()
-        {
-            return string.Format(CultureInfo.CurrentCulture, "<enum '{0}'>", TypeName);
-        }
+        public override string ToString() => $"<enum '{TypeName}'>";
 
         internal ComTypeEnumDesc(ComTypes.ITypeInfo typeInfo, ComTypeLibDesc typeLibDesc) :
             base(typeInfo, typeLibDesc)

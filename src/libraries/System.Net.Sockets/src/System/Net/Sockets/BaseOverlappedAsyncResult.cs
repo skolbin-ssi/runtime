@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Net.Sockets
 {
@@ -21,13 +20,6 @@ namespace System.Net.Sockets
         {
             _numBytes = numBytes;
             return s_resultObjectSentinel; // return sentinel rather than boxing numBytes
-        }
-
-        // Used instead of the base InternalWaitForCompletion when storing an Int32 result
-        internal int InternalWaitForCompletionInt32Result()
-        {
-            base.InternalWaitForCompletion();
-            return _numBytes;
         }
     }
 }

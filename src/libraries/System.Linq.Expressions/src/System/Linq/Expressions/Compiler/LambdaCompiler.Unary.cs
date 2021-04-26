@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Dynamic.Utils;
@@ -10,7 +9,7 @@ using static System.Linq.Expressions.CachedReflectionInfo;
 
 namespace System.Linq.Expressions.Compiler
 {
-    internal partial class LambdaCompiler
+    internal sealed partial class LambdaCompiler
     {
         private void EmitQuoteUnaryExpression(Expression expr)
         {
@@ -95,7 +94,7 @@ namespace System.Linq.Expressions.Compiler
                     EmitBinaryOperator(ExpressionType.SubtractChecked, nnType, nnType, nnType, liftedToNull: false);
 
                     // construct result
-                    _ilg.Emit(OpCodes.Newobj, type.GetConstructor(new Type[] { nnType })!);
+                    _ilg.Emit(OpCodes.Newobj, TypeUtils.GetNullableConstructor(type, nnType));
                     _ilg.Emit(OpCodes.Br_S, end);
 
                     // if null then push back on stack
@@ -165,7 +164,7 @@ namespace System.Linq.Expressions.Compiler
                         EmitUnaryOperator(op, nnOperandType, nnOperandType);
 
                         // construct result
-                        ConstructorInfo ci = resultType.GetConstructor(new Type[] { nnOperandType })!;
+                        ConstructorInfo ci = TypeUtils.GetNullableConstructor(resultType, nnOperandType);
                         _ilg.Emit(OpCodes.Newobj, ci);
                         _ilg.Emit(OpCodes.Br_S, labEnd);
 

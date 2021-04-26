@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Net;
@@ -118,15 +117,15 @@ namespace System.DirectoryServices.Protocols
 
     public partial class LdapSessionOptions
     {
-        private readonly LdapConnection _connection = null;
+        private readonly LdapConnection _connection;
         private ReferralCallback _callbackRoutine = new ReferralCallback();
-        internal QueryClientCertificateCallback _clientCertificateDelegate = null;
-        private VerifyServerCertificateCallback _serverCertificateDelegate = null;
+        internal QueryClientCertificateCallback _clientCertificateDelegate;
+        private VerifyServerCertificateCallback _serverCertificateDelegate;
 
-        private readonly QUERYFORCONNECTIONInternal _queryDelegate = null;
-        private readonly NOTIFYOFNEWCONNECTIONInternal _notifiyDelegate = null;
-        private readonly DEREFERENCECONNECTIONInternal _dereferenceDelegate = null;
-        private readonly VERIFYSERVERCERT _serverCertificateRoutine = null;
+        private readonly QUERYFORCONNECTIONInternal _queryDelegate;
+        private readonly NOTIFYOFNEWCONNECTIONInternal _notifiyDelegate;
+        private readonly DEREFERENCECONNECTIONInternal _dereferenceDelegate;
+        private readonly VERIFYSERVERCERT _serverCertificateRoutine;
 
         internal LdapSessionOptions(LdapConnection connection)
         {
@@ -478,7 +477,7 @@ namespace System.DirectoryServices.Protocols
                     int certError = LdapPal.SetClientCertOption(_connection._ldapHandle, LdapOption.LDAP_OPT_CLIENT_CERTIFICATE, _connection._clientCertificateRoutine);
                     if (certError != (int)ResultCode.Success)
                     {
-                        if (Utility.IsLdapError((LdapError)certError))
+                        if (LdapErrorMappings.IsLdapError(certError))
                         {
                             string certerrorMessage = LdapErrorMappings.MapResultCode(certError);
                             throw new LdapException(certError, certerrorMessage);
@@ -525,6 +524,7 @@ namespace System.DirectoryServices.Protocols
             }
         }
 
+        // In practice, this apparently rarely if ever contains useful text
         internal string ServerErrorMessage => GetStringValueHelper(LdapOption.LDAP_OPT_SERVER_ERROR, true);
 
         internal DereferenceAlias DerefAlias
@@ -665,7 +665,7 @@ namespace System.DirectoryServices.Protocols
                         response.ResponseName = "1.3.6.1.4.1.1466.20037";
                         throw new TlsOperationException(response);
                     }
-                    else if (Utility.IsLdapError((LdapError)error))
+                    else if (LdapErrorMappings.IsLdapError(error))
                     {
                         string errorMessage = LdapErrorMappings.MapResultCode(error);
                         throw new LdapException(error, errorMessage);
@@ -1094,12 +1094,7 @@ namespace System.DirectoryServices.Protocols
             bool success = false;
             if (ldapConnection != null && ldapConnection._ldapHandle != null && !ldapConnection._ldapHandle.IsInvalid)
             {
-                RuntimeHelpers.PrepareConstrainedRegions();
-                try { }
-                finally
-                {
-                    ldapConnection._ldapHandle.DangerousAddRef(ref success);
-                }
+                ldapConnection._ldapHandle.DangerousAddRef(ref success);
             }
 
             return success;
@@ -1109,12 +1104,7 @@ namespace System.DirectoryServices.Protocols
         {
             if (ldapConnection != null && ldapConnection._ldapHandle != null && !ldapConnection._ldapHandle.IsInvalid)
             {
-                RuntimeHelpers.PrepareConstrainedRegions();
-                try { }
-                finally
-                {
-                    ldapConnection._ldapHandle.DangerousRelease();
-                }
+                ldapConnection._ldapHandle.DangerousRelease();
             }
         }
     }

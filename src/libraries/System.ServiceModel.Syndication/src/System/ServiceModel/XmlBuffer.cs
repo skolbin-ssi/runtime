@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +7,7 @@ using System.Xml;
 
 namespace System.ServiceModel
 {
-    internal class XmlBuffer
+    internal sealed class XmlBuffer
     {
         private readonly List<Section> _sections;
         private byte[] _buffer;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -692,6 +691,62 @@ namespace System.Numerics.Tensors
         /// <param name="value">The new value to set at the specified position in this Tensor.</param>
         public abstract void SetValue(int index, T value);
 
+        /// <summary>
+        /// The type that implements enumerators for <see cref="Tensor{T}"/> instances.
+        /// </summary>
+        public struct Enumerator : IEnumerator<T>
+        {
+            private readonly Tensor<T> _tensor;
+            private int _index;
+
+            internal Enumerator(Tensor<T> tensor)
+            {
+                Debug.Assert(tensor != null);
+
+                _tensor = tensor;
+                _index = 0;
+                Current = default;
+            }
+
+            public T Current { get; private set; }
+
+            object? IEnumerator.Current => Current;
+
+            public bool MoveNext()
+            {
+                if (_index < _tensor.Length)
+                {
+                    Current = _tensor.GetValue(_index);
+                    ++_index;
+                    return true;
+                }
+                else
+                {
+                    Current = default;
+                    return false;
+                }
+            }
+
+            /// <summary>
+            /// Resets the enumerator to the beginning.
+            /// </summary>
+            public void Reset()
+            {
+                _index = 0;
+                Current = default;
+            }
+
+            /// <summary>
+            /// Disposes the enumerator.
+            /// </summary>
+            public void Dispose() { }
+        }
+
+        /// <summary>
+        /// Gets an enumerator that enumerates the elements of the <see cref="Tensor{T}"/>.
+        /// </summary>
+        /// <returns>An enumerator for the current <see cref="Tensor{T}"/>.</returns>
+        public Enumerator GetEnumerator() => new Enumerator(this);
 
         #region statics
         /// <summary>
@@ -718,10 +773,7 @@ namespace System.Numerics.Tensors
         #endregion
 
         #region IEnumerable members
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<T>)this).GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         #endregion
 
         #region ICollection members
@@ -761,7 +813,7 @@ namespace System.Numerics.Tensors
         #endregion
 
         #region IList members
-        object IList.this[int index]
+        object? IList.this[int index]
         {
             get
             {
@@ -771,7 +823,7 @@ namespace System.Numerics.Tensors
             {
                 try
                 {
-                    SetValue(index, (T)value);
+                    SetValue(index, (T)value!);
                 }
                 catch (InvalidCastException)
                 {
@@ -784,40 +836,40 @@ namespace System.Numerics.Tensors
 
         public bool IsReadOnly => false;
 
-        int IList.Add(object value)
+        int IList.Add(object? value)
         {
             throw new InvalidOperationException();
         }
 
         void IList.Clear()
         {
-            Fill(default);
+            Fill(default!);
         }
 
-        bool IList.Contains(object value)
+        bool IList.Contains(object? value)
         {
-            if (IsCompatibleObject(value))
+            if (IsCompatibleObject(value!))
             {
-                return Contains((T)value);
+                return Contains((T)value!);
             }
             return false;
         }
 
-        int IList.IndexOf(object value)
+        int IList.IndexOf(object? value)
         {
-            if (IsCompatibleObject(value))
+            if (IsCompatibleObject(value!))
             {
-                return IndexOf((T)value);
+                return IndexOf((T)value!);
             }
             return -1;
         }
 
-        void IList.Insert(int index, object value)
+        void IList.Insert(int index, object? value)
         {
             throw new InvalidOperationException();
         }
 
-        void IList.Remove(object value)
+        void IList.Remove(object? value)
         {
             throw new InvalidOperationException();
         }
@@ -829,13 +881,7 @@ namespace System.Numerics.Tensors
         #endregion
 
         #region IEnumerable<T> members
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            for (int i = 0; i < Length; i++)
-            {
-                yield return GetValue(i);
-            }
-        }
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
         #endregion
 
         #region ICollection<T> members
@@ -848,7 +894,7 @@ namespace System.Numerics.Tensors
 
         void ICollection<T>.Clear()
         {
-            Fill(default);
+            Fill(default!);
         }
 
         bool ICollection<T>.Contains(T item)
@@ -934,7 +980,7 @@ namespace System.Numerics.Tensors
         {
             for (int i = 0; i < Length; i++)
             {
-                if (GetValue(i).Equals(item))
+                if (GetValue(i)!.Equals(item))
                 {
                     return i;
                 }
@@ -961,7 +1007,7 @@ namespace System.Numerics.Tensors
         #endregion
 
         #region IStructuralComparable members
-        int IStructuralComparable.CompareTo(object other, IComparer comparer)
+        int IStructuralComparable.CompareTo(object? other, IComparer comparer)
         {
             if (other == null)
             {
@@ -1063,7 +1109,7 @@ namespace System.Numerics.Tensors
         #endregion
 
         #region IStructuralEquatable members
-        bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
+        bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
         {
             if (other == null)
             {
@@ -1163,7 +1209,7 @@ namespace System.Numerics.Tensors
             // with the same content and different shape.
             for (int i = 0; i < Length; i++)
             {
-                hashCode ^= comparer.GetHashCode(GetValue(i));
+                hashCode ^= comparer.GetHashCode(GetValue(i)!);
             }
 
             return hashCode;

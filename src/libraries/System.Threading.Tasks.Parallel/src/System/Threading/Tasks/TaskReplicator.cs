@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Concurrent;
@@ -14,7 +13,7 @@ namespace System.Threading.Tasks
     // the scheduler, and if it starts running we queue another one, etc., up to some (potentially) user-defined
     // limit.
     //
-    internal class TaskReplicator
+    internal sealed class TaskReplicator
     {
         public delegate void ReplicatableUserAction<TState>(ref TState replicaState, int timeout, out bool yieldedBeforeCompletion);
 

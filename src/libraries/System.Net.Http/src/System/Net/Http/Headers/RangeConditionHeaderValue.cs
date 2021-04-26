@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -9,8 +8,8 @@ namespace System.Net.Http.Headers
 {
     public class RangeConditionHeaderValue : ICloneable
     {
-        private DateTimeOffset? _date;
-        private EntityTagHeaderValue? _entityTag;
+        private readonly DateTimeOffset? _date;
+        private readonly EntityTagHeaderValue? _entityTag;
 
         public DateTimeOffset? Date
         {
@@ -50,10 +49,6 @@ namespace System.Net.Http.Headers
             _date = source._date;
         }
 
-        private RangeConditionHeaderValue()
-        {
-        }
-
         public override string ToString()
         {
             if (_entityTag == null)
@@ -64,7 +59,7 @@ namespace System.Net.Http.Headers
             return _entityTag.ToString();
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             RangeConditionHeaderValue? other = obj as RangeConditionHeaderValue;
 
@@ -166,17 +161,15 @@ namespace System.Net.Http.Headers
                 current = input.Length;
             }
 
-            RangeConditionHeaderValue result = new RangeConditionHeaderValue();
             if (entityTag == null)
             {
-                result._date = date;
+                parsedValue = new RangeConditionHeaderValue(date);
             }
             else
             {
-                result._entityTag = entityTag;
+                parsedValue = new RangeConditionHeaderValue(entityTag);
             }
 
-            parsedValue = result;
             return current - startIndex;
         }
 

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -9,6 +8,7 @@ using System.IO;
 using System.Net.Cache;
 using System.Net.Http;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Runtime.Serialization;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -33,7 +33,7 @@ namespace System.Net
         // as the underlying System.Net.Http API doesn't support it.
         private int _continueTimeout = DefaultContinueTimeout;
 
-        private bool _allowReadStreamBuffering = false;
+        private bool _allowReadStreamBuffering;
         private CookieContainer? _cookieContainer;
         private ICredentials? _credentials;
         private IWebProxy? _proxy = WebRequest.DefaultWebProxy;
@@ -42,10 +42,10 @@ namespace System.Net
 
         private static int _defaultMaxResponseHeadersLength = HttpHandlerDefaults.DefaultMaxResponseHeadersLength;
 
-        private int _beginGetRequestStreamCalled = 0;
-        private int _beginGetResponseCalled = 0;
-        private int _endGetRequestStreamCalled = 0;
-        private int _endGetResponseCalled = 0;
+        private int _beginGetRequestStreamCalled;
+        private int _beginGetResponseCalled;
+        private int _endGetRequestStreamCalled;
+        private int _endGetResponseCalled;
 
         private int _maximumAllowedRedirections = HttpHandlerDefaults.DefaultMaxAutomaticRedirections;
         private int _maximumResponseHeadersLen = _defaultMaxResponseHeadersLength;
@@ -65,7 +65,7 @@ namespace System.Net
         private TaskCompletionSource<WebResponse>? _responseOperation;
         private AsyncCallback? _requestStreamCallback;
         private AsyncCallback? _responseCallback;
-        private int _abortCalled = 0;
+        private int _abortCalled;
         private CancellationTokenSource? _sendRequestCts;
         private X509CertificateCollection? _clientCertificates;
         private Booleans _booleans = Booleans.Default;
@@ -96,13 +96,15 @@ namespace System.Net
             Default = AllowAutoRedirect | AllowWriteStreamBuffering | ExpectContinue
         }
 
-        private class HttpClientParameters
+        private sealed class HttpClientParameters
         {
+            public readonly bool Async;
             public readonly DecompressionMethods AutomaticDecompression;
             public readonly bool AllowAutoRedirect;
             public readonly int MaximumAutomaticRedirections;
             public readonly int MaximumResponseHeadersLength;
             public readonly bool PreAuthenticate;
+            public readonly int ReadWriteTimeout;
             public readonly TimeSpan Timeout;
             public readonly SecurityProtocolType SslProtocols;
             public readonly bool CheckCertificateRevocationList;
@@ -112,13 +114,15 @@ namespace System.Net
             public readonly X509CertificateCollection? ClientCertificates;
             public readonly CookieContainer? CookieContainer;
 
-            public HttpClientParameters(HttpWebRequest webRequest)
+            public HttpClientParameters(HttpWebRequest webRequest, bool async)
             {
+                Async = async;
                 AutomaticDecompression = webRequest.AutomaticDecompression;
                 AllowAutoRedirect = webRequest.AllowAutoRedirect;
                 MaximumAutomaticRedirections = webRequest.MaximumAutomaticRedirections;
                 MaximumResponseHeadersLength = webRequest.MaximumResponseHeadersLength;
                 PreAuthenticate = webRequest.PreAuthenticate;
+                ReadWriteTimeout = webRequest.ReadWriteTimeout;
                 Timeout = webRequest.Timeout == Threading.Timeout.Infinite
                     ? Threading.Timeout.InfiniteTimeSpan
                     : TimeSpan.FromMilliseconds(webRequest.Timeout);
@@ -133,11 +137,13 @@ namespace System.Net
 
             public bool Matches(HttpClientParameters requestParameters)
             {
-                return AutomaticDecompression == requestParameters.AutomaticDecompression
+                return Async == requestParameters.Async
+                    && AutomaticDecompression == requestParameters.AutomaticDecompression
                     && AllowAutoRedirect == requestParameters.AllowAutoRedirect
                     && MaximumAutomaticRedirections == requestParameters.MaximumAutomaticRedirections
                     && MaximumResponseHeadersLength == requestParameters.MaximumResponseHeadersLength
                     && PreAuthenticate == requestParameters.PreAuthenticate
+                    && ReadWriteTimeout == requestParameters.ReadWriteTimeout
                     && Timeout == requestParameters.Timeout
                     && SslProtocols == requestParameters.SslProtocols
                     && CheckCertificateRevocationList == requestParameters.CheckCertificateRevocationList
@@ -161,11 +167,7 @@ namespace System.Net
         private const string ContinueHeader = "100-continue";
         private const string ChunkedHeader = "chunked";
 
-        public HttpWebRequest()
-        {
-        }
-
-        [Obsolete("Serialization is obsoleted for this type.  https://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete(Obsoletions.WebRequestMessage, DiagnosticId = Obsoletions.WebRequestDiagId, UrlFormat = Obsoletions.SharedUrlFormat)]
         protected HttpWebRequest(SerializationInfo serializationInfo, StreamingContext streamingContext) : base(serializationInfo, streamingContext)
         {
             throw new PlatformNotSupportedException();
@@ -439,49 +441,42 @@ namespace System.Net
             }
             set
             {
-#if DEBUG
-                using (DebugThreadTracking.SetThreadKind(ThreadKinds.User | ThreadKinds.Async))
+                bool fChunked;
+                //
+                // on blank string, remove current header
+                //
+                if (string.IsNullOrWhiteSpace(value))
                 {
-#endif
-                    bool fChunked;
                     //
-                    // on blank string, remove current header
+                    // if the value is blank, then remove the header
                     //
-                    if (string.IsNullOrWhiteSpace(value))
-                    {
-                        //
-                        // if the value is blank, then remove the header
-                        //
-                        _webHeaderCollection.Remove(HttpKnownHeaderNames.TransferEncoding);
-                        return;
-                    }
-
-                    //
-                    // if not check if the user is trying to set chunked:
-                    //
-                    fChunked = (value.IndexOf(ChunkedHeader, StringComparison.OrdinalIgnoreCase) != -1);
-
-                    //
-                    // prevent them from adding chunked, or from adding an Encoding without
-                    // turning on chunked, the reason is due to the HTTP Spec which prevents
-                    // additional encoding types from being used without chunked
-                    //
-                    if (fChunked)
-                    {
-                        throw new ArgumentException(SR.net_nochunked, nameof(value));
-                    }
-                    else if (!SendChunked)
-                    {
-                        throw new InvalidOperationException(SR.net_needchunked);
-                    }
-                    else
-                    {
-                        string checkedValue = HttpValidationHelpers.CheckBadHeaderValueChars(value);
-                        _webHeaderCollection[HttpKnownHeaderNames.TransferEncoding] = checkedValue;
-                    }
-#if DEBUG
+                    _webHeaderCollection.Remove(HttpKnownHeaderNames.TransferEncoding);
+                    return;
                 }
-#endif
+
+                //
+                // if not check if the user is trying to set chunked:
+                //
+                fChunked = (value.IndexOf(ChunkedHeader, StringComparison.OrdinalIgnoreCase) != -1);
+
+                //
+                // prevent them from adding chunked, or from adding an Encoding without
+                // turning on chunked, the reason is due to the HTTP Spec which prevents
+                // additional encoding types from being used without chunked
+                //
+                if (fChunked)
+                {
+                    throw new ArgumentException(SR.net_nochunked, nameof(value));
+                }
+                else if (!SendChunked)
+                {
+                    throw new InvalidOperationException(SR.net_needchunked);
+                }
+                else
+                {
+                    string checkedValue = HttpValidationHelpers.CheckBadHeaderValueChars(value);
+                    _webHeaderCollection[HttpKnownHeaderNames.TransferEncoding] = checkedValue;
+                }
             }
         }
 
@@ -587,42 +582,35 @@ namespace System.Net
             }
             set
             {
-#if DEBUG
-                using (DebugThreadTracking.SetThreadKind(ThreadKinds.User | ThreadKinds.Async))
+                bool fKeepAlive;
+                bool fClose;
+
+                //
+                // on blank string, remove current header
+                //
+                if (string.IsNullOrWhiteSpace(value))
                 {
-#endif
-                    bool fKeepAlive;
-                    bool fClose;
-
-                    //
-                    // on blank string, remove current header
-                    //
-                    if (string.IsNullOrWhiteSpace(value))
-                    {
-                        _webHeaderCollection.Remove(HttpKnownHeaderNames.Connection);
-                        return;
-                    }
-
-                    fKeepAlive = (value.IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) != -1);
-                    fClose = (value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1);
-
-                    //
-                    // Prevent keep-alive and close from being added
-                    //
-
-                    if (fKeepAlive ||
-                        fClose)
-                    {
-                        throw new ArgumentException(SR.net_connarg, nameof(value));
-                    }
-                    else
-                    {
-                        string checkedValue = HttpValidationHelpers.CheckBadHeaderValueChars(value);
-                        _webHeaderCollection[HttpKnownHeaderNames.Connection] = checkedValue;
-                    }
-#if DEBUG
+                    _webHeaderCollection.Remove(HttpKnownHeaderNames.Connection);
+                    return;
                 }
-#endif
+
+                fKeepAlive = (value.IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) != -1);
+                fClose = (value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1);
+
+                //
+                // Prevent keep-alive and close from being added
+                //
+
+                if (fKeepAlive ||
+                    fClose)
+                {
+                    throw new ArgumentException(SR.net_connarg, nameof(value));
+                }
+                else
+                {
+                    string checkedValue = HttpValidationHelpers.CheckBadHeaderValueChars(value);
+                    _webHeaderCollection[HttpKnownHeaderNames.Connection] = checkedValue;
+                }
             }
         }
 
@@ -644,41 +632,34 @@ namespace System.Net
             }
             set
             {
-#if DEBUG
-                using (DebugThreadTracking.SetThreadKind(ThreadKinds.User | ThreadKinds.Async))
+                // only remove everything other than 100-cont
+                bool fContinue100;
+
+                //
+                // on blank string, remove current header
+                //
+
+                if (string.IsNullOrWhiteSpace(value))
                 {
-#endif
-                    // only remove everything other than 100-cont
-                    bool fContinue100;
-
-                    //
-                    // on blank string, remove current header
-                    //
-
-                    if (string.IsNullOrWhiteSpace(value))
-                    {
-                        _webHeaderCollection.Remove(HttpKnownHeaderNames.Expect);
-                        return;
-                    }
-
-                    //
-                    // Prevent 100-continues from being added
-                    //
-
-                    fContinue100 = (value.IndexOf(ContinueHeader, StringComparison.OrdinalIgnoreCase) != -1);
-
-                    if (fContinue100)
-                    {
-                        throw new ArgumentException(SR.net_no100, nameof(value));
-                    }
-                    else
-                    {
-                        string checkedValue = HttpValidationHelpers.CheckBadHeaderValueChars(value);
-                        _webHeaderCollection[HttpKnownHeaderNames.Expect] = checkedValue;
-                    }
-#if DEBUG
+                    _webHeaderCollection.Remove(HttpKnownHeaderNames.Expect);
+                    return;
                 }
-#endif
+
+                //
+                // Prevent 100-continues from being added
+                //
+
+                fContinue100 = (value.IndexOf(ContinueHeader, StringComparison.OrdinalIgnoreCase) != -1);
+
+                if (fContinue100)
+                {
+                    throw new ArgumentException(SR.net_no100, nameof(value));
+                }
+                else
+                {
+                    string checkedValue = HttpValidationHelpers.CheckBadHeaderValueChars(value);
+                    _webHeaderCollection[HttpKnownHeaderNames.Expect] = checkedValue;
+                }
             }
         }
 
@@ -1040,7 +1021,7 @@ namespace System.Net
             try
             {
                 _sendRequestCts = new CancellationTokenSource();
-                return SendRequest().GetAwaiter().GetResult();
+                return SendRequest(async: false).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -1131,7 +1112,7 @@ namespace System.Net
             return stream;
         }
 
-        private async Task<WebResponse> SendRequest()
+        private async Task<WebResponse> SendRequest(bool async)
         {
             if (RequestSubmitted)
             {
@@ -1144,7 +1125,7 @@ namespace System.Net
             HttpClient? client = null;
             try
             {
-                client = GetCachedOrCreateHttpClient(out disposeRequired);
+                client = GetCachedOrCreateHttpClient(async, out disposeRequired);
                 if (_requestStream != null)
                 {
                     ArraySegment<byte> bytes = _requestStream.GetBuffer();
@@ -1158,12 +1139,12 @@ namespace System.Net
 
                 // Copy the HttpWebRequest request headers from the WebHeaderCollection into HttpRequestMessage.Headers and
                 // HttpRequestMessage.Content.Headers.
-                foreach (string? headerName in _webHeaderCollection) // TODO-NULLABLE: https://github.com/dotnet/csharplang/issues/3214
+                foreach (string headerName in _webHeaderCollection)
                 {
                     // The System.Net.Http APIs require HttpRequestMessage headers to be properly divided between the request headers
                     // collection and the request content headers collection for all well-known header names.  And custom headers
                     // are only allowed in the request headers collection and not in the request content headers collection.
-                    if (IsWellKnownContentHeader(headerName!))
+                    if (IsWellKnownContentHeader(headerName))
                     {
                         if (request.Content == null)
                         {
@@ -1171,11 +1152,11 @@ namespace System.Net
                             request.Content = new ByteArrayContent(Array.Empty<byte>());
                         }
 
-                        request.Content.Headers.TryAddWithoutValidation(headerName!, _webHeaderCollection[headerName!]);
+                        request.Content.Headers.TryAddWithoutValidation(headerName, _webHeaderCollection[headerName!]);
                     }
                     else
                     {
-                        request.Headers.TryAddWithoutValidation(headerName!, _webHeaderCollection[headerName!]);
+                        request.Headers.TryAddWithoutValidation(headerName, _webHeaderCollection[headerName!]);
                     }
                 }
 
@@ -1192,10 +1173,10 @@ namespace System.Net
 
                 request.Version = ProtocolVersion;
 
-                _sendRequestTask = client.SendAsync(
-                    request,
-                    _allowReadStreamBuffering ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
-                    _sendRequestCts!.Token);
+                _sendRequestTask = async ?
+                    client.SendAsync(request, _allowReadStreamBuffering ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead, _sendRequestCts!.Token) :
+                    Task.FromResult(client.Send(request, _allowReadStreamBuffering ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead, _sendRequestCts!.Token));
+
                 HttpResponseMessage responseMessage = await _sendRequestTask.ConfigureAwait(false);
 
                 HttpWebResponse response = new HttpWebResponse(responseMessage, _requestUri, _cookieContainer);
@@ -1232,7 +1213,7 @@ namespace System.Net
 
             _sendRequestCts = new CancellationTokenSource();
             _responseCallback = callback;
-            _responseOperation = SendRequest().ToApm(callback, state);
+            _responseOperation = SendRequest(async: true).ToApm(callback, state);
 
             return _responseOperation.Task;
         }
@@ -1435,42 +1416,28 @@ namespace System.Net
 
         private DateTime GetDateHeaderHelper(string headerName)
         {
-#if DEBUG
-            using (DebugThreadTracking.SetThreadKind(ThreadKinds.User | ThreadKinds.Async))
-            {
-#endif
-                string? headerValue = _webHeaderCollection[headerName];
+            string? headerValue = _webHeaderCollection[headerName];
 
-                if (headerValue == null)
-                {
-                    return DateTime.MinValue; // MinValue means header is not present
-                }
-                if (HttpDateParser.TryParse(headerValue, out DateTimeOffset dateTimeOffset))
-                {
-                    return dateTimeOffset.LocalDateTime;
-                }
-                else
-                {
-                    throw new ProtocolViolationException(SR.net_baddate);
-                }
-#if DEBUG
+            if (headerValue == null)
+            {
+                return DateTime.MinValue; // MinValue means header is not present
             }
-#endif
+            if (HttpDateParser.TryParse(headerValue, out DateTimeOffset dateTimeOffset))
+            {
+                return dateTimeOffset.LocalDateTime;
+            }
+            else
+            {
+                throw new ProtocolViolationException(SR.net_baddate);
+            }
         }
 
         private void SetDateHeaderHelper(string headerName, DateTime dateTime)
         {
-#if DEBUG
-            using (DebugThreadTracking.SetThreadKind(ThreadKinds.User | ThreadKinds.Async))
-            {
-#endif
-                if (dateTime == DateTime.MinValue)
-                    SetSpecialHeaders(headerName, null); // remove header
-                else
-                    SetSpecialHeaders(headerName, HttpDateParser.DateToString(dateTime.ToUniversalTime()));
-#if DEBUG
-            }
-#endif
+            if (dateTime == DateTime.MinValue)
+                SetSpecialHeaders(headerName, null); // remove header
+            else
+                SetSpecialHeaders(headerName, HttpDateParser.DateToString(dateTime.ToUniversalTime()));
         }
 
         private bool TryGetHostUri(string hostName, [NotNullWhen(true)] out Uri? hostUri)
@@ -1479,9 +1446,9 @@ namespace System.Net
             return Uri.TryCreate(s, UriKind.Absolute, out hostUri);
         }
 
-        private HttpClient GetCachedOrCreateHttpClient(out bool disposeRequired)
+        private HttpClient GetCachedOrCreateHttpClient(bool async, out bool disposeRequired)
         {
-            var parameters = new HttpClientParameters(this);
+            var parameters = new HttpClientParameters(this, async);
             if (parameters.AreParametersAcceptableForCaching())
             {
                 disposeRequired = false;
@@ -1513,7 +1480,7 @@ namespace System.Net
             HttpClient? client = null;
             try
             {
-                var handler = new HttpClientHandler();
+                var handler = new SocketsHttpHandler();
                 client = new HttpClient(handler);
                 handler.AutomaticDecompression = parameters.AutomaticDecompression;
                 handler.Credentials = parameters.Credentials;
@@ -1564,19 +1531,55 @@ namespace System.Net
 
                 if (parameters.ClientCertificates != null)
                 {
-                    handler.ClientCertificates.AddRange(parameters.ClientCertificates);
+                    handler.SslOptions.ClientCertificates = new X509CertificateCollection(parameters.ClientCertificates);
                 }
 
                 // Set relevant properties from ServicePointManager
-                handler.SslProtocols = (SslProtocols)parameters.SslProtocols;
-                handler.CheckCertificateRevocationList = parameters.CheckCertificateRevocationList;
+                handler.SslOptions.EnabledSslProtocols = (SslProtocols)parameters.SslProtocols;
+                handler.SslOptions.CertificateRevocationCheckMode = parameters.CheckCertificateRevocationList ? X509RevocationMode.Online : X509RevocationMode.NoCheck;
                 RemoteCertificateValidationCallback? rcvc = parameters.ServerCertificateValidationCallback;
                 if (rcvc != null)
                 {
-                    RemoteCertificateValidationCallback localRcvc = rcvc;
-                    HttpWebRequest localRequest = request!;
-                    handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => localRcvc(localRequest, cert, chain, errors);
+                    handler.SslOptions.RemoteCertificateValidationCallback = (message, cert, chain, errors) => rcvc(request!, cert, chain, errors);
                 }
+
+                // Set up a ConnectCallback so that we can control Socket-specific settings, like ReadWriteTimeout => socket.Send/ReceiveTimeout.
+                handler.ConnectCallback = async (context, cancellationToken) =>
+                {
+                    var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+
+                    try
+                    {
+                        socket.NoDelay = true;
+
+                        if (parameters.Async)
+                        {
+                            await socket.ConnectAsync(context.DnsEndPoint, cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            using (cancellationToken.UnsafeRegister(s => ((Socket)s!).Dispose(), socket))
+                            {
+                                socket.Connect(context.DnsEndPoint);
+                            }
+
+                            // Throw in case cancellation caused the socket to be disposed after the Connect completed
+                            cancellationToken.ThrowIfCancellationRequested();
+                        }
+
+                        if (parameters.ReadWriteTimeout > 0) // default is 5 minutes, so this is generally going to be true
+                        {
+                            socket.SendTimeout = socket.ReceiveTimeout = parameters.ReadWriteTimeout;
+                        }
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        throw;
+                    }
+
+                    return new NetworkStream(socket, ownsSocket: true);
+                };
 
                 return client;
             }

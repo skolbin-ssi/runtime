@@ -1,8 +1,8 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Net.Http
 {
@@ -30,13 +30,12 @@ namespace System.Net.Http
             Port = port;
         }
 
-        public bool Equals(HttpAuthority? other)
+        public bool Equals([NotNullWhen(true)] HttpAuthority? other)
         {
-            Debug.Assert(other != null);
-            return string.Equals(IdnHost, other.IdnHost) && Port == other.Port;
+            return other != null && string.Equals(IdnHost, other.IdnHost) && Port == other.Port;
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             return obj is HttpAuthority other && Equals(other);
         }

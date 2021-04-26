@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -73,9 +72,9 @@ namespace System.Threading.Tasks.Dataflow
             // messages, and thus when there may be a few stragglers we need to make a batch out of.
             Action createBatchAction = () =>
             {
-                if (_target1.Count > 0 || _target2.Count > 0)
+                if (_target1!.Count > 0 || _target2!.Count > 0)
                 {
-                    _source.AddMessage(Tuple.Create(_target1.GetAndEmptyMessages(), _target2.GetAndEmptyMessages()));
+                    _source.AddMessage(Tuple.Create(_target1.GetAndEmptyMessages(), _target2!.GetAndEmptyMessages()));
                 }
             };
 
@@ -132,9 +131,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="TryReceive"]/*' />
-#pragma warning disable CS8614 // TODO-NULLABLE: https://github.com/dotnet/roslyn/issues/42470
         public bool TryReceive(Predicate<Tuple<IList<T1>, IList<T2>>>? filter, [NotNullWhen(true)] out Tuple<IList<T1>, IList<T2>>? item)
-#pragma warning restore CS8614
         {
             return _source.TryReceive(filter, out item);
         }
@@ -175,8 +172,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-        [return: MaybeNull]
-        Tuple<IList<T1>, IList<T2>> ISourceBlock<Tuple<IList<T1>, IList<T2>>>.ConsumeMessage(
+        Tuple<IList<T1>, IList<T2>>? ISourceBlock<Tuple<IList<T1>, IList<T2>>>.ConsumeMessage(
             DataflowMessageHeader messageHeader, ITargetBlock<Tuple<IList<T1>, IList<T2>>> target, out bool messageConsumed)
         {
             return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
@@ -212,16 +208,9 @@ namespace System.Threading.Tasks.Dataflow
         public override string ToString() { return Common.GetNameForDebugger(this, _source.DataflowBlockOptions); }
 
         /// <summary>The data to display in the debugger display attribute.</summary>
-        private object DebuggerDisplayContent
-        {
-            get
-            {
-                return string.Format("{0}, BatchSize={1}, OutputCount={2}",
-                    Common.GetNameForDebugger(this, _source.DataflowBlockOptions),
-                    BatchSize,
-                    OutputCountForDebugger);
-            }
-        }
+        private object DebuggerDisplayContent =>
+            $"{Common.GetNameForDebugger(this, _source.DataflowBlockOptions)}, BatchSize={BatchSize}, OutputCount={OutputCountForDebugger}";
+
         /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
         object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
 
@@ -333,9 +322,9 @@ namespace System.Threading.Tasks.Dataflow
             // messages, and thus when there may be a few stragglers we need to make a batch out of.
             Action createBatchAction = () =>
             {
-                if (_target1.Count > 0 || _target2.Count > 0 || _target3.Count > 0)
+                if (_target1!.Count > 0 || _target2!.Count > 0 || _target3!.Count > 0)
                 {
-                    _source.AddMessage(Tuple.Create(_target1.GetAndEmptyMessages(), _target2.GetAndEmptyMessages(), _target3.GetAndEmptyMessages()));
+                    _source.AddMessage(Tuple.Create(_target1.GetAndEmptyMessages(), _target2!.GetAndEmptyMessages(), _target3!.GetAndEmptyMessages()));
                 }
             };
 
@@ -396,9 +385,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="TryReceive"]/*' />
-#pragma warning disable CS8614 // TODO-NULLABLE: https://github.com/dotnet/roslyn/issues/42470
         public bool TryReceive(Predicate<Tuple<IList<T1>, IList<T2>, IList<T3>>>? filter, [NotNullWhen(true)] out Tuple<IList<T1>, IList<T2>, IList<T3>>? item)
-#pragma warning restore CS8614
         {
             return _source.TryReceive(filter, out item);
         }
@@ -441,8 +428,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-        [return: MaybeNull]
-        Tuple<IList<T1>, IList<T2>, IList<T3>> ISourceBlock<Tuple<IList<T1>, IList<T2>, IList<T3>>>.ConsumeMessage(
+        Tuple<IList<T1>, IList<T2>, IList<T3>>? ISourceBlock<Tuple<IList<T1>, IList<T2>, IList<T3>>>.ConsumeMessage(
             DataflowMessageHeader messageHeader, ITargetBlock<Tuple<IList<T1>, IList<T2>, IList<T3>>> target, out bool messageConsumed)
         {
             return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
@@ -479,16 +465,9 @@ namespace System.Threading.Tasks.Dataflow
         public override string ToString() { return Common.GetNameForDebugger(this, _source.DataflowBlockOptions); }
 
         /// <summary>The data to display in the debugger display attribute.</summary>
-        private object DebuggerDisplayContent
-        {
-            get
-            {
-                return string.Format("{0}, BatchSize={1}, OutputCount={2}",
-                    Common.GetNameForDebugger(this, _source.DataflowBlockOptions),
-                    BatchSize,
-                    OutputCountForDebugger);
-            }
-        }
+        private object DebuggerDisplayContent =>
+            $"{Common.GetNameForDebugger(this, _source.DataflowBlockOptions)}, BatchSize={BatchSize}, OutputCount={OutputCountForDebugger}";
+
         /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
         object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
 
@@ -605,7 +584,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
                     Debug.Assert(source != null, "We must have thrown if source == null && consumeToAccept == true.");
 
                     bool consumed;
-                    messageValue = source.ConsumeMessage(messageHeader, this, out consumed);
+                    messageValue = source.ConsumeMessage(messageHeader, this, out consumed)!;
                     if (!consumed) return DataflowMessageStatus.NotAvailable;
                 }
                 _messages.Add(messageValue!);
@@ -649,15 +628,9 @@ namespace System.Threading.Tasks.Dataflow.Internal
         Task IDataflowBlock.Completion { get { throw new NotSupportedException(SR.NotSupported_MemberNotNeeded); } }
 
         /// <summary>The data to display in the debugger display attribute.</summary>
-        private object DebuggerDisplayContent
-        {
-            get
-            {
-                return string.Format("{0} InputCount={1}",
-                    Common.GetNameForDebugger(this),
-                    _messages.Count);
-            }
-        }
+        private object DebuggerDisplayContent =>
+            $"{Common.GetNameForDebugger(this)} InputCount={_messages.Count}";
+
         /// <summary>Gets the data to display in the debugger display attribute for this instance.</summary>
         object IDebuggerDisplay.Content { get { return DebuggerDisplayContent; } }
 

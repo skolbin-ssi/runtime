@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Net.Test.Common;
@@ -47,15 +46,14 @@ namespace System.Net.Http.Functional.Tests
             }
         }
 
-        [ConditionalFact]
+        [Fact]
         public async Task SetAfterUse_Throws()
         {
-#if WINHTTPHANDLER_TEST
-            if (UseVersion >= HttpVersion20.Value)
+            if (IsWinHttpHandler && UseVersion >= HttpVersion20.Value)
             {
-                throw new SkipTestException($"Test doesn't support {UseVersion} protocol.");
+                return;
             }
-#endif
+
             await LoopbackServerFactory.CreateClientAndServerAsync(async uri =>
             {
                 using HttpClientHandler handler = CreateHttpClientHandler();
@@ -88,7 +86,7 @@ namespace System.Net.Http.Functional.Tests
                             {
                                 while (!cts.IsCancellationRequested)
                                 {
-                                    await connection.Writer.WriteAsync(new string('s', 16000));
+                                    await connection.WriteStringAsync(new string('s', 16000));
                                     await Task.Delay(1);
                                 }
                             }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -15,7 +14,7 @@ namespace System.DirectoryServices.AccountManagement
     /// <summary>
     /// This is a class designed to cache DirectoryEntires instead of creating them every time.
     /// </summary>
-    internal class SDSCache
+    internal sealed class SDSCache
     {
         public static SDSCache Domain
         {
@@ -206,13 +205,13 @@ namespace System.DirectoryServices.AccountManagement
         private readonly object _tableLock = new object();
         private readonly bool _isSAM;
 
-        private class CredHolder
+        private sealed class CredHolder
         {
             public Hashtable explicitCreds = new Hashtable();
             public Hashtable defaultCreds = new Hashtable();
         }
 
-        private class Placeholder
+        private sealed class Placeholder
         {
             // initially non-signaled
             public ManualResetEvent contextReadyEvent = new ManualResetEvent(false);

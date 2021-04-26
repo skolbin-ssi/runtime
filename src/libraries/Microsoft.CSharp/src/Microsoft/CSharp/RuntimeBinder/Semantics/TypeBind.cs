@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CSharp.RuntimeBinder.Errors;
 using Microsoft.CSharp.RuntimeBinder.Syntax;
 
@@ -32,6 +32,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
     internal static class TypeBind
     {
         // Check the constraints of any type arguments in the given Type.
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public static bool CheckConstraints(CType type, CheckConstraintsFlags flags)
         {
             type = type.GetNakedType(false);
@@ -118,6 +119,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
 
         ////////////////////////////////////////////////////////////////////////////////
         // Check the constraints on the method instantiation.
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public static void CheckMethConstraints(MethWithInst mwi)
         {
             Debug.Assert(mwi.Meth() != null && mwi.GetType() != null && mwi.TypeArgs != null);
@@ -134,6 +136,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         // Check whether typeArgs satisfies the constraints of typeVars. The
         // typeArgsCls and typeArgsMeth are used for substitution on the bounds. The
         // tree and symErr are used for error reporting.
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static bool CheckConstraintsCore(Symbol symErr, TypeArray typeVars, TypeArray typeArgs, TypeArray typeArgsCls, TypeArray typeArgsMeth, CheckConstraintsFlags flags)
         {
             Debug.Assert(typeVars.Count == typeArgs.Count);
@@ -155,6 +158,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
             return true;
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static bool CheckSingleConstraint(Symbol symErr, TypeParameterType var, CType arg, TypeArray typeArgsCls, TypeArray typeArgsMeth, CheckConstraintsFlags flags)
         {
             Debug.Assert(!(arg is PointerType));
@@ -299,6 +303,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         // typeBnd could be just about any type (since we added naked type parameter
         // constraints).
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static bool SatisfiesBound(CType arg, CType typeBnd)
         {
             if (typeBnd == arg)

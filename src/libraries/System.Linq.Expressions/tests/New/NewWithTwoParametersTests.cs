@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Reflection;
 using Xunit;
@@ -29,7 +28,7 @@ namespace System.Linq.Expressions.Tests
         public static void CheckNewWithTwoParametersCustom2Test(bool useInterpreter)
         {
             int[] array1 = { 0, 1, -1, int.MinValue, int.MaxValue };
-            string[] array2 = { null, "", "a", "foo" }; ;
+            string[] array2 = { null, "", "a", "foo" };
             for (int i = 0; i < array1.Length; i++)
             {
                 for (int j = 0; j < array2.Length; j++)

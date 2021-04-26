@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Internal.Cryptography;
 using Internal.Cryptography.Pal;
 using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.Serialization;
 using System.Text;
@@ -48,9 +48,15 @@ namespace System.Security.Cryptography.X509Certificates
         {
         }
 
+        // Null turns into the empty span here, which is correct for compat.
         public X509Certificate(byte[] data)
+            : this(new ReadOnlySpan<byte>(data))
         {
-            if (data != null && data.Length != 0)
+        }
+
+        private protected X509Certificate(ReadOnlySpan<byte> data)
+        {
+            if (!data.IsEmpty)
             {
                 // For compat reasons, this constructor treats passing a null or empty data set as the same as calling the nullary constructor.
                 using (var safePasswordHandle = new SafePasswordHandle((string?)null))
@@ -98,6 +104,19 @@ namespace System.Security.Cryptography.X509Certificates
             }
         }
 
+        private protected X509Certificate(ReadOnlySpan<byte> rawData, ReadOnlySpan<char> password, X509KeyStorageFlags keyStorageFlags)
+        {
+            if (rawData.IsEmpty)
+                throw new ArgumentException(SR.Arg_EmptyOrNullArray, nameof(rawData));
+
+            ValidateKeyStorageFlags(keyStorageFlags);
+
+            using (var safePasswordHandle = new SafePasswordHandle(password))
+            {
+                Pal = CertificatePal.FromBlob(rawData, safePasswordHandle, keyStorageFlags);
+            }
+        }
+
         public X509Certificate(IntPtr handle)
         {
             Pal = CertificatePal.FromHandle(handle);
@@ -126,6 +145,19 @@ namespace System.Security.Cryptography.X509Certificates
         }
 
         public X509Certificate(string fileName, string? password, X509KeyStorageFlags keyStorageFlags)
+        {
+            if (fileName == null)
+                throw new ArgumentNullException(nameof(fileName));
+
+            ValidateKeyStorageFlags(keyStorageFlags);
+
+            using (var safePasswordHandle = new SafePasswordHandle(password))
+            {
+                Pal = CertificatePal.FromFile(fileName, safePasswordHandle, keyStorageFlags);
+            }
+        }
+
+        private protected X509Certificate(string fileName, ReadOnlySpan<char> password, X509KeyStorageFlags keyStorageFlags)
         {
             if (fileName == null)
                 throw new ArgumentNullException(nameof(fileName));
@@ -238,7 +270,7 @@ namespace System.Security.Cryptography.X509Certificates
             }
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             X509Certificate? other = obj as X509Certificate;
             if (other == null)
@@ -246,7 +278,7 @@ namespace System.Security.Cryptography.X509Certificates
             return Equals(other);
         }
 
-        public virtual bool Equals(X509Certificate? other)
+        public virtual bool Equals([NotNullWhen(true)] X509Certificate? other)
         {
             if (other == null)
                 return false;
@@ -318,10 +350,14 @@ namespace System.Security.Cryptography.X509Certificates
         public virtual byte[] GetCertHash(HashAlgorithmName hashAlgorithm)
         {
             ThrowIfInvalid();
+            return GetCertHash(hashAlgorithm, Pal!);
+        }
 
+        private static byte[] GetCertHash(HashAlgorithmName hashAlgorithm, ICertificatePalCore certPal)
+        {
             using (IncrementalHash hasher = IncrementalHash.CreateHash(hashAlgorithm))
             {
-                hasher.AppendData(Pal!.RawData);
+                hasher.AppendData(certPal.RawData);
                 return hasher.GetHashAndReset();
             }
         }
@@ -350,7 +386,12 @@ namespace System.Security.Cryptography.X509Certificates
         {
             ThrowIfInvalid();
 
-            return GetCertHash(hashAlgorithm).ToHexStringUpper();
+            return GetCertHashString(hashAlgorithm, Pal!);
+        }
+
+        internal static string GetCertHashString(HashAlgorithmName hashAlgorithm, ICertificatePalCore certPal)
+        {
+            return GetCertHash(hashAlgorithm, certPal).ToHexStringUpper();
         }
 
         // Only use for internal purposes when the returned byte[] will not be mutated

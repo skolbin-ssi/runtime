@@ -1,9 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Serialization.Metadata;
 
 namespace System.Text.Json.Serialization.Converters
 {
@@ -12,18 +12,22 @@ namespace System.Text.Json.Serialization.Converters
     /// representing the dictionary element key and value.
     /// </summary>
     internal sealed class IDictionaryConverter<TCollection>
-        : DictionaryDefaultConverter<TCollection, object?>
+        : DictionaryDefaultConverter<TCollection, string, object?>
         where TCollection : IDictionary
     {
-        protected override void Add(object? value, JsonSerializerOptions options, ref ReadStack state)
+        protected override void Add(string key, in object? value, JsonSerializerOptions options, ref ReadStack state)
         {
-            string key = state.Current.JsonPropertyNameAsString!;
-            ((IDictionary)state.Current.ReturnValue!)[key] = value;
+            TCollection collection = (TCollection)state.Current.ReturnValue!;
+            collection[key] = value;
+            if (IsValueType)
+            {
+                state.Current.ReturnValue = collection;
+            };
         }
 
         protected override void CreateCollection(ref Utf8JsonReader reader, ref ReadStack state)
         {
-            JsonClassInfo classInfo = state.Current.JsonClassInfo;
+            JsonTypeInfo typeInfo = state.Current.JsonTypeInfo;
 
             if (TypeToConvert.IsInterface || TypeToConvert.IsAbstract)
             {
@@ -32,16 +36,17 @@ namespace System.Text.Json.Serialization.Converters
                     ThrowHelper.ThrowNotSupportedException_CannotPopulateCollection(TypeToConvert, ref reader, ref state);
                 }
 
+                // Strings are intentionally used as keys when deserializing non-generic dictionaries.
                 state.Current.ReturnValue = new Dictionary<string, object>();
             }
             else
             {
-                if (classInfo.CreateObject == null)
+                if (typeInfo.CreateObject == null)
                 {
                     ThrowHelper.ThrowNotSupportedException_DeserializeNoConstructor(TypeToConvert, ref reader, ref state);
                 }
 
-                TCollection returnValue = (TCollection)classInfo.CreateObject()!;
+                TCollection returnValue = (TCollection)typeInfo.CreateObject()!;
 
                 if (returnValue.IsReadOnly)
                 {
@@ -68,7 +73,9 @@ namespace System.Text.Json.Serialization.Converters
                 enumerator = (IDictionaryEnumerator)state.Current.CollectionEnumerator;
             }
 
-            JsonConverter<object?> converter = GetValueConverter(ref state);
+            JsonTypeInfo typeInfo = state.Current.JsonTypeInfo;
+            _valueConverter ??= GetConverter<object?>(typeInfo.ElementTypeInfo!);
+
             do
             {
                 if (ShouldFlush(writer, ref state))
@@ -80,20 +87,23 @@ namespace System.Text.Json.Serialization.Converters
                 if (state.Current.PropertyState < StackFramePropertyState.Name)
                 {
                     state.Current.PropertyState = StackFramePropertyState.Name;
-
-                    if (enumerator.Key is string key)
+                    object key = enumerator.Key;
+                    // Optimize for string since that's the hot path.
+                    if (key is string keyString)
                     {
-                        key = GetKeyName(key, ref state, options);
-                        writer.WritePropertyName(key);
+                        _keyConverter ??= GetConverter<string>(typeInfo.KeyTypeInfo!);
+                        _keyConverter.WriteWithQuotes(writer, keyString, options, ref state);
                     }
                     else
                     {
-                        ThrowHelper.ThrowJsonException_DeserializeUnableToConvertValue(state.Current.DeclaredJsonPropertyInfo!.RuntimePropertyType!);
+                        // IDictionary is a special case since it has polymorphic object semantics on serialization
+                        // but needs to use JsonConverter<string> on deserialization.
+                        _valueConverter.WriteWithQuotes(writer, key, options, ref state);
                     }
                 }
 
                 object? element = enumerator.Value;
-                if (!converter.TryWrite(writer, element, options, ref state))
+                if (!_valueConverter.TryWrite(writer, element, options, ref state))
                 {
                     state.Current.CollectionEnumerator = enumerator;
                     return false;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -43,7 +42,7 @@ namespace System.Net.Tests
             var wc = new WebClient();
 
             AssertExtensions.Throws<ArgumentException>("value", () => { wc.BaseAddress = "http::/invalid url"; });
-            AssertExtensions.Throws<ArgumentNullException>("Encoding", () => { wc.Encoding = null; });
+            AssertExtensions.Throws<ArgumentNullException>("value", () => { wc.Encoding = null; });
         }
 
         [Fact]
@@ -536,8 +535,8 @@ namespace System.Net.Tests
             {
                 var wc = new WebClient();
 
-                var downloadProgressInvoked = new TaskCompletionSource<bool>();
-                wc.DownloadProgressChanged += (s, e) => downloadProgressInvoked.TrySetResult(true);
+                var downloadProgressInvoked = new TaskCompletionSource();
+                wc.DownloadProgressChanged += (s, e) => downloadProgressInvoked.TrySetResult();
 
                 Task<byte[]> download = DownloadDataAsync(wc, url.ToString());
                 await server.AcceptConnectionSendResponseAndCloseAsync(content: ExpectedText);
@@ -545,7 +544,7 @@ namespace System.Net.Tests
 
                 if (IsAsync)
                 {
-                    await downloadProgressInvoked.Task.TimeoutAfter(TimeoutMilliseconds);
+                    await downloadProgressInvoked.Task.WaitAsync(TimeSpan.FromMilliseconds(TimeoutMilliseconds));
                 }
             });
         }
@@ -557,13 +556,13 @@ namespace System.Net.Tests
             {
                 string largeText = GetRandomText(1024 * 1024);
 
-                var downloadProgressInvokedWithContentLength = new TaskCompletionSource<bool>();
+                var downloadProgressInvokedWithContentLength = new TaskCompletionSource();
                 var wc = new WebClient();
                 wc.DownloadProgressChanged += (s, e) =>
                 {
                     if (e.TotalBytesToReceive == largeText.Length && e.BytesReceived < e.TotalBytesToReceive)
                     {
-                        downloadProgressInvokedWithContentLength.TrySetResult(true);
+                        downloadProgressInvokedWithContentLength.TrySetResult();
                     }
                 };
 
@@ -573,7 +572,7 @@ namespace System.Net.Tests
 
                 if (IsAsync)
                 {
-                    await downloadProgressInvokedWithContentLength.Task.TimeoutAfter(TimeoutMilliseconds);
+                    await downloadProgressInvokedWithContentLength.Task.WaitAsync(TimeSpan.FromMilliseconds(TimeoutMilliseconds));
                 }
             });
         }
@@ -636,15 +635,15 @@ namespace System.Net.Tests
         {
             var wc = new WebClient();
 
-            var uploadProgressInvoked = new TaskCompletionSource<bool>();
-            wc.UploadProgressChanged += (s, e) => uploadProgressInvoked.TrySetResult(true); // to enable chunking of the upload
+            var uploadProgressInvoked = new TaskCompletionSource();
+            wc.UploadProgressChanged += (s, e) => uploadProgressInvoked.TrySetResult(); // to enable chunking of the upload
 
             // Server will verify uploaded data. An exception will be thrown if there is a problem.
             AddMD5Header(wc, ExpectedText);
             byte[] ignored = await UploadDataAsync(wc, server.ToString(), Encoding.UTF8.GetBytes(ExpectedText));
             if (IsAsync)
             {
-                await uploadProgressInvoked.Task.TimeoutAfter(TimeoutMilliseconds);
+                await uploadProgressInvoked.Task.WaitAsync(TimeSpan.FromMilliseconds(TimeoutMilliseconds));
             }
         }
 
@@ -661,11 +660,8 @@ namespace System.Net.Tests
             byte[] ignored = await UploadDataAsync(wc, server.ToString(), Encoding.UTF8.GetBytes(largeText));
         }
 
-        private static string GetRandomText(int length)
-        {
-            var rand = new Random();
-            return new string(Enumerable.Range(0, 512 * 1024).Select(_ => (char)('a' + rand.Next(0, 26))).ToArray());
-        }
+        private static string GetRandomText(int length) =>
+            new string(Enumerable.Range(0, 512 * 1024).Select(_ => (char)('a' + Random.Shared.Next(0, 26))).ToArray());
 
         [OuterLoop("Uses external servers")]
         [Theory]
@@ -710,13 +706,10 @@ namespace System.Net.Tests
 
         private static void AddMD5Header(WebClient wc, string data)
         {
-            using (MD5 md5 = MD5.Create())
-            {
-                // Compute MD5 hash of the data that will be uploaded. We convert the string to UTF-8 since
-                // that is the encoding used by WebClient when serializing the data on the wire.
-                string headerValue = Convert.ToBase64String(md5.ComputeHash(Encoding.UTF8.GetBytes(data)));
-                wc.Headers.Add("Content-MD5", headerValue);
-            }
+            // Compute MD5 hash of the data that will be uploaded. We convert the string to UTF-8 since
+            // that is the encoding used by WebClient when serializing the data on the wire.
+            string headerValue = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(data)));
+            wc.Headers.Add("Content-MD5", headerValue);
         }
     }
 

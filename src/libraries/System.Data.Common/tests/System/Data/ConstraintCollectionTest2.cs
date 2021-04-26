@@ -1,5 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
-// See the LICENSE file in the project root for more information.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 // Copyright (c) 2004 Mainsoft Co.
 //
@@ -413,7 +413,7 @@ namespace System.Data.Tests
         {
             DataTable dt = DataProvider.CreateParentDataTable();
             dt.Constraints.Add("UniqueConstraint", dt.Columns["ParentId"], true);
-            Assert.Equal(1, (double)dt.Constraints.Count); ;
+            Assert.Equal(1, (double)dt.Constraints.Count);
             Assert.Equal("UniqueConstraint", dt.Constraints[0].ConstraintName);
         }
 

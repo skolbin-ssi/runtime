@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Net.Sockets;
 using System.Net.Test.Common;
@@ -89,11 +88,11 @@ namespace System.Net.WebSockets.Client.Tests
 
         [OuterLoop("Uses external servers")]
         [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(EchoServers))]
+        [SkipOnPlatform(TestPlatforms.Browser, "JS Websocket does not support see issue https://github.com/dotnet/runtime/issues/46983")]
         public async Task SendReceive_PartialMessageBeforeCompleteMessageArrives_Success(Uri server)
         {
-            var rand = new Random();
             var sendBuffer = new byte[ushort.MaxValue + 1];
-            rand.NextBytes(sendBuffer);
+            Random.Shared.NextBytes(sendBuffer);
             var sendSegment = new ArraySegment<byte>(sendBuffer);
 
             // Ask the remote server to echo back received messages without ever signaling "end of message".
@@ -390,13 +389,14 @@ namespace System.Net.WebSockets.Client.Tests
 
         [OuterLoop("Uses external servers")]
         [ConditionalFact(nameof(WebSocketsSupported))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/42852", TestPlatforms.Browser)]
         public async Task SendReceive_ConnectionClosedPrematurely_ReceiveAsyncFailsAndWebSocketStateUpdated()
         {
             var options = new LoopbackServer.Options { WebSocketEndpoint = true };
 
             Func<ClientWebSocket, LoopbackServer, Uri, Task> connectToServerThatAbortsConnection = async (clientSocket, server, url) =>
             {
-                var pendingReceiveAsyncPosted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var pendingReceiveAsyncPosted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
                 // Start listening for incoming connections on the server side.
                 Task acceptTask = server.AcceptConnectionAsync(async connection =>
@@ -405,7 +405,7 @@ namespace System.Net.WebSockets.Client.Tests
                     Assert.NotNull(await LoopbackHelper.WebSocketHandshakeAsync(connection));
 
                     // Wait for client-side ConnectAsync to complete and for a pending ReceiveAsync to be posted.
-                    await pendingReceiveAsyncPosted.Task.TimeoutAfter(TimeOutMilliseconds);
+                    await pendingReceiveAsyncPosted.Task.WaitAsync(TimeSpan.FromMilliseconds(TimeOutMilliseconds));
 
                     // Close the underlying connection prematurely (without sending a WebSocket Close frame).
                     connection.Socket.Shutdown(SocketShutdown.Both);
@@ -420,10 +420,10 @@ namespace System.Net.WebSockets.Client.Tests
                 var recvBuffer = new byte[100];
                 var recvSegment = new ArraySegment<byte>(recvBuffer);
                 Task pendingReceiveAsync = ReceiveAsync(clientSocket, recvSegment, cts.Token);
-                pendingReceiveAsyncPosted.SetResult(true);
+                pendingReceiveAsyncPosted.SetResult();
 
                 // Wait for the server to close the underlying connection.
-                await acceptTask.WithCancellation(cts.Token);
+                await acceptTask.WaitAsync(cts.Token);
 
                 WebSocketException pendingReceiveException = await Assert.ThrowsAsync<WebSocketException>(() => pendingReceiveAsync);
 
@@ -463,7 +463,6 @@ namespace System.Net.WebSockets.Client.Tests
         {
             using (ClientWebSocket cws = await WebSocketHelper.GetConnectedWebSocket(server, TimeOutMilliseconds, _output))
             {
-                var rand = new Random();
                 var ctsDefault = new CancellationTokenSource(TimeOutMilliseconds);
 
                 // Do a 0-byte receive.  It shouldn't complete yet.

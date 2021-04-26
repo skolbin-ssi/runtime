@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using Microsoft.Internal.Collections;
@@ -13,7 +12,7 @@ namespace System.ComponentModel.Composition.Hosting
         ///     Used to wrap the start and stop of enforcing export changes don't
         ///     break required imports. This context is stored in a AtomicComposition.
         /// </summary>
-        private class EngineContext
+        private sealed class EngineContext
         {
             private readonly ImportEngine _importEngine;
             private readonly List<PartManager> _addedPartManagers = new List<PartManager>();

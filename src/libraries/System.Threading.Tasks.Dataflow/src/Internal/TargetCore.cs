@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -208,7 +207,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
                         Debug.Assert(source != null, "We must have thrown if source == null && consumeToAccept == true.");
 
                         bool consumed;
-                        messageValue = source.ConsumeMessage(messageHeader, _owningTarget, out consumed);
+                        messageValue = source.ConsumeMessage(messageHeader, _owningTarget, out consumed)!;
                         if (!consumed) return DataflowMessageStatus.NotAvailable;
                     }
 
@@ -662,7 +661,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
                 } // Must not call to source while holding lock
 
                 bool consumed;
-                TInput consumedValue = element.Key.ConsumeMessage(element.Value, _owningTarget, out consumed);
+                TInput? consumedValue = element.Key.ConsumeMessage(element.Value, _owningTarget, out consumed);
                 if (consumed)
                 {
                     result = new KeyValuePair<TInput, long>(consumedValue!, messageId);
@@ -823,8 +822,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
             get
             {
                 var displayTarget = _owningTarget as IDebuggerDisplay;
-                return string.Format("Block=\"{0}\"",
-                    displayTarget != null ? displayTarget.Content : _owningTarget);
+                return $"Block=\"{(displayTarget != null ? displayTarget.Content : _owningTarget)}\"";
             }
         }
 

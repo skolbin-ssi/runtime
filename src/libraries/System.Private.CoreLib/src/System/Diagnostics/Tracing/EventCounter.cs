@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #if ES_BUILD_STANDALONE
 using System;
 using System.Diagnostics;
 #endif
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Versioning;
 using System.Threading;
 
 #if ES_BUILD_STANDALONE
@@ -21,9 +21,12 @@ namespace System.Diagnostics.Tracing
     /// See https://github.com/dotnet/corefx/blob/master/src/System.Diagnostics.Tracing/documentation/EventCounterTutorial.md
     /// for a tutorial guide.
     ///
-    /// See https://github.com/dotnet/runtime/blob/master/src/libraries/System.Diagnostics.Tracing/tests/BasicEventSourceTest/TestEventCounter.cs
+    /// See https://github.com/dotnet/runtime/blob/main/src/libraries/System.Diagnostics.Tracing/tests/BasicEventSourceTest/TestEventCounter.cs
     /// which shows tests, which are also useful in seeing actual use.
     /// </summary>
+#if NETCOREAPP
+    [UnsupportedOSPlatform("browser")]
+#endif
     public partial class EventCounter : DiagnosticCounter
     {
         /// <summary>
@@ -38,7 +41,13 @@ namespace System.Diagnostics.Tracing
             _min = double.PositiveInfinity;
             _max = double.NegativeInfinity;
 
-            InitializeBuffer();
+            var bufferedValues = new double[BufferedSize];
+            for (int i = 0; i < bufferedValues.Length; i++)
+            {
+                bufferedValues[i] = UnusedBufferSlotValue;
+            }
+            _bufferedValues = bufferedValues;
+
             Publish();
         }
 
@@ -88,6 +97,11 @@ namespace System.Diagnostics.Tracing
             _count++;
         }
 
+#if !ES_BUILD_STANDALONE
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "The DynamicDependency will preserve the properties of CounterPayload")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(CounterPayload))]
+#endif
         internal override void WritePayload(float intervalSec, int pollingIntervalMillisec)
         {
             lock (this)
@@ -136,18 +150,8 @@ namespace System.Diagnostics.Tracing
         // Values buffering
         private const int BufferedSize = 10;
         private const double UnusedBufferSlotValue = double.NegativeInfinity;
-        private volatile double[] _bufferedValues;
+        private readonly double[] _bufferedValues;
         private volatile int _bufferedValuesIndex;
-
-        [MemberNotNull(nameof(_bufferedValues))]
-        private void InitializeBuffer()
-        {
-            _bufferedValues = new double[BufferedSize];
-            for (int i = 0; i < _bufferedValues.Length; i++)
-            {
-                _bufferedValues[i] = UnusedBufferSlotValue;
-            }
-        }
 
         private void Enqueue(double value)
         {
@@ -196,7 +200,7 @@ namespace System.Diagnostics.Tracing
     /// This is the payload that is sent in the with EventSource.Write
     /// </summary>
     [EventData]
-    internal class CounterPayloadType
+    internal sealed class CounterPayloadType
     {
         public CounterPayloadType(CounterPayload payload) { Payload = payload; }
         public CounterPayload Payload { get; set; }

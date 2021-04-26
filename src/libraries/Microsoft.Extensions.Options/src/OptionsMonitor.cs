@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Extensions.Options
@@ -12,11 +13,13 @@ namespace Microsoft.Extensions.Options
     /// Implementation of <see cref="IOptionsMonitor{TOptions}"/>.
     /// </summary>
     /// <typeparam name="TOptions">Options type.</typeparam>
-    public class OptionsMonitor<TOptions> : IOptionsMonitor<TOptions>, IDisposable where TOptions : class
+    public class OptionsMonitor<[DynamicallyAccessedMembers(Options.DynamicallyAccessedMembers)] TOptions> :
+        IOptionsMonitor<TOptions>,
+        IDisposable
+        where TOptions : class
     {
         private readonly IOptionsMonitorCache<TOptions> _cache;
         private readonly IOptionsFactory<TOptions> _factory;
-        private readonly IEnumerable<IOptionsChangeTokenSource<TOptions>> _sources;
         private readonly List<IDisposable> _registrations = new List<IDisposable>();
         internal event Action<TOptions, string> _onChange;
 
@@ -29,12 +32,11 @@ namespace Microsoft.Extensions.Options
         public OptionsMonitor(IOptionsFactory<TOptions> factory, IEnumerable<IOptionsChangeTokenSource<TOptions>> sources, IOptionsMonitorCache<TOptions> cache)
         {
             _factory = factory;
-            _sources = sources;
             _cache = cache;
 
-            foreach (var source in _sources)
+            foreach (IOptionsChangeTokenSource<TOptions> source in (sources as IOptionsChangeTokenSource<TOptions>[] ?? sources.ToArray()))
             {
-                var registration = ChangeToken.OnChange(
+                IDisposable registration = ChangeToken.OnChange(
                       () => source.GetChangeToken(),
                       (name) => InvokeChanged(name),
                       source.Name);
@@ -47,7 +49,7 @@ namespace Microsoft.Extensions.Options
         {
             name = name ?? Options.DefaultName;
             _cache.TryRemove(name);
-            var options = Get(name);
+            TOptions options = Get(name);
             if (_onChange != null)
             {
                 _onChange.Invoke(options, name);
@@ -89,7 +91,7 @@ namespace Microsoft.Extensions.Options
         public void Dispose()
         {
             // Remove all subscriptions to the change tokens
-            foreach (var registration in _registrations)
+            foreach (IDisposable registration in _registrations)
             {
                 registration.Dispose();
             }
@@ -97,7 +99,7 @@ namespace Microsoft.Extensions.Options
             _registrations.Clear();
         }
 
-        internal class ChangeTrackerDisposable : IDisposable
+        internal sealed class ChangeTrackerDisposable : IDisposable
         {
             private readonly Action<TOptions, string> _listener;
             private readonly OptionsMonitor<TOptions> _monitor;

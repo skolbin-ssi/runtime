@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -102,7 +101,7 @@ namespace System.ComponentModel
             _lastHashCount = hashCount;
         }
 
-        private class WeakKeyComparer : IEqualityComparer
+        private sealed class WeakKeyComparer : IEqualityComparer
         {
             bool IEqualityComparer.Equals(object x, object y)
             {

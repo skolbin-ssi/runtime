@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -12,12 +11,13 @@ namespace System.ComponentModel
     [AttributeUsage(AttributeTargets.Class)]
     public class InstallerTypeAttribute : Attribute
     {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
         private readonly string _typeName;
 
         /// <summary>
         /// Initializes a new instance of the System.Windows.Forms.ComponentModel.InstallerTypeAttribute class.
         /// </summary>
-        public InstallerTypeAttribute(Type installerType)
+        public InstallerTypeAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type installerType)
         {
             if (installerType == null)
             {
@@ -27,7 +27,7 @@ namespace System.ComponentModel
             _typeName = installerType.AssemblyQualifiedName;
         }
 
-        public InstallerTypeAttribute(string typeName)
+        public InstallerTypeAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] string typeName)
         {
             _typeName = typeName;
         }
@@ -35,6 +35,7 @@ namespace System.ComponentModel
         /// <summary>
         /// Gets the type of installer associated with this attribute.
         /// </summary>
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
         public virtual Type InstallerType => Type.GetType(_typeName);
 
         public override bool Equals(object obj)

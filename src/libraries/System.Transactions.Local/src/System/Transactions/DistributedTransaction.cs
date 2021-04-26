@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.Serialization;
 
@@ -147,13 +146,13 @@ namespace System.Transactions.Distributed
             return new PlatformNotSupportedException(SR.DistributedNotSupported);
         }
 
-        internal class RealDistributedTransaction
+        internal sealed class RealDistributedTransaction
         {
             internal InternalTransaction? InternalTransaction { get; set; }
         }
     }
 
-    internal class DistributedDependentTransaction : DistributedTransaction
+    internal sealed class DistributedDependentTransaction : DistributedTransaction
     {
         internal void Complete()
         {
@@ -161,7 +160,7 @@ namespace System.Transactions.Distributed
         }
     }
 
-    internal class DistributedCommittableTransaction : DistributedTransaction
+    internal sealed class DistributedCommittableTransaction : DistributedTransaction
     {
         internal void BeginCommit(InternalTransaction tx)
         {

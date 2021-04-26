@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Drawing.Imaging;
@@ -16,7 +15,7 @@ namespace System.Drawing
         /// <summary>
         /// ImageAnimator nested helper class used to store extra image state info.
         /// </summary>
-        private class ImageInfo
+        private sealed class ImageInfo
         {
             private const int PropertyTagFrameDelay = 0x5100;
 
@@ -186,7 +185,7 @@ namespace System.Drawing
             /// <summary>
             /// Raises the FrameChanged event.
             /// </summary>
-            protected void OnFrameChanged(EventArgs e)
+            private void OnFrameChanged(EventArgs e)
             {
                 if (_onFrameChangedHandler != null)
                 {

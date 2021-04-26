@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -27,8 +26,8 @@ namespace System.Linq.Parallel
     {
         // Selector function. Used to project elements to a transformed view during execution.
         private readonly Func<TInput, int, TOutput> _selector;
-        private bool _prematureMerge = false; // Whether to prematurely merge the input of this operator.
-        private bool _limitsParallelism = false; // Whether this operator limits parallelism
+        private bool _prematureMerge; // Whether to prematurely merge the input of this operator.
+        private bool _limitsParallelism; // Whether this operator limits parallelism
 
         //---------------------------------------------------------------------------------------
         // Initializes a new select operator.
@@ -132,7 +131,7 @@ namespace System.Linq.Parallel
         // The enumerator type responsible for projecting elements as it is walked.
         //
 
-        private class IndexedSelectQueryOperatorEnumerator : QueryOperatorEnumerator<TOutput, int>
+        private sealed class IndexedSelectQueryOperatorEnumerator : QueryOperatorEnumerator<TOutput, int>
         {
             private readonly QueryOperatorEnumerator<TInput, int> _source; // The data source to enumerate.
             private readonly Func<TInput, int, TOutput> _selector;  // The actual select function.
@@ -188,7 +187,7 @@ namespace System.Linq.Parallel
         // results were indexable.
         //
 
-        private class IndexedSelectQueryOperatorResults : UnaryQueryOperatorResults
+        private sealed class IndexedSelectQueryOperatorResults : UnaryQueryOperatorResults
         {
             private readonly IndexedSelectQueryOperator<TInput, TOutput> _selectOp;  // Operator that generated the results
             private readonly int _childCount; // The number of elements in child results

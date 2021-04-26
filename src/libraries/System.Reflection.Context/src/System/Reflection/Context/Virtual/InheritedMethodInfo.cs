@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Reflection.Context.Delegation;
@@ -8,7 +7,7 @@ using System.Reflection.Context.Delegation;
 namespace System.Reflection.Context.Virtual
 {
     // Represents a inherited method which is identical to the base method except for its ReflectedType.
-    internal partial class InheritedMethodInfo : DelegatingMethodInfo
+    internal sealed partial class InheritedMethodInfo : DelegatingMethodInfo
     {
         private readonly Type _reflectedType;
 

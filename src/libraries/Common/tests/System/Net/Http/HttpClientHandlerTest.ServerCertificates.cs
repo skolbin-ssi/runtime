@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -31,15 +30,19 @@ namespace System.Net.Http.Functional.Tests
 
         public HttpClientHandler_ServerCertificates_Test(ITestOutputHelper output) : base(output) { }
 
-        [ConditionalFact]
+        // This enables customizing ServerCertificateCustomValidationCallback in WinHttpHandler variants:
+        protected bool AllowAllHttp2Certificates { get; set; } = true;
+        protected new HttpClientHandler CreateHttpClientHandler() => CreateHttpClientHandler(UseVersion, allowAllHttp2Certificates: AllowAllHttp2Certificates);
+        protected override HttpClient CreateHttpClient() => CreateHttpClient(CreateHttpClientHandler());
+
+        [Fact]
         public void Ctor_ExpectedDefaultValues()
         {
-#if WINHTTPHANDLER_TEST
-            if (UseVersion > HttpVersion.Version11)
+            if (IsWinHttpHandler && UseVersion >= HttpVersion20.Value)
             {
-                throw new SkipTestException($"Test doesn't support {UseVersion} protocol.");
+                return;
             }
-#endif
+
             using (HttpClientHandler handler = CreateHttpClientHandler())
             {
                 Assert.Null(handler.ServerCertificateCustomValidationCallback);
@@ -47,15 +50,13 @@ namespace System.Net.Http.Functional.Tests
             }
         }
 
-        [ConditionalFact]
+        [Fact]
         public void ServerCertificateCustomValidationCallback_SetGet_Roundtrips()
         {
-#if WINHTTPHANDLER_TEST
-            if (UseVersion > HttpVersion.Version11)
+            if (IsWinHttpHandler && UseVersion >= HttpVersion20.Value)
             {
-                throw new SkipTestException($"Test doesn't support {UseVersion} protocol.");
+                return;
             }
-#endif
 
             using (HttpClientHandler handler = CreateHttpClientHandler())
             {
@@ -94,71 +95,6 @@ namespace System.Net.Http.Functional.Tests
 
         [OuterLoop("Uses external server")]
         [Fact]
-        public async Task UseCallback_HaveCredsAndUseAuthenticatedCustomProxyAndPostToSecureServer_Success()
-        {
-            if (IsWinHttpHandler && PlatformDetection.IsWindows7)
-            {
-                // Issue https://github.com/dotnet/runtime/issues/25268
-                return;
-            }
-
-            var options = new LoopbackProxyServer.Options
-                { AuthenticationSchemes = AuthenticationSchemes.Basic,
-                  ConnectionCloseAfter407 = true
-                };
-            using (LoopbackProxyServer proxyServer = LoopbackProxyServer.Create(options))
-            {
-                HttpClientHandler handler = CreateHttpClientHandler();
-                handler.ServerCertificateCustomValidationCallback = TestHelper.AllowAllCertificates;
-                handler.Proxy = new WebProxy(proxyServer.Uri)
-                {
-                    Credentials = new NetworkCredential("rightusername", "rightpassword")
-                };
-
-                const string content = "This is a test";
-
-                using (HttpClient client = CreateHttpClient(handler))
-                using (HttpResponseMessage response = await client.PostAsync(
-                        Configuration.Http.SecureRemoteEchoServer,
-                        new StringContent(content)))
-                {
-                    string responseContent = await response.Content.ReadAsStringAsync();
-
-                    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                    TestHelper.VerifyResponseBody(
-                        responseContent,
-                        response.Content.Headers.ContentMD5,
-                        false,
-                        content);
-                }
-            }
-        }
-
-        [OuterLoop("Uses external server")]
-        [Fact]
-        public async Task UseCallback_HaveNoCredsAndUseAuthenticatedCustomProxyAndPostToSecureServer_ProxyAuthenticationRequiredStatusCode()
-        {
-            var options = new LoopbackProxyServer.Options
-                { AuthenticationSchemes = AuthenticationSchemes.Basic,
-                  ConnectionCloseAfter407 = true
-                };
-            using (LoopbackProxyServer proxyServer = LoopbackProxyServer.Create(options))
-            {
-                HttpClientHandler handler = CreateHttpClientHandler();
-                handler.Proxy = new WebProxy(proxyServer.Uri);
-                handler.ServerCertificateCustomValidationCallback = TestHelper.AllowAllCertificates;
-                using (HttpClient client = CreateHttpClient(handler))
-                using (HttpResponseMessage response = await client.PostAsync(
-                    Configuration.Http.SecureRemoteEchoServer,
-                    new StringContent("This is a test")))
-                {
-                    Assert.Equal(HttpStatusCode.ProxyAuthenticationRequired, response.StatusCode);
-                }
-            }
-        }
-
-        [OuterLoop("Uses external server")]
-        [Fact]
         public async Task UseCallback_NotSecureConnection_CallbackNotCalled()
         {
             HttpClientHandler handler = CreateHttpClientHandler();
@@ -182,7 +118,7 @@ namespace System.Net.Http.Functional.Tests
             {
                 if (remoteServer.IsSecure)
                 {
-                    foreach (bool checkRevocation in new[] { true, false })
+                    foreach (bool checkRevocation in BoolValues)
                     {
                         yield return new object[] {
                             remoteServer,
@@ -314,7 +250,6 @@ namespace System.Net.Http.Functional.Tests
         public static readonly object[][] CertificateValidationServersAndExpectedPolicies =
         {
             new object[] { Configuration.Http.ExpiredCertRemoteServer, SslPolicyErrors.RemoteCertificateChainErrors },
-            new object[] { Configuration.Http.SelfSignedCertRemoteServer, SslPolicyErrors.RemoteCertificateChainErrors },
             new object[] { Configuration.Http.WrongHostNameCertRemoteServer , SslPolicyErrors.RemoteCertificateNameMismatch},
         };
 
@@ -369,6 +304,38 @@ namespace System.Net.Http.Functional.Tests
             }
         }
 
+        [Fact]
+        public async Task UseCallback_SelfSignedCertificate_ExpectedPolicyErrors()
+        {
+            using (HttpClientHandler handler = CreateHttpClientHandler())
+            using (HttpClient client = CreateHttpClient(handler))
+            {
+                bool callbackCalled = false;
+                X509Certificate2 certificate = TestHelper.CreateServerSelfSignedCertificate();
+
+                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
+                {
+                    callbackCalled = true;
+                    Assert.NotNull(request);
+                    Assert.NotNull(cert);
+                    Assert.NotNull(chain);
+                    Assert.Equal(SslPolicyErrors.RemoteCertificateChainErrors, errors);
+                    return true;
+                };
+
+                var options = new LoopbackServer.Options { UseSsl = true, Certificate = certificate };
+
+                await LoopbackServer.CreateServerAsync(async (server, url) =>
+                {
+                    await TestHelper.WhenAllCompletedOrAnyFailed(
+                        server.AcceptConnectionSendResponseAndCloseAsync(),
+                        client.GetAsync($"https://{certificate.GetNameInfo(X509NameType.SimpleName, false)}:{url.Port}/"));
+                }, options);
+
+                Assert.True(callbackCalled);
+            }
+        }
+
         [OuterLoop("Uses external server")]
         [PlatformSpecific(TestPlatforms.Windows)] // CopyToAsync(Stream, TransportContext) isn't used on unix
         [Fact]
@@ -409,7 +376,7 @@ namespace System.Net.Http.Functional.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [PlatformSpecific(TestPlatforms.Linux)]
         public void HttpClientUsesSslCertEnvironmentVariables()
         {
@@ -424,15 +391,19 @@ namespace System.Net.Http.Functional.Tests
             File.WriteAllText(sslCertFile, "");
             psi.Environment.Add("SSL_CERT_FILE", sslCertFile);
 
-            RemoteExecutor.Invoke(async (useVersionString) =>
+            RemoteExecutor.Invoke(async (useVersionString, allowAllHttp2CertificatesString) =>
             {
                 const string Url = "https://www.microsoft.com";
 
-                using (HttpClient client = CreateHttpClient(useVersionString))
+                HttpClientHandler handler = CreateHttpClientHandler(
+                    Version.Parse(useVersionString),
+                    allowAllHttp2Certificates: bool.Parse(allowAllHttp2CertificatesString));
+
+                using (HttpClient client = CreateHttpClient(handler, useVersionString))
                 {
                     await Assert.ThrowsAsync<HttpRequestException>(() => client.GetAsync(Url));
                 }
-            }, UseVersion.ToString(), new RemoteInvokeOptions { StartInfo = psi }).Dispose();
+            }, UseVersion.ToString(), AllowAllHttp2Certificates.ToString(), new RemoteInvokeOptions { StartInfo = psi }).Dispose();
         }
     }
 }

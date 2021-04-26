@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -34,6 +33,9 @@ namespace Microsoft.Extensions.Configuration.Binder.Test
             private string PrivateProperty { get; set; }
             internal string InternalProperty { get; set; }
             protected string ProtectedProperty { get; set; }
+
+            [ConfigurationKeyName("Named_Property")]
+            public string NamedProperty { get; set; }
 
             protected string ProtectedPrivateSet { get; private set; }
 
@@ -102,6 +104,17 @@ namespace Microsoft.Extensions.Configuration.Binder.Test
         public class DerivedOptionsWithIConfigurationSection : DerivedOptions
         {
             public IConfigurationSection DerivedSection { get; set; }
+        }
+
+        public struct ValueTypeOptions
+        {
+            public int MyInt32 { get; set; }
+            public string MyString { get; set; }
+        }
+
+        public class ByteArrayOptions
+        {
+            public byte[] MyByteArray { get; set; }
         }
 
         [Fact]
@@ -189,6 +202,22 @@ namespace Microsoft.Extensions.Configuration.Binder.Test
             Assert.Equal("DerivedSection", childOptions.DerivedSection.Key);
             Assert.Equal("Section:DerivedSection", childOptions.DerivedSection.Path);
             Assert.Null(options.Section.Value);
+        }
+
+        [Fact]
+        public void CanBindConfigurationKeyNameAttributes()
+        {
+            var dic = new Dictionary<string, string>
+            {
+                {"Named_Property", "Yo"},
+            };
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(dic);
+            var config = configurationBuilder.Build();
+
+            var options = config.Get<ComplexOptions>();
+            
+            Assert.Equal("Yo", options.NamedProperty);
         }
 
         [Fact]
@@ -787,6 +816,72 @@ namespace Microsoft.Extensions.Configuration.Binder.Test
                 () => config.Bind(new TestOptions()));
             Assert.Equal(
                 SR.Format(SR.Error_CannotActivateAbstractOrInterface, typeof(ISomeInterface)),
+                exception.Message);
+        }
+
+        [Fact]
+        public void CanBindValueTypeOptions()
+        {
+            var dic = new Dictionary<string, string>
+            {
+                {"MyInt32", "42"},
+                {"MyString", "hello world"},
+            };
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(dic);
+            var config = configurationBuilder.Build();
+
+            var options = config.Get<ValueTypeOptions>();
+            Assert.Equal(42, options.MyInt32);
+            Assert.Equal("hello world", options.MyString);
+        }
+
+        [Fact]
+        public void CanBindByteArray()
+        {
+            var bytes = new byte[] { 1, 2, 3, 4 };
+            var dic = new Dictionary<string, string>
+            {
+                { "MyByteArray", Convert.ToBase64String(bytes) }
+            };
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(dic);
+            var config = configurationBuilder.Build();
+
+            var options = config.Get<ByteArrayOptions>();
+            Assert.Equal(bytes, options.MyByteArray);
+        }
+
+        [Fact]
+        public void CanBindByteArrayWhenValueIsNull()
+        {
+            var dic = new Dictionary<string, string>
+            {
+                { "MyByteArray", null }
+            };
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(dic);
+            var config = configurationBuilder.Build();
+
+            var options = config.Get<ByteArrayOptions>();
+            Assert.Null(options.MyByteArray);
+        }
+
+        [Fact]
+        public void ExceptionWhenTryingToBindToByteArray()
+        {
+            var dic = new Dictionary<string, string>
+            {
+                { "MyByteArray", "(not a valid base64 string)" }
+            };
+            var configurationBuilder = new ConfigurationBuilder();
+            configurationBuilder.AddInMemoryCollection(dic);
+            var config = configurationBuilder.Build();
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => config.Get<ByteArrayOptions>());
+            Assert.Equal(
+                SR.Format(SR.Error_FailedBinding, "MyByteArray", typeof(byte[])),
                 exception.Message);
         }
 

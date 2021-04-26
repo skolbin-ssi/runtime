@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -26,8 +25,8 @@ namespace System.Linq.Parallel
     {
         // Predicate function. Used to filter out non-matching elements during execution.
         private readonly Func<TInputOutput, int, bool> _predicate;
-        private bool _prematureMerge = false; // Whether to prematurely merge the input of this operator.
-        private bool _limitsParallelism = false; // Whether this operator limits parallelism
+        private bool _prematureMerge; // Whether to prematurely merge the input of this operator.
+        private bool _limitsParallelism; // Whether this operator limits parallelism
 
         //---------------------------------------------------------------------------------------
         // Initializes a new where operator.
@@ -137,7 +136,7 @@ namespace System.Linq.Parallel
         // An enumerator that implements the filtering logic.
         //
 
-        private class IndexedWhereQueryOperatorEnumerator : QueryOperatorEnumerator<TInputOutput, int>
+        private sealed class IndexedWhereQueryOperatorEnumerator : QueryOperatorEnumerator<TInputOutput, int>
         {
             private readonly QueryOperatorEnumerator<TInputOutput, int> _source; // The data source to enumerate.
             private readonly Func<TInputOutput, int, bool> _predicate; // The predicate used for filtering.
@@ -174,7 +173,7 @@ namespace System.Linq.Parallel
                 while (_source.MoveNext(ref currentElement!, ref currentKey))
                 {
                     if ((_outputLoopCount.Value++ & CancellationState.POLL_INTERVAL) == 0)
-                        _cancellationToken.ThrowIfCancellationRequested();;
+                        _cancellationToken.ThrowIfCancellationRequested();
 
                     if (_predicate(currentElement, currentKey))
                     {

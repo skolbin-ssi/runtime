@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -12,7 +11,7 @@ namespace System.Net.Http
     {
         public static void TraceCallbackStatus(object thisOrContextObject, IntPtr handle, IntPtr context, uint status, [CallerMemberName] string memberName = null)
         {
-            Debug.Assert(NetEventSource.IsEnabled);
+            Debug.Assert(NetEventSource.Log.IsEnabled());
 
             NetEventSource.Info(
                 thisOrContextObject,
@@ -22,7 +21,7 @@ namespace System.Net.Http
 
         public static void TraceAsyncError(object thisOrContextObject, Interop.WinHttp.WINHTTP_ASYNC_RESULT asyncResult, [CallerMemberName] string memberName = null)
         {
-            Debug.Assert(NetEventSource.IsEnabled);
+            Debug.Assert(NetEventSource.Log.IsEnabled());
 
             uint apiIndex = (uint)asyncResult.dwResult.ToInt32();
             uint error = asyncResult.dwError;
@@ -93,7 +92,7 @@ namespace System.Net.Http
                 Interop.WinHttp.WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE => "STATUS_GETPROXYFORURL_COMPLETE",
                 Interop.WinHttp.WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE => "STATUS_CLOSE_COMPLETE",
                 Interop.WinHttp.WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE => "STATUS_SHUTDOWN_COMPLETE",
-                _ => string.Format("0x{0:X}", status),
+                _ => $"0x{status:X}",
             };
     }
 }

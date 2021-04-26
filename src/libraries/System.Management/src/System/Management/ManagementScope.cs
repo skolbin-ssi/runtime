@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
 using System.Runtime.InteropServices;
@@ -945,13 +944,11 @@ namespace System.Management
              */
             if (!IsConnected)
             {
-#pragma warning disable CA2002
                 lock (this)
-#pragma warning restore CA2002
                 {
                     if (!IsConnected)
                     {
-                        // The locator cannot be marshalled accross apartments, so we must create the locator
+                        // The locator cannot be marshalled across apartments, so we must create the locator
                         // and get the IWbemServices from an MTA thread
                         if (!MTAHelper.IsNoContextMTA())
                         {
@@ -972,8 +969,6 @@ namespace System.Management
         private void InitializeGuts(object o)
         {
             ManagementScope threadParam = (ManagementScope)o;
-            IWbemLocator loc = (IWbemLocator)new WbemLocator();
-            IntPtr punk = IntPtr.Zero;
 
             if (null == threadParam.options)
             {
@@ -989,8 +984,7 @@ namespace System.Management
                 // path here as we do NOT want to trigger an
                 // IdentifierChanged event as a result of this set
 
-                bool bUnused;
-                nsPath = threadParam.prvpath.SetNamespacePath(ManagementPath.DefaultPath.Path, out bUnused);
+                nsPath = threadParam.prvpath.SetNamespacePath(ManagementPath.DefaultPath.Path, out _);
             }
 
             int status = (int)ManagementStatus.NoError;
@@ -1044,7 +1038,7 @@ namespace System.Management
 
     }//ManagementScope
 
-    internal class SecuredIEnumWbemClassObjectHandler
+    internal sealed class SecuredIEnumWbemClassObjectHandler
     {
         private readonly IEnumWbemClassObject pEnumWbemClassObjectsecurityHelper;
         private readonly ManagementScope scope;
@@ -1098,7 +1092,7 @@ namespace System.Management
     }
 
 
-    internal class SecuredConnectHandler
+    internal sealed class SecuredConnectHandler
     {
         private readonly ManagementScope scope;
 
@@ -1148,7 +1142,7 @@ namespace System.Management
         }
     }
 
-    internal class SecuredIWbemServicesHandler
+    internal sealed class SecuredIWbemServicesHandler
     {
         private readonly IWbemServices pWbemServiecsSecurityHelper;
         private readonly ManagementScope scope;
@@ -1387,9 +1381,9 @@ namespace System.Management
     }
 
 
-    internal class SecurityHandler
+    internal sealed class SecurityHandler
     {
-        private bool needToReset = false;
+        private bool needToReset;
         private readonly IntPtr handle;
         private readonly ManagementScope scope;
 
@@ -1475,7 +1469,7 @@ namespace System.Management
     /// <summary>
     /// Converts a String to a ManagementScope
     /// </summary>
-    internal class ManagementScopeConverter : ExpandableObjectConverter
+    internal sealed class ManagementScopeConverter : ExpandableObjectConverter
     {
 
         /// <summary>

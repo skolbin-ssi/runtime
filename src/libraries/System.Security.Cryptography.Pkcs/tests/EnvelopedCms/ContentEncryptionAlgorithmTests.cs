@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Security.Cryptography.X509Certificates;
 using Xunit;
@@ -12,10 +11,11 @@ namespace System.Security.Cryptography.Pkcs.EnvelopedCmsTests.Tests
 {
     public static partial class ContentEncryptionAlgorithmTests
     {
+        public static bool SupportsRc2 => PlatformSupport.IsRC2Supported;
         public static bool SupportsRc4 => PlatformDetection.IsWindows;
         public static bool DoesNotSupportRc4 => !SupportsRc4;
 
-        [Fact]
+        [ConditionalFact(nameof(SupportsRc2))]
         public static void EncryptionAlgorithmRc2_InvalidKeyLength()
         {
             // For .NET Framework compat, variable key length ciphers throw an error if the key length provided
@@ -30,7 +30,7 @@ namespace System.Security.Cryptography.Pkcs.EnvelopedCmsTests.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(nameof(SupportsRc2))]
         public static void DecodeAlgorithmRc2_128_RoundTrip()
         {
             AlgorithmIdentifier algorithm = new AlgorithmIdentifier(new Oid(Oids.Rc2));
@@ -89,7 +89,7 @@ namespace System.Security.Cryptography.Pkcs.EnvelopedCmsTests.Tests
             Assert.Equal(40, algorithm.KeyLength);
         }
 
-        [Fact]
+        [ConditionalFact(nameof(SupportsRc2))]
         [OuterLoop(/* Leaks key on disk if interrupted */)]
         public static void DecodeAlgorithmRc2_40_RoundTrip()
         {

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -39,6 +38,40 @@ namespace System.Numerics.Tests
             Assert.Equal(2.0f, b[0]);
             Assert.Equal(3.0f, b[1]);
             Assert.Equal(3.3f, b[2]);
+        }
+
+        [Fact]
+        public void Vector3CopyToSpanTest()
+        {
+            Vector3 vector = new Vector3(1.0f, 2.0f, 3.0f);
+            Span<float> destination = new float[3];
+
+            Assert.Throws<ArgumentException>(() => vector.CopyTo(new Span<float>(new float[2])));
+            vector.CopyTo(destination);
+
+            Assert.Equal(1.0f, vector.X);
+            Assert.Equal(2.0f, vector.Y);
+            Assert.Equal(3.0f, vector.Z);
+            Assert.Equal(vector.X, destination[0]);
+            Assert.Equal(vector.Y, destination[1]);
+            Assert.Equal(vector.Z, destination[2]);
+        }
+
+        [Fact]
+        public void Vector3TryCopyToTest()
+        {
+            Vector3 vector = new Vector3(1.0f, 2.0f, 3.0f);
+            Span<float> destination = new float[3];
+
+            Assert.False(vector.TryCopyTo(new Span<float>(new float[2])));
+            Assert.True(vector.TryCopyTo(destination));
+
+            Assert.Equal(1.0f, vector.X);
+            Assert.Equal(2.0f, vector.Y);
+            Assert.Equal(3.0f, vector.Z);
+            Assert.Equal(vector.X, destination[0]);
+            Assert.Equal(vector.Y, destination[1]);
+            Assert.Equal(vector.Z, destination[2]);
         }
 
         [Fact]
@@ -127,6 +160,7 @@ namespace System.Numerics.Tests
 
         // A test for Distance (Vector3f, Vector3f)
         [Fact]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49824")]
         public void Vector3DistanceTest()
         {
             Vector3 a = new Vector3(1.0f, 2.0f, 3.0f);
@@ -142,6 +176,7 @@ namespace System.Numerics.Tests
         // A test for Distance (Vector3f, Vector3f)
         // Distance from the same point
         [Fact]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49824")]
         public void Vector3DistanceTest1()
         {
             Vector3 a = new Vector3(1.051f, 2.05f, 3.478f);
@@ -364,15 +399,60 @@ namespace System.Numerics.Tests
         }
 
         // A test for Lerp (Vector3f, Vector3f, float)
-        // Lerp test from the same point
+        // Lerp test with special float value
         [Fact]
         public void Vector3LerpTest5()
+        {
+            Vector3 a = new Vector3(45.67f, 90.0f, 0f);
+            Vector3 b = new Vector3(float.PositiveInfinity, float.NegativeInfinity, 0);
+
+            float t = 0.408f;
+            Vector3 actual = Vector3.Lerp(a, b, t);
+            Assert.True(float.IsPositiveInfinity(actual.X), "Vector3f.Lerp did not return the expected value.");
+            Assert.True(float.IsNegativeInfinity(actual.Y), "Vector3f.Lerp did not return the expected value.");
+        }
+
+        // A test for Lerp (Vector3f, Vector3f, float)
+        // Lerp test from the same point
+        [Fact]
+        public void Vector3LerpTest6()
         {
             Vector3 a = new Vector3(1.68f, 2.34f, 5.43f);
             Vector3 b = a;
 
             float t = 0.18f;
             Vector3 expected = new Vector3(1.68f, 2.34f, 5.43f);
+            Vector3 actual = Vector3.Lerp(a, b, t);
+            Assert.True(MathHelper.Equal(expected, actual), "Vector3f.Lerp did not return the expected value.");
+        }
+
+        // A test for Lerp (Vector3f, Vector3f, float)
+        // Lerp test with values known to be innacurate with the old lerp impl
+        [Fact]
+        public void Vector3LerpTest7()
+        {
+            Vector3 a = new Vector3(0.44728136f);
+            Vector3 b = new Vector3(0.46345946f);
+
+            float t = 0.26402435f;
+
+            Vector3 expected = new Vector3(0.45155275f);
+            Vector3 actual = Vector3.Lerp(a, b, t);
+            Assert.True(MathHelper.Equal(expected, actual), "Vector3f.Lerp did not return the expected value.");
+        }
+
+        // A test for Lerp (Vector3f, Vector3f, float)
+        // Lerp test with values known to be innacurate with the old lerp impl
+        // (Old code incorrectly gets 0.33333588)
+        [Fact]
+        public void Vector3LerpTest8()
+        {
+            Vector3 a = new Vector3(-100);
+            Vector3 b = new Vector3(0.33333334f);
+
+            float t = 1f;
+
+            Vector3 expected = new Vector3(0.33333334f);
             Vector3 actual = Vector3.Lerp(a, b, t);
             Assert.True(MathHelper.Equal(expected, actual), "Vector3f.Lerp did not return the expected value.");
         }
@@ -840,6 +920,18 @@ namespace System.Numerics.Tests
             Assert.True(float.IsNaN(target.X), "Vector3f.constructor (Vector3f) did not return the expected value.");
             Assert.True(float.Equals(float.MaxValue, target.Y), "Vector3f.constructor (Vector3f) did not return the expected value.");
             Assert.True(float.IsPositiveInfinity(target.Z), "Vector3f.constructor (Vector3f) did not return the expected value.");
+        }
+
+        // A test for Vector3f (ReadOnlySpan<float>)
+        [Fact]
+        public void Vector3ConstructorTest6()
+        {
+            float value = 1.0f;
+            Vector3 target = new Vector3(new[] { value, value, value });
+            Vector3 expected = new Vector3(value);
+
+            Assert.Equal(expected, target);
+            Assert.Throws<IndexOutOfRangeException>(() => new Vector3(new float[2]));
         }
 
         // A test for Add (Vector3f, Vector3f)

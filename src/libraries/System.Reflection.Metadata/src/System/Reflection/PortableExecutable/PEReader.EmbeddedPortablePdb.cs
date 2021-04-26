@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -68,7 +67,6 @@ namespace System.Reflection.PortableExecutable
                 throw new BadImageFormatException(SR.Format(SR.UnsupportedFormatVersion, PortablePdbVersions.Format(embeddedBlobVersion)));
             }
         }
-
 
         // internal for testing
         internal static unsafe ImmutableArray<byte> DecodeEmbeddedPortablePdbDebugDirectoryData(AbstractMemoryBlock block)
@@ -148,7 +146,7 @@ namespace System.Reflection.PortableExecutable
             }
             finally
             {
-                if (candidate == null)
+                if (provider == null)
                 {
                     candidate?.Dispose();
                 }

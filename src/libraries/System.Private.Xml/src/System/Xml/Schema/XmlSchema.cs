@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Xml.Schema
 {
@@ -11,6 +10,7 @@ namespace System.Xml.Schema
     using System.Threading;
     using System.Diagnostics;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
 
     [XmlRoot("schema", Namespace = XmlSchema.Namespace)]
     public class XmlSchema : XmlSchemaObject
@@ -22,20 +22,20 @@ namespace System.Xml.Schema
         private XmlSchemaForm _elementFormDefault = XmlSchemaForm.None;
         private XmlSchemaDerivationMethod _blockDefault = XmlSchemaDerivationMethod.None;
         private XmlSchemaDerivationMethod _finalDefault = XmlSchemaDerivationMethod.None;
-        private string _targetNs;
-        private string _version;
+        private string? _targetNs;
+        private string? _version;
         private XmlSchemaObjectCollection _includes = new XmlSchemaObjectCollection();
         private XmlSchemaObjectCollection _items = new XmlSchemaObjectCollection();
-        private string _id;
-        private XmlAttribute[] _moreAttributes;
+        private string? _id;
+        private XmlAttribute[]? _moreAttributes;
 
         // compiled info
-        private bool _isCompiled = false;
-        private bool _isCompiledBySet = false;
-        private bool _isPreprocessed = false;
-        private bool _isRedefined = false;
-        private int _errorCount = 0;
-        private XmlSchemaObjectTable _attributes;
+        private bool _isCompiled;
+        private bool _isCompiledBySet;
+        private bool _isPreprocessed;
+        private bool _isRedefined;
+        private int _errorCount;
+        private XmlSchemaObjectTable? _attributes;
         private XmlSchemaObjectTable _attributeGroups = new XmlSchemaObjectTable();
         private XmlSchemaObjectTable _elements = new XmlSchemaObjectTable();
         private XmlSchemaObjectTable _types = new XmlSchemaObjectTable();
@@ -44,29 +44,29 @@ namespace System.Xml.Schema
         private readonly XmlSchemaObjectTable _identityConstraints = new XmlSchemaObjectTable();
 
         private static int s_globalIdCounter = -1;
-        private ArrayList _importedSchemas;
-        private ArrayList _importedNamespaces;
+        private ArrayList? _importedSchemas;
+        private ArrayList? _importedNamespaces;
 
         private int _schemaId = -1; //Not added to a set
-        private Uri _baseUri;
+        private Uri? _baseUri;
         private bool _isChameleon;
         private readonly Hashtable _ids = new Hashtable();
-        private XmlDocument _document;
-        private XmlNameTable _nameTable;
+        private XmlDocument? _document;
+        private XmlNameTable? _nameTable;
 
         public XmlSchema() { }
 
-        public static XmlSchema Read(TextReader reader, ValidationEventHandler validationEventHandler)
+        public static XmlSchema? Read(TextReader reader, ValidationEventHandler? validationEventHandler)
         {
             return Read(new XmlTextReader(reader), validationEventHandler);
         }
 
-        public static XmlSchema Read(Stream stream, ValidationEventHandler validationEventHandler)
+        public static XmlSchema? Read(Stream stream, ValidationEventHandler? validationEventHandler)
         {
             return Read(new XmlTextReader(stream), validationEventHandler);
         }
 
-        public static XmlSchema Read(XmlReader reader, ValidationEventHandler validationEventHandler)
+        public static XmlSchema? Read(XmlReader reader, ValidationEventHandler? validationEventHandler)
         {
             XmlNameTable nameTable = reader.NameTable;
             Parser parser = new Parser(SchemaType.XSD, nameTable, new SchemaNames(nameTable), validationEventHandler);
@@ -89,36 +89,46 @@ namespace System.Xml.Schema
             return parser.XmlSchema;
         }
 
+        [RequiresUnreferencedCode(XmlSerializer.TrimSerializationWarning)]
         public void Write(Stream stream)
         {
             Write(stream, null);
         }
 
-        public void Write(Stream stream, XmlNamespaceManager namespaceManager)
+        [RequiresUnreferencedCode(XmlSerializer.TrimSerializationWarning)]
+        public void Write(Stream stream, XmlNamespaceManager? namespaceManager)
         {
             XmlTextWriter xmlWriter = new XmlTextWriter(stream, null);
             xmlWriter.Formatting = Formatting.Indented;
             Write(xmlWriter, namespaceManager);
         }
 
+        [RequiresUnreferencedCode(XmlSerializer.TrimSerializationWarning)]
         public void Write(TextWriter writer)
         {
             Write(writer, null);
         }
 
-        public void Write(TextWriter writer, XmlNamespaceManager namespaceManager)
+        [RequiresUnreferencedCode(XmlSerializer.TrimSerializationWarning)]
+        public void Write(TextWriter writer, XmlNamespaceManager? namespaceManager)
         {
             XmlTextWriter xmlWriter = new XmlTextWriter(writer);
             xmlWriter.Formatting = Formatting.Indented;
             Write(xmlWriter, namespaceManager);
         }
 
+        [RequiresUnreferencedCode(XmlSerializer.TrimSerializationWarning)]
         public void Write(XmlWriter writer)
         {
             Write(writer, null);
         }
 
-        public void Write(XmlWriter writer, XmlNamespaceManager namespaceManager)
+        [DynamicDependency(TrimmerConstants.PublicMembers, typeof(XmlSchema))]
+        // This method may be safe given the above Dynamic Dependency but it is not yet fully understood if just preserving
+        // all of XmlSchema public members is enough in order to be safe in all cases, so we have opted to keep the RequiresUnreferencedCode
+        // attribute for now. This can be removed in the future if it is determined that the above is enough for all scenarios to be trim-safe.
+        [RequiresUnreferencedCode(XmlSerializer.TrimSerializationWarning)]
+        public void Write(XmlWriter writer, XmlNamespaceManager? namespaceManager)
         {
             XmlSerializer serializer = new XmlSerializer(typeof(XmlSchema));
             XmlSerializerNamespaces ns;
@@ -140,13 +150,13 @@ namespace System.Xml.Schema
                 {
                     if (prefix != "xml" && prefix != "xmlns")
                     {
-                        ns.Add(prefix, namespaceManager.LookupNamespace(prefix));
+                        ns.Add(prefix, namespaceManager.LookupNamespace(prefix!));
                     }
                 }
             }
             else if (this.Namespaces != null && this.Namespaces.Count > 0)
             {
-                Dictionary<string, string> serializerNS = this.Namespaces.Namespaces;
+                Dictionary<string, string?> serializerNS = this.Namespaces.Namespaces;
                 if (!serializerNS.ContainsKey("xs") && !serializerNS.ContainsValue(XmlReservedNs.NsXs))
                 { //Prefix xs not defined AND schema namespace not already mapped to a prefix
                     serializerNS.Add("xs", XmlReservedNs.NsXs);
@@ -166,7 +176,7 @@ namespace System.Xml.Schema
         }
 
         [Obsolete("Use System.Xml.Schema.XmlSchemaSet for schema compilation and validation. https://go.microsoft.com/fwlink/?linkid=14202")]
-        public void Compile(ValidationEventHandler validationEventHandler)
+        public void Compile(ValidationEventHandler? validationEventHandler)
         {
             SchemaInfo sInfo = new SchemaInfo();
             sInfo.SchemaType = SchemaType.XSD;
@@ -174,7 +184,7 @@ namespace System.Xml.Schema
         }
 
         [Obsolete("Use System.Xml.Schema.XmlSchemaSet for schema compilation and validation. https://go.microsoft.com/fwlink/?linkid=14202")]
-        public void Compile(ValidationEventHandler validationEventHandler, XmlResolver resolver)
+        public void Compile(ValidationEventHandler? validationEventHandler, XmlResolver? resolver)
         {
             SchemaInfo sInfo = new SchemaInfo();
             sInfo.SchemaType = SchemaType.XSD;
@@ -182,7 +192,7 @@ namespace System.Xml.Schema
         }
 
 #pragma warning disable 618
-        internal bool CompileSchema(XmlSchemaCollection xsc, XmlResolver resolver, SchemaInfo schemaInfo, string ns, ValidationEventHandler validationEventHandler, XmlNameTable nameTable, bool CompileContentModel)
+        internal bool CompileSchema(XmlSchemaCollection? xsc, XmlResolver? resolver, SchemaInfo schemaInfo, string? ns, ValidationEventHandler? validationEventHandler, XmlNameTable nameTable, bool CompileContentModel)
         {
             //Need to lock here to prevent multi-threading problems when same schema is added to set and compiled
             lock (this)
@@ -204,7 +214,7 @@ namespace System.Xml.Schema
         }
 #pragma warning restore 618
 
-        internal void CompileSchemaInSet(XmlNameTable nameTable, ValidationEventHandler eventHandler, XmlSchemaCompilationSettings compilationSettings)
+        internal void CompileSchemaInSet(XmlNameTable nameTable, ValidationEventHandler? eventHandler, XmlSchemaCompilationSettings? compilationSettings)
         {
             Debug.Assert(_isPreprocessed);
             Compiler setCompiler = new Compiler(nameTable, eventHandler, null, compilationSettings);
@@ -241,14 +251,14 @@ namespace System.Xml.Schema
         }
 
         [XmlAttribute("targetNamespace", DataType = "anyURI")]
-        public string TargetNamespace
+        public string? TargetNamespace
         {
             get { return _targetNs; }
             set { _targetNs = value; }
         }
 
         [XmlAttribute("version", DataType = "token")]
-        public string Version
+        public string? Version
         {
             get { return _version; }
             set { _version = value; }
@@ -359,14 +369,14 @@ namespace System.Xml.Schema
         }
 
         [XmlAttribute("id", DataType = "ID")]
-        public string Id
+        public string? Id
         {
             get { return _id; }
             set { _id = value; }
         }
 
         [XmlAnyAttribute]
-        public XmlAttribute[] UnhandledAttributes
+        public XmlAttribute[]? UnhandledAttributes
         {
             get { return _moreAttributes; }
             set { _moreAttributes = value; }
@@ -391,7 +401,7 @@ namespace System.Xml.Schema
         }
 
         [XmlIgnore]
-        internal Uri BaseUri
+        internal Uri? BaseUri
         {
             get { return _baseUri; }
             set
@@ -481,9 +491,9 @@ namespace System.Xml.Schema
             {
                 XmlSchemaObject newItem;
 
-                XmlSchemaComplexType complexType;
-                XmlSchemaElement element;
-                XmlSchemaGroup group;
+                XmlSchemaComplexType? complexType;
+                XmlSchemaElement? element;
+                XmlSchemaGroup? group;
 
                 if ((complexType = _items[i] as XmlSchemaComplexType) != null)
                 {
@@ -517,7 +527,7 @@ namespace System.Xml.Schema
         }
 
         [XmlIgnore]
-        internal override string IdAttribute
+        internal override string? IdAttribute
         {
             get { return Id; }
             set { Id = value; }
@@ -532,6 +542,7 @@ namespace System.Xml.Schema
         {
             _moreAttributes = moreAttributes;
         }
+
         internal override void AddAnnotation(XmlSchemaAnnotation annotation)
         {
             _items.Add(annotation);

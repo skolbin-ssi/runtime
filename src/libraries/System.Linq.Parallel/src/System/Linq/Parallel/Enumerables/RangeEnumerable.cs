@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -16,7 +15,7 @@ namespace System.Linq.Parallel
     /// A simple enumerable type that implements the range algorithm. It also supports
     /// partitioning of the indices by implementing an interface that PLINQ recognizes.
     /// </summary>
-    internal class RangeEnumerable : ParallelQuery<int>, IParallelPartitionable<int>
+    internal sealed class RangeEnumerable : ParallelQuery<int>, IParallelPartitionable<int>
     {
         private readonly int _from; // Lowest index to include.
         private readonly int _count; // Number of indices to include.
@@ -72,7 +71,7 @@ namespace System.Linq.Parallel
         // The actual enumerator that walks over the specified range.
         //
 
-        private class RangeEnumerator : QueryOperatorEnumerator<int, int>
+        private sealed class RangeEnumerator : QueryOperatorEnumerator<int, int>
         {
             private readonly int _from; // The initial value.
             private readonly int _count; // How many values to yield.

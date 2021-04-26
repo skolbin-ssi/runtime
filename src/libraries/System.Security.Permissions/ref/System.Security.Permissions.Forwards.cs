@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 // ------------------------------------------------------------------------------
 // Changes to this file must follow the https://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
+#pragma warning disable SYSLIB0003 // CAS Obsoletions
 
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.IPermission))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.ISecurityEncodable))]
@@ -13,6 +13,8 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.SecurityAttribute))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.SecurityPermissionAttribute))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Permissions.SecurityPermissionFlag))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Policy.Evidence))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.Policy.EvidenceBase))]
 #if NETCOREAPP
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.IStackWalk))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Security.PermissionSet))]

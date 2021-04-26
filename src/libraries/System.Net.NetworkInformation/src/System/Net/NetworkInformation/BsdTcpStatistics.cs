@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Net.NetworkInformation
 {
-    internal class BsdTcpStatistics : TcpStatistics
+    internal sealed class BsdTcpStatistics : TcpStatistics
     {
         private readonly long _connectionsAccepted;
         private readonly long _connectionsInitiated;

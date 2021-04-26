@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Runtime.Serialization
 {
@@ -11,10 +11,11 @@ namespace System.Runtime.Serialization
     {
         private readonly GenericParameterDataContractCriticalHelper _helper;
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         internal GenericParameterDataContract(Type type)
             : base(new GenericParameterDataContractCriticalHelper(type))
         {
-            _helper = base.Helper as GenericParameterDataContractCriticalHelper;
+            _helper = (base.Helper as GenericParameterDataContractCriticalHelper)!;
         }
 
         internal int ParameterPosition
@@ -31,11 +32,14 @@ namespace System.Runtime.Serialization
             }
         }
 
-        private class GenericParameterDataContractCriticalHelper : DataContract.DataContractCriticalHelper
+        private sealed class GenericParameterDataContractCriticalHelper : DataContract.DataContractCriticalHelper
         {
             private readonly int _parameterPosition;
 
-            internal GenericParameterDataContractCriticalHelper(Type type)
+            [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
+            internal GenericParameterDataContractCriticalHelper(
+                [DynamicallyAccessedMembers(ClassDataContract.DataContractPreserveMemberTypes)]
+                Type type)
                 : base(type)
             {
                 SetDataContractName(DataContract.GetStableName(type));

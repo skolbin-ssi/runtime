@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Linq.Expressions;
 using Xunit;
@@ -16,10 +15,25 @@ namespace System.Linq.Tests.LegacyTests
         }
 
         [Fact]
+        public void EmptyDefault()
+        {
+            int[] source = { };
+            int defaultValue = 5;
+            Assert.Equal(defaultValue, source.AsQueryable().LastOrDefault(defaultValue));
+        }
+
+        [Fact]
         public void OneElement()
         {
             int[] source = { 5 };
             Assert.Equal(5, source.AsQueryable().LastOrDefault());
+        }
+
+        [Fact]
+        public void OneElementFalsePredicate()
+        {
+            int[] source = { 3 };
+            Assert.Equal(5, source.AsQueryable().LastOrDefault(i => i % 2 == 0, 5));
         }
 
         [Fact]

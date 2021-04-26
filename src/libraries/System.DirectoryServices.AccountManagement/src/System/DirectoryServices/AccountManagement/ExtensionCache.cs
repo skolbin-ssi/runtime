@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.DirectoryServices.AccountManagement
 {
@@ -9,7 +8,7 @@ namespace System.DirectoryServices.AccountManagement
     using System.Collections;
     using System.DirectoryServices;
 
-    internal class ExtensionCacheValue
+    internal sealed class ExtensionCacheValue
     {
         internal ExtensionCacheValue(object[] value)
         {
@@ -48,7 +47,7 @@ namespace System.DirectoryServices.AccountManagement
         private readonly MatchType _matchType;
     }
 
-    internal class ExtensionCache
+    internal sealed class ExtensionCache
     {
         private readonly Dictionary<string, ExtensionCacheValue> _cache = new Dictionary<string, ExtensionCacheValue>();
 

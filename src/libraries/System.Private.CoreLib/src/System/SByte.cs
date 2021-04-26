@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -14,7 +13,7 @@ namespace System
     [CLSCompliant(false)]
     [StructLayout(LayoutKind.Sequential)]
     [TypeForwardedFrom("mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
-    public readonly struct SByte : IComparable, IConvertible, IFormattable, IComparable<sbyte>, IEquatable<sbyte>, ISpanFormattable
+    public readonly struct SByte : IComparable, IConvertible, ISpanFormattable, IComparable<sbyte>, IEquatable<sbyte>
     {
         private readonly sbyte m_value; // Do not rename (binary serialization)
 
@@ -50,7 +49,7 @@ namespace System
         }
 
         // Determines whether two Byte objects are equal.
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             if (!(obj is sbyte))
             {

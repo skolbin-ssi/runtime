@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #if ES_BUILD_STANDALONE
 using System;
 #endif
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 #if ES_BUILD_STANDALONE
@@ -26,15 +26,17 @@ namespace System.Diagnostics.Tracing
         internal readonly EventOpcode opcode = (EventOpcode)(-1);
         internal readonly EventTags tags;
 
+#if !ES_BUILD_STANDALONE
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("EventSource WriteEvent will serialize the whole object graph. Trimmer will not safely handle this case because properties may be trimmed. This can be suppressed if the object is a primitive type")]
+#endif
         public TypeAnalysis(
             Type dataType,
             EventDataAttribute? eventAttrib,
             List<Type> recursionCheck)
         {
-            IEnumerable<PropertyInfo> propertyInfos = Statics.GetProperties(dataType);
             var propertyList = new List<PropertyAnalysis>();
 
-            foreach (PropertyInfo propertyInfo in propertyInfos)
+            foreach (PropertyInfo propertyInfo in dataType.GetProperties())
             {
                 if (Statics.HasCustomAttribute(propertyInfo, typeof(EventIgnoreAttribute)))
                 {
@@ -47,7 +49,7 @@ namespace System.Diagnostics.Tracing
                     continue;
                 }
 
-                MethodInfo? getterInfo = Statics.GetGetMethod(propertyInfo);
+                MethodInfo? getterInfo = propertyInfo.GetGetMethod();
                 if (getterInfo == null)
                 {
                     continue;

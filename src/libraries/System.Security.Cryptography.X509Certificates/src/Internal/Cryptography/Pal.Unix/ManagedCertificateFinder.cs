@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Formats.Asn1;
 using System.Numerics;
 using System.Security.Cryptography;
-using System.Security.Cryptography.Asn1;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.X509Certificates.Asn1;
 
@@ -42,49 +41,52 @@ namespace Internal.Cryptography.Pal
 
         public void FindByThumbprint(byte[] thumbprint)
         {
-            FindCore(cert => cert.GetCertHash().ContentsEqual(thumbprint));
+            FindCore(thumbprint, static (thumbprint, cert) => cert.GetCertHash().ContentsEqual(thumbprint));
         }
 
         public void FindBySubjectName(string subjectName)
         {
             FindCore(
-                cert =>
+                subjectName,
+                static (subjectName, cert) =>
                 {
                     string formedSubject = X500NameEncoder.X500DistinguishedNameDecode(cert.SubjectName.RawData, false, X500DistinguishedNameFlags.None);
 
-                    return formedSubject.IndexOf(subjectName, StringComparison.OrdinalIgnoreCase) >= 0;
+                    return formedSubject.Contains(subjectName, StringComparison.OrdinalIgnoreCase);
                 });
         }
 
         public void FindBySubjectDistinguishedName(string subjectDistinguishedName)
         {
-            FindCore(cert => StringComparer.OrdinalIgnoreCase.Equals(subjectDistinguishedName, cert.Subject));
+            FindCore(subjectDistinguishedName, static (subjectDistinguishedName, cert) => StringComparer.OrdinalIgnoreCase.Equals(subjectDistinguishedName, cert.Subject));
         }
 
         public void FindByIssuerName(string issuerName)
         {
             FindCore(
-                cert =>
+                issuerName,
+                static (issuerName, cert) =>
                 {
                     string formedIssuer = X500NameEncoder.X500DistinguishedNameDecode(cert.IssuerName.RawData, false, X500DistinguishedNameFlags.None);
 
-                    return formedIssuer.IndexOf(issuerName, StringComparison.OrdinalIgnoreCase) >= 0;
+                    return formedIssuer.Contains(issuerName, StringComparison.OrdinalIgnoreCase);
                 });
         }
 
         public void FindByIssuerDistinguishedName(string issuerDistinguishedName)
         {
-            FindCore(cert => StringComparer.OrdinalIgnoreCase.Equals(issuerDistinguishedName, cert.Issuer));
+            FindCore(issuerDistinguishedName, static (issuerDistinguishedName, cert) => StringComparer.OrdinalIgnoreCase.Equals(issuerDistinguishedName, cert.Issuer));
         }
 
         public void FindBySerialNumber(BigInteger hexValue, BigInteger decimalValue)
         {
             FindCore(
-                cert =>
+                (hexValue, decimalValue),
+                static (state, cert) =>
                 {
                     byte[] serialBytes = cert.GetSerialNumber();
                     BigInteger serialNumber = FindPal.PositiveBigIntegerFromByteArray(serialBytes);
-                    bool match = hexValue.Equals(serialNumber) || decimalValue.Equals(serialNumber);
+                    bool match = state.hexValue.Equals(serialNumber) || state.decimalValue.Equals(serialNumber);
 
                     return match;
                 });
@@ -108,36 +110,46 @@ namespace Internal.Cryptography.Pal
         {
             DateTime normalized = NormalizeDateTime(dateTime);
 
-            FindCore(cert => cert.NotBefore <= normalized && normalized <= cert.NotAfter);
+            FindCore(normalized, static (normalized, cert) => cert.NotBefore <= normalized && normalized <= cert.NotAfter);
         }
 
         public void FindByTimeNotYetValid(DateTime dateTime)
         {
             DateTime normalized = NormalizeDateTime(dateTime);
 
-            FindCore(cert => cert.NotBefore > normalized);
+            FindCore(normalized, static (normalized, cert) => cert.NotBefore > normalized);
         }
 
         public void FindByTimeExpired(DateTime dateTime)
         {
             DateTime normalized = NormalizeDateTime(dateTime);
 
-            FindCore(cert => cert.NotAfter < normalized);
+            FindCore(normalized, static (normalized, cert) => cert.NotAfter < normalized);
         }
 
         public void FindByTemplateName(string templateName)
         {
             FindCore(
-                cert =>
+                templateName,
+                static (templateName, cert) =>
                 {
                     X509Extension? ext = FindExtension(cert, Oids.EnrollCertTypeExtension);
 
                     if (ext != null)
                     {
-                        // Try a V1 template structure, just a string:
-                        AsnReader reader = new AsnReader(ext.RawData, AsnEncodingRules.DER);
-                        string decodedName = reader.ReadAnyAsnString();
-                        reader.ThrowIfNotEmpty();
+                        string decodedName;
+
+                        try
+                        {
+                            // Try a V1 template structure, just a string:
+                            AsnReader reader = new AsnReader(ext.RawData, AsnEncodingRules.DER);
+                            decodedName = reader.ReadAnyAsnString();
+                            reader.ThrowIfNotEmpty();
+                        }
+                        catch (AsnContentException e)
+                        {
+                            throw new CryptographicException(SR.Cryptography_Der_Invalid_Encoding, e);
+                        }
 
                         // If this doesn't match, maybe a V2 template will
                         if (StringComparer.OrdinalIgnoreCase.Equals(templateName, decodedName))
@@ -164,7 +176,8 @@ namespace Internal.Cryptography.Pal
         public void FindByApplicationPolicy(string oidValue)
         {
             FindCore(
-                cert =>
+                oidValue,
+                static (oidValue, cert) =>
                 {
                     X509Extension? ext = FindExtension(cert, Oids.EnhancedKeyUsage);
 
@@ -193,7 +206,8 @@ namespace Internal.Cryptography.Pal
         public void FindByCertificatePolicy(string oidValue)
         {
             FindCore(
-                cert =>
+                oidValue,
+                static (oidValue, cert) =>
                 {
                     X509Extension? ext = FindExtension(cert, Oids.CertPolicies);
 
@@ -210,13 +224,14 @@ namespace Internal.Cryptography.Pal
 
         public void FindByExtension(string oidValue)
         {
-            FindCore(cert => FindExtension(cert, oidValue) != null);
+            FindCore(oidValue, static (oidValue, cert) => FindExtension(cert, oidValue) != null);
         }
 
         public void FindByKeyUsage(X509KeyUsageFlags keyUsage)
         {
             FindCore(
-                cert =>
+                keyUsage,
+                static (keyUsage, cert) =>
                 {
                     X509Extension? ext = FindExtension(cert, Oids.KeyUsage);
 
@@ -238,7 +253,8 @@ namespace Internal.Cryptography.Pal
         public void FindBySubjectKeyIdentifier(byte[] keyIdentifier)
         {
             FindCore(
-                cert =>
+                keyIdentifier,
+                (keyIdentifier, cert) =>
                 {
                     X509Extension? ext = FindExtension(cert, Oids.SubjectKeyIdentifier);
                     byte[] certKeyId;
@@ -258,13 +274,8 @@ namespace Internal.Cryptography.Pal
                         // SubjectPublicKeyInfo block, and returns that.
                         //
                         // https://msdn.microsoft.com/en-us/library/windows/desktop/aa376079%28v=vs.85%29.aspx
-
-                        using (HashAlgorithm hash = SHA1.Create())
-                        {
-                            byte[] publicKeyInfoBytes = GetSubjectPublicKeyInfo(cert);
-
-                            certKeyId = hash.ComputeHash(publicKeyInfoBytes);
-                        }
+                        byte[] publicKeyInfoBytes = GetSubjectPublicKeyInfo(cert);
+                        certKeyId = SHA1.HashData(publicKeyInfoBytes);
                     }
 
                     return keyIdentifier.ContentsEqual(certKeyId);
@@ -302,11 +313,14 @@ namespace Internal.Cryptography.Pal
 
         protected abstract X509Certificate2 CloneCertificate(X509Certificate2 cert);
 
-        private void FindCore(Predicate<X509Certificate2> predicate)
+        private void FindCore<TState>(TState state, Func<TState, X509Certificate2, bool> predicate)
         {
-            foreach (X509Certificate2 cert in _findFrom)
+            X509Certificate2Collection findFrom = _findFrom;
+            int count = findFrom.Count;
+            for (int i = 0; i < count; i++)
             {
-                if (predicate(cert))
+                X509Certificate2 cert = findFrom[i];
+                if (predicate(state, cert))
                 {
                     if (!_validOnly || IsCertValid(cert))
                     {

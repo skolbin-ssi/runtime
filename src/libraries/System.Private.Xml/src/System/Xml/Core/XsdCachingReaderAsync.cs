@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using System.Text;
@@ -14,18 +13,18 @@ using System.Threading.Tasks;
 
 namespace System.Xml
 {
-    internal partial class XsdCachingReader : XmlReader, IXmlLineInfo
+    internal sealed partial class XsdCachingReader : XmlReader, IXmlLineInfo
     {
         // Gets the text value of the current node.
         public override Task<string> GetValueAsync()
         {
             if (_returnOriginalStringValues)
             {
-                return Task.FromResult(_cachedNode.OriginalStringValue);
+                return Task.FromResult(_cachedNode!.OriginalStringValue!);
             }
             else
             {
-                return Task.FromResult(_cachedNode.RawValue);
+                return Task.FromResult(_cachedNode!.RawValue);
             }
         }
 
@@ -39,7 +38,7 @@ namespace System.Xml
                     goto case CachingReaderState.Record;
 
                 case CachingReaderState.Record:
-                    ValidatingReaderNodeData recordedNode = null;
+                    ValidatingReaderNodeData? recordedNode = null;
                     if (await _coreReader.ReadAsync().ConfigureAwait(false))
                     {
                         switch (_coreReader.NodeType)
@@ -107,7 +106,7 @@ namespace System.Xml
         public override async Task SkipAsync()
         {
             //Skip on caching reader should move to the end of the subtree, past all cached events
-            switch (_cachedNode.NodeType)
+            switch (_cachedNode!.NodeType)
             {
                 case XmlNodeType.Element:
                     if (_coreReader.NodeType != XmlNodeType.EndElement && !_readAhead)

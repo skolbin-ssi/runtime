@@ -1,44 +1,55 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #nullable enable
 using System.Resources;
-using System.Runtime.CompilerServices;
 
 namespace System
 {
-    internal partial class SR
+    internal static partial class SR
     {
-        // This method is used to decide if we need to append the exception message parameters to the message when calling SR.Format.
-        // by default it returns false.
-        // Native code generators can replace the value this returns based on user input at the time of native code generation.
-        // Marked as NoInlining because if this is used in an AoT compiled app that is not compiled into a single file, the user
-        // could compile each module with a different setting for this. We want to make sure there's a consistent behavior
-        // that doesn't depend on which native module this method got inlined into.
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool UsingResourceKeys() => false;
+#if (!NETSTANDARD1_0 && !NETSTANDARD1_1 && !NET45) // AppContext is not supported on < NetStandard1.3 or < .NET Framework 4.5
+        private static readonly bool s_usingResourceKeys = AppContext.TryGetSwitch("System.Resources.UseSystemResourceKeys", out bool usingResourceKeys) ? usingResourceKeys : false;
+#endif
 
-        internal static string GetResourceString(string resourceKey, string? defaultString = null)
+        // This method is used to decide if we need to append the exception message parameters to the message when calling SR.Format.
+        // by default it returns the value of System.Resources.UseSystemResourceKeys AppContext switch or false if not specified.
+        // Native code generators can replace the value this returns based on user input at the time of native code generation.
+        // The Linker is also capable of replacing the value of this method when the application is being trimmed.
+        private static bool UsingResourceKeys() =>
+#if (!NETSTANDARD1_0 && !NETSTANDARD1_1 && !NET45) // AppContext is not supported on < NetStandard1.3 or < .NET Framework 4.5
+            s_usingResourceKeys;
+#else
+            false;
+#endif
+
+        internal static string GetResourceString(string resourceKey)
         {
             if (UsingResourceKeys())
             {
-                return defaultString ?? resourceKey;
+                return resourceKey;
             }
 
             string? resourceString = null;
             try
             {
-                resourceString = ResourceManager.GetString(resourceKey);
+                resourceString =
+#if SYSTEM_PRIVATE_CORELIB
+                    InternalGetResourceString(resourceKey);
+#else
+                    ResourceManager.GetString(resourceKey);
+#endif
             }
             catch (MissingManifestResourceException) { }
 
-            if (defaultString != null && resourceKey.Equals(resourceString))
-            {
-                return defaultString;
-            }
-
             return resourceString!; // only null if missing resources
+        }
+
+        internal static string GetResourceString(string resourceKey, string defaultString)
+        {
+            string resourceString = GetResourceString(resourceKey);
+
+            return resourceKey == resourceString || resourceString == null ? defaultString : resourceString;
         }
 
         internal static string Format(string resourceFormat, object? p1)

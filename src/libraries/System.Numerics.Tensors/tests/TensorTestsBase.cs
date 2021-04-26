@@ -1,8 +1,8 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace System.Numerics.Tensors.Tests
 {
@@ -139,6 +139,27 @@ namespace System.Numerics.Tensors.Tests
                         };
                     }
                 }
+            }
+        }
+
+        public static IEnumerable<object[]> GetConstructedTensors()
+        {
+            foreach (var ctor in GetSingleTensorConstructors().Select(x => (TensorConstructor)x[0]))
+            {
+                yield return new object[] { ctor.CreateFromArray<int>(Array.Empty<int>()) };
+                yield return new object[] { ctor.CreateFromArray<int>(new[] { 7 }) };
+                yield return new object[] { ctor.CreateFromArray<int>(new[] { 7, 14 }) };
+                yield return new object[] { ctor.CreateFromArray<int>(new[] { 7, 14, 21 }) };
+                yield return new object[]
+                {
+                    ctor.CreateFromArray<int>(new[,]
+                    {
+                        { 3, 6, 9 },
+                        { 5, 10, 15 },
+                        { 7, 14, 21 },
+                        { 11, 22, 33 }
+                    })
+                };
             }
         }
 

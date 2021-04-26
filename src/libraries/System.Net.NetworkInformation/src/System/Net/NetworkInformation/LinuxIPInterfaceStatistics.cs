@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 
@@ -10,7 +9,7 @@ namespace System.Net.NetworkInformation
     /// IPInterfaceStatistics provider for Linux.
     /// Reads information out of /proc/net/dev and other locations.
     /// </summary>
-    internal class LinuxIPInterfaceStatistics : IPInterfaceStatistics
+    internal sealed class LinuxIPInterfaceStatistics : IPInterfaceStatistics
     {
         // /proc/net/dev statistics table for network interface
         private readonly IPInterfaceStatisticsTable _table;

@@ -1,14 +1,14 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.CSharp.RuntimeBinder.ComInterop
 {
-    internal class UnknownArgBuilder : SimpleArgBuilder
+    internal sealed class UnknownArgBuilder : SimpleArgBuilder
     {
         private readonly bool _isWrapper;
 
@@ -18,6 +18,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
             _isWrapper = parameterType == typeof(UnknownWrapper);
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal override Expression Marshal(Expression parameter)
         {
             parameter = base.Marshal(parameter);
@@ -34,6 +35,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
             return Helpers.Convert(parameter, typeof(object));
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal override Expression MarshalToRef(Expression parameter)
         {
             parameter = Marshal(parameter);
@@ -48,7 +50,6 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
                 )
             );
         }
-
 
         internal override Expression UnmarshalFromRef(Expression value)
         {

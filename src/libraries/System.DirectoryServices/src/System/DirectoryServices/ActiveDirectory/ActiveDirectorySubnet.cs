@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 using System.Diagnostics;
@@ -9,13 +8,13 @@ namespace System.DirectoryServices.ActiveDirectory
 {
     public class ActiveDirectorySubnet : IDisposable
     {
-        private ActiveDirectorySite _site = null;
-        private readonly string _name = null;
-        internal readonly DirectoryContext context = null;
-        private bool _disposed = false;
+        private ActiveDirectorySite? _site;
+        private readonly string _name;
+        internal readonly DirectoryContext context;
+        private bool _disposed;
 
-        internal bool existing = false;
-        internal DirectoryEntry cachedEntry = null;
+        internal bool existing;
+        internal DirectoryEntry cachedEntry = null!;
 
         public static ActiveDirectorySubnet FindByName(DirectoryContext context, string subnetName)
         {
@@ -30,7 +29,7 @@ namespace System.DirectoryServices.ActiveDirectory
             try
             {
                 de = DirectoryEntryManager.GetDirectoryEntry(context, WellKnownDN.RootDSE);
-                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext);
+                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext)!;
                 string subnetdn = "CN=Subnets,CN=Sites," + config;
                 de = DirectoryEntryManager.GetDirectoryEntry(context, subnetdn);
             }
@@ -52,7 +51,7 @@ namespace System.DirectoryServices.ActiveDirectory
                                                       SearchScope.OneLevel,
                                                       false, /* don't need paged search */
                                                       false /* don't need to cache result */);
-                SearchResult srchResult = adSearcher.FindOne();
+                SearchResult? srchResult = adSearcher.FindOne();
                 if (srchResult == null)
                 {
                     // no such subnet object
@@ -61,7 +60,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 }
                 else
                 {
-                    string siteName = null;
+                    string? siteName = null;
                     DirectoryEntry connectionEntry = srchResult.GetDirectoryEntry();
                     // try to get the site that this subnet lives in
                     if (connectionEntry.Properties.Contains("siteObject"))
@@ -70,7 +69,7 @@ namespace System.DirectoryServices.ActiveDirectory
                         // need to turn off the escaping for name
                         pathCracker.EscapedMode = NativeComInterfaces.ADS_ESCAPEDMODE_OFF_EX;
 
-                        string tmp = (string)connectionEntry.Properties["siteObject"][0];
+                        string tmp = (string)connectionEntry.Properties["siteObject"][0]!;
                         // escaping manipulation
                         pathCracker.Set(tmp, NativeComInterfaces.ADS_SETTYPE_DN);
                         string rdn = pathCracker.Retrieve(NativeComInterfaces.ADS_FORMAT_LEAF);
@@ -79,7 +78,7 @@ namespace System.DirectoryServices.ActiveDirectory
                     }
 
                     // it is an existing subnet object
-                    ActiveDirectorySubnet subnet = null;
+                    ActiveDirectorySubnet? subnet = null;
                     if (siteName == null)
                         subnet = new ActiveDirectorySubnet(context, subnetName, null, true);
                     else
@@ -119,12 +118,12 @@ namespace System.DirectoryServices.ActiveDirectory
             _name = subnetName;
 
             // bind to the rootdse to get the configurationnamingcontext
-            DirectoryEntry de = null;
+            DirectoryEntry? de = null;
 
             try
             {
                 de = DirectoryEntryManager.GetDirectoryEntry(context, WellKnownDN.RootDSE);
-                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext);
+                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext)!;
                 string subnetn = "CN=Subnets,CN=Sites," + config;
                 // bind to the subnet container
                 de = DirectoryEntryManager.GetDirectoryEntry(context, subnetn);
@@ -168,7 +167,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        internal ActiveDirectorySubnet(DirectoryContext context, string subnetName, string siteName, bool existing)
+        internal ActiveDirectorySubnet(DirectoryContext context, string subnetName, string? siteName, bool existing)
         {
             Debug.Assert(existing == true);
 
@@ -201,7 +200,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        public ActiveDirectorySite Site
+        public ActiveDirectorySite? Site
         {
             get
             {
@@ -226,7 +225,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        public string Location
+        public string? Location
         {
             get
             {
@@ -236,7 +235,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 try
                 {
                     if (cachedEntry.Properties.Contains("location"))
-                        return (string)cachedEntry.Properties["location"][0];
+                        return (string)cachedEntry.Properties["location"][0]!;
                     else
                         return null;
                 }
@@ -296,7 +295,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 else
                 {
                     if (Site != null)
-                        cachedEntry.Properties["siteObject"].Add(_site.cachedEntry.Properties["distinguishedName"][0]);
+                        cachedEntry.Properties["siteObject"].Add(_site!.cachedEntry.Properties["distinguishedName"][0]);
 
                     cachedEntry.CommitChanges();
 

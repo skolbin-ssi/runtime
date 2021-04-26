@@ -1,5 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
-// See the LICENSE file in the project root for more information.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
 using System.ComponentModel.Design.Serialization;
@@ -33,8 +33,10 @@ namespace System.ComponentModel.Tests
                 yield return ConvertTest.Valid("nl-B", new CultureInfo("nl--B"), CultureInfo.InvariantCulture);
                 yield return ConvertTest.Valid("nl-B", new CultureInfo("nl--B"), new CultureInfo("en-US"));
             }
-
-            yield return ConvertTest.Valid("Afrikaans", new CultureInfo("af"));
+            if (PlatformDetection.IsNotBrowser)
+            {
+                yield return ConvertTest.Valid("Afrikaans", new CultureInfo("af"));
+            }
 
             yield return ConvertTest.CantConvertFrom(CultureInfo.CurrentCulture);
             yield return ConvertTest.CantConvertFrom(1);

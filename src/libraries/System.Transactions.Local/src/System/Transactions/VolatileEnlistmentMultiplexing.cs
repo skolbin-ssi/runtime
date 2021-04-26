@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -250,7 +249,7 @@ namespace System.Transactions
 
 
     // This class implements the phase 0 version of a volatile demux.
-    internal class Phase0VolatileDemultiplexer : VolatileDemultiplexer
+    internal sealed class Phase0VolatileDemultiplexer : VolatileDemultiplexer
     {
         public Phase0VolatileDemultiplexer(InternalTransaction transaction) : base(transaction) { }
 
@@ -341,7 +340,7 @@ namespace System.Transactions
     }
 
     // This class implements the phase 1 version of a volatile demux.
-    internal class Phase1VolatileDemultiplexer : VolatileDemultiplexer
+    internal sealed class Phase1VolatileDemultiplexer : VolatileDemultiplexer
     {
         public Phase1VolatileDemultiplexer(InternalTransaction transaction) : base(transaction) { }
 

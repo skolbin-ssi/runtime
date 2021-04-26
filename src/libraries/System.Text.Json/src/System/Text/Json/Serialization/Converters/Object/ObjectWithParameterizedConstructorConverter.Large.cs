@@ -1,8 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers;
+using System.Diagnostics;
+using System.Text.Json.Serialization.Metadata;
 
 namespace System.Text.Json.Serialization.Converters
 {
@@ -14,9 +15,12 @@ namespace System.Text.Json.Serialization.Converters
     {
         protected override bool ReadAndCacheConstructorArgument(ref ReadStack state, ref Utf8JsonReader reader, JsonParameterInfo jsonParameterInfo)
         {
-            bool success = jsonParameterInfo.ReadJson(ref state, ref reader, out object? arg);
+            Debug.Assert(jsonParameterInfo.ShouldDeserialize);
+            Debug.Assert(jsonParameterInfo.Options != null);
 
-            if (success)
+            bool success = jsonParameterInfo.ConverterBase.TryReadAsObject(ref reader, jsonParameterInfo.Options!, ref state, out object? arg);
+
+            if (success && !(arg == null && jsonParameterInfo.IgnoreDefaultValuesOnRead))
             {
                 ((object[])state.Current.CtorArgumentState!.Arguments)[jsonParameterInfo.Position] = arg!;
             }
@@ -28,7 +32,7 @@ namespace System.Text.Json.Serialization.Converters
         {
             object[] arguments = (object[])frame.CtorArgumentState!.Arguments;
 
-            var createObject = (JsonClassInfo.ParameterizedConstructorDelegate<T>?)frame.JsonClassInfo.CreateObjectWithArgs;
+            var createObject = (JsonTypeInfo.ParameterizedConstructorDelegate<T>?)frame.JsonTypeInfo.CreateObjectWithArgs;
 
             if (createObject == null)
             {
@@ -44,15 +48,15 @@ namespace System.Text.Json.Serialization.Converters
 
         protected override void InitializeConstructorArgumentCaches(ref ReadStack state, JsonSerializerOptions options)
         {
-            JsonClassInfo classInfo = state.Current.JsonClassInfo;
+            JsonTypeInfo typeInfo = state.Current.JsonTypeInfo;
 
-            if (classInfo.CreateObjectWithArgs == null)
+            if (typeInfo.CreateObjectWithArgs == null)
             {
-                classInfo.CreateObjectWithArgs = options.MemberAccessorStrategy.CreateParameterizedConstructor<T>(ConstructorInfo!);
+                typeInfo.CreateObjectWithArgs = options.MemberAccessorStrategy.CreateParameterizedConstructor<T>(ConstructorInfo!);
             }
 
-            object[] arguments = ArrayPool<object>.Shared.Rent(classInfo.ParameterCount);
-            foreach (JsonParameterInfo jsonParameterInfo in classInfo.ParameterCache!.Values)
+            object[] arguments = ArrayPool<object>.Shared.Rent(typeInfo.ParameterCount);
+            foreach (JsonParameterInfo jsonParameterInfo in typeInfo.ParameterCache!.Values)
             {
                 if (jsonParameterInfo.ShouldDeserialize)
                 {

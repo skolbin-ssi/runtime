@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.IO;
@@ -13,7 +12,7 @@ namespace System.Net.Mime
     /// Provides an abstraction for writing a MIME multi-part
     /// message.
     /// </summary>
-    internal class MimeWriter : BaseWriter
+    internal sealed class MimeWriter : BaseWriter
     {
         private static readonly byte[] s_DASHDASH = new byte[] { (byte)'-', (byte)'-' };
 
@@ -34,8 +33,8 @@ namespace System.Net.Mime
             if (headers == null)
                 throw new ArgumentNullException(nameof(headers));
 
-            foreach (string? key in headers) // TODO-NULLABLE: https://github.com/dotnet/csharplang/issues/3214
-                WriteHeader(key!, headers[key]!, allowUnicode);
+            foreach (string key in headers)
+                WriteHeader(key, headers[key]!, allowUnicode);
         }
 
         #region Cleanup

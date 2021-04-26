@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -10,7 +9,7 @@ namespace Microsoft.Extensions.Logging.TraceSource
     /// <summary>
     /// Provides an IDisposable that represents a logical operation scope based on System.Diagnostics LogicalOperationStack
     /// </summary>
-    internal class TraceSourceScope : IDisposable
+    internal sealed class TraceSourceScope : IDisposable
     {
         // To detect redundant calls
         private bool _isDisposed;

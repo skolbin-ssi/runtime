@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic.Utils;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -405,21 +405,21 @@ namespace System.Linq.Expressions
                 new TrueReadOnlyCollection<Expression>(
                     Assign(left, Left),
                     Condition(
-                        Property(left, "HasValue"),
+                        GetHasValueProperty(left),
                         Condition(
-                            Call(opTrueFalse, Call(left, "GetValueOrDefault", null)),
+                            Call(opTrueFalse, CallGetValueOrDefault(left)),
                             left,
                             Block(
                                 new TrueReadOnlyCollection<ParameterExpression>(right),
                                 new TrueReadOnlyCollection<Expression>(
                                     Assign(right, Right),
                                     Condition(
-                                        Property(right, "HasValue"),
+                                        GetHasValueProperty(right),
                                         Convert(
                                             Call(
                                                 Method,
-                                                Call(left, "GetValueOrDefault", null),
-                                                Call(right, "GetValueOrDefault", null)
+                                                CallGetValueOrDefault(left),
+                                                CallGetValueOrDefault(right)
                                             ),
                                             Type
                                         ),
@@ -432,6 +432,22 @@ namespace System.Linq.Expressions
                     )
                 )
             );
+        }
+
+        [DynamicDependency("GetValueOrDefault", typeof(Nullable<>))]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "The method will be preserved by the DynamicDependency.")]
+        private static MethodCallExpression CallGetValueOrDefault(ParameterExpression nullable)
+        {
+            return Call(nullable, "GetValueOrDefault", null);
+        }
+
+        [DynamicDependency("HasValue", typeof(Nullable<>))]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+                Justification = "The property will be preserved by the DynamicDependency.")]
+        private static MemberExpression GetHasValueProperty(ParameterExpression nullable)
+        {
+            return Property(nullable, "HasValue");
         }
     }
 
@@ -477,7 +493,7 @@ namespace System.Linq.Expressions
         public sealed override ExpressionType NodeType => ExpressionType.Assign;
     }
 
-    internal class ByRefAssignBinaryExpression : AssignBinaryExpression
+    internal sealed class ByRefAssignBinaryExpression : AssignBinaryExpression
     {
         internal ByRefAssignBinaryExpression(Expression left, Expression right)
             : base(left, right)

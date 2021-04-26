@@ -1,12 +1,11 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 
 namespace System.Xml.Xsl.Xslt
 {
-    internal class CompilerError
+    internal sealed class CompilerError
     {
         public CompilerError(string fileName, int line, int column, string errorNumber, string errorText)
         {
@@ -30,7 +29,7 @@ namespace System.Xml.Xsl.Xslt
         public string FileName { get; set; }
     }
 
-    internal class CompilerErrorCollection : CollectionBase
+    internal sealed class CompilerErrorCollection : CollectionBase
     {
         public CompilerErrorCollection() { }
 

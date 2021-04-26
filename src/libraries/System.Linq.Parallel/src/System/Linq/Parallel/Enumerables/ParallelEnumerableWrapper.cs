@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -18,7 +17,7 @@ namespace System.Linq.Parallel
     /// A simple implementation of the ParallelQuery{object} interface which wraps an
     /// underlying IEnumerable, such that it can be used in parallel queries.
     /// </summary>
-    internal class ParallelEnumerableWrapper : ParallelQuery<object?>
+    internal sealed class ParallelEnumerableWrapper : ParallelQuery<object?>
     {
         private readonly IEnumerable _source; // The wrapped enumerable object.
 
@@ -49,7 +48,7 @@ namespace System.Linq.Parallel
     /// underlying IEnumerable{T}, such that it can be used in parallel queries.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class ParallelEnumerableWrapper<T> : ParallelQuery<T>
+    internal sealed class ParallelEnumerableWrapper<T> : ParallelQuery<T>
     {
         private readonly IEnumerable<T> _wrappedEnumerable; // The wrapped enumerable object.
 

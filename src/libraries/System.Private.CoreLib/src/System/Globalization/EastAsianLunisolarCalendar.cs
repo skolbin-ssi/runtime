@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Globalization
 {
@@ -189,13 +188,13 @@ namespace System.Globalization
                 // Reject if there is no leap month this year
                 if (GetYearInfo(year, LeapMonth) == 0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(month), month, SR.ArgumentOutOfRange_Month);
+                    ThrowHelper.ThrowArgumentOutOfRange_Month(month);
                 }
             }
 
             if (month < 1 || month > 13)
             {
-                throw new ArgumentOutOfRangeException(nameof(month), month, SR.ArgumentOutOfRange_Month);
+                ThrowHelper.ThrowArgumentOutOfRange_Month(month);
             }
 
             return year;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -111,7 +110,7 @@ namespace System.Composition.Hosting.Core
             if (_metadataConstraints != null)
                 result += string.Format(" {{ {0} }}",
                     string.Join(SR.Formatter_ListSeparatorWithSpace,
-                        _metadataConstraints.Select(kv => string.Format("{0} = {1}", kv.Key, Formatters.Format(kv.Value)))));
+                        _metadataConstraints.Select(kv => $"{kv.Key} = {Formatters.Format(kv.Value)}")));
 
             return result;
         }

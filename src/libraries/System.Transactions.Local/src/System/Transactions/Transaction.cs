@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -71,7 +70,9 @@ namespace System.Transactions
         {
             if (currentScope != null)
             {
+#pragma warning disable CA1416 // Validate platform compatibility, the property is not platform-specific, safe to suppress
                 return currentScope.InteropMode;
+#pragma warning restore CA1416
             }
 
             return EnterpriseServicesInteropOption.None;
@@ -162,7 +163,9 @@ namespace System.Transactions
 
                 if (currentScope != null)
                 {
+#pragma warning disable CA1416 // Validate platform compatibility, the property is not platform-specific, safe to suppress
                     if (currentScope.ScopeComplete)
+#pragma warning restore CA1416
                     {
                         throw new InvalidOperationException(SR.TransactionScopeComplete);
                     }
@@ -212,14 +215,14 @@ namespace System.Transactions
         internal IsolationLevel _isoLevel;
 
         // Storage for the consistent flag
-        internal bool _complete = false;
+        internal bool _complete;
 
         // Record an identifier for this clone
         internal int _cloneId;
 
         // Storage for a disposed flag
         internal const int _disposedTrueValue = 1;
-        internal int _disposed = 0;
+        internal int _disposed;
         internal bool Disposed { get { return _disposed == Transaction._disposedTrueValue; } }
 
         internal Guid DistributedTxId
@@ -316,7 +319,7 @@ namespace System.Transactions
 
         // Don't allow equals to get the identifier
         //
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             // If we can't cast the object as a Transaction, it must not be equal
             // to this, which is a Transaction. Check the internal transaction object for equality.
@@ -1219,11 +1222,11 @@ namespace System.Transactions
     //
     // MarshalByRefObject is needed for cross AppDomain scenarios where just using object will end up with a different reference when call is made across serialization boundary.
     //
-    internal class ContextKey // : MarshalByRefObject
+    internal sealed class ContextKey // : MarshalByRefObject
     {
     }
 
-    internal class ContextData
+    internal sealed class ContextData
     {
         internal TransactionScope? CurrentScope;
         internal Transaction? CurrentTransaction;

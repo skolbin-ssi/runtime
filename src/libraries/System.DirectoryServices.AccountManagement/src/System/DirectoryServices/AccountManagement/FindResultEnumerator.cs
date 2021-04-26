@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -9,7 +8,7 @@ using System.Diagnostics;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal class FindResultEnumerator<T> : IEnumerator<T>, IEnumerator
+    internal sealed class FindResultEnumerator<T> : IEnumerator<T>, IEnumerator
     {
         //
         // Public properties
@@ -182,10 +181,10 @@ namespace System.DirectoryServices.AccountManagement
         private bool _beforeStart = true;
 
         // if true, we've reached the end of the ResultSet
-        private bool _endReached = false;
+        private bool _endReached;
 
         // true if Dispose() has been called
-        private bool _disposed = false;
+        private bool _disposed;
 
         //
         private void CheckDisposed()

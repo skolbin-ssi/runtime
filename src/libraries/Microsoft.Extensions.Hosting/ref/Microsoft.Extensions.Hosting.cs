@@ -1,12 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 // ------------------------------------------------------------------------------
 // Changes to this file must follow the https://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
 
+namespace Microsoft.Extensions.DependencyInjection
+{
+    public static partial class OptionsBuilderExtensions
+    {
+        public static Microsoft.Extensions.Options.OptionsBuilder<TOptions> ValidateOnStart<TOptions>(this Microsoft.Extensions.Options.OptionsBuilder<TOptions> optionsBuilder) where TOptions : class { throw null; }
+    }
+}
 namespace Microsoft.Extensions.Hosting
 {
+    public enum BackgroundServiceExceptionBehavior
+    {
+        StopHost,
+        Ignore
+    }
     public partial class ConsoleLifetimeOptions
     {
         public ConsoleLifetimeOptions() { }
@@ -33,6 +44,9 @@ namespace Microsoft.Extensions.Hosting
     {
         public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureAppConfiguration(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<Microsoft.Extensions.Configuration.IConfigurationBuilder> configureDelegate) { throw null; }
         public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureContainer<TContainerBuilder>(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<TContainerBuilder> configureDelegate) { throw null; }
+        public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureDefaults(this Microsoft.Extensions.Hosting.IHostBuilder builder, string[] args) { throw null; }
+        public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureHostOptions(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<Microsoft.Extensions.Hosting.HostBuilderContext, Microsoft.Extensions.Hosting.HostOptions> configureOptions) { throw null; }
+        public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureHostOptions(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<Microsoft.Extensions.Hosting.HostOptions> configureOptions) { throw null; }
         public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureLogging(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<Microsoft.Extensions.Hosting.HostBuilderContext, Microsoft.Extensions.Logging.ILoggingBuilder> configureLogging) { throw null; }
         public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureLogging(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<Microsoft.Extensions.Logging.ILoggingBuilder> configureLogging) { throw null; }
         public static Microsoft.Extensions.Hosting.IHostBuilder ConfigureServices(this Microsoft.Extensions.Hosting.IHostBuilder hostBuilder, System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection> configureDelegate) { throw null; }
@@ -49,6 +63,7 @@ namespace Microsoft.Extensions.Hosting
     {
         public HostOptions() { }
         public System.TimeSpan ShutdownTimeout { get { throw null; } set { } }
+        public Microsoft.Extensions.Hosting.BackgroundServiceExceptionBehavior BackgroundServiceExceptionBehavior { get { throw null; } set { } }
     }
 }
 namespace Microsoft.Extensions.Hosting.Internal

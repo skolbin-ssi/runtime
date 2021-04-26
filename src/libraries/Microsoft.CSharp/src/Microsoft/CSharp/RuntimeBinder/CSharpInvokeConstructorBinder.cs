@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Numerics.Hashing;
 using Microsoft.CSharp.RuntimeBinder.Semantics;
@@ -14,9 +14,11 @@ namespace Microsoft.CSharp.RuntimeBinder
     {
         public BindingFlag BindingFlags => 0;
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public Expr DispatchPayload(RuntimeBinder runtimeBinder, ArgumentObject[] arguments, LocalVariableSymbol[] locals)
             => runtimeBinder.DispatchPayload(this, arguments, locals);
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public void PopulateSymbolTableWithName(Type callingType, ArgumentObject[] arguments)
             => RuntimeBinder.PopulateSymbolTableWithPayloadInformation(this, callingType, arguments);
 
@@ -30,7 +32,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         public bool StaticCall => true;
 
-        public Type[] TypeArguments => Array.Empty<Type>();
+        public Type[] TypeArguments => Type.EmptyTypes;
 
         public string Name => ".ctor";
 
@@ -40,6 +42,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         private readonly Type _callingContext;
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public CSharpInvokeConstructorBinder(
             CSharpCallFlags flags,
             Type callingContext,
@@ -82,6 +85,8 @@ namespace Microsoft.CSharp.RuntimeBinder
             return BinderHelper.CompareArgInfos(TypeArguments, otherBinder.TypeArguments, _argumentInfo, otherBinder._argumentInfo);
         }
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This whole class is unsafe. Constructors are marked as such.")]
         public override DynamicMetaObject Bind(DynamicMetaObject target, DynamicMetaObject[] args)
         {
             BinderHelper.ValidateBindArgument(target, nameof(target));

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Composition.Hosting.Core;
@@ -15,7 +14,7 @@ namespace System.Composition.TypedParts.ActivationFeatures
     /// Modifies activators of parts with property imports so that the properties
     /// are set appropriately.
     /// </summary>
-    internal class PropertyInjectionFeature : ActivationFeature
+    internal sealed class PropertyInjectionFeature : ActivationFeature
     {
         private readonly AttributedModelProvider _attributeContext;
         private static readonly MethodInfo s_activatorInvokeMethod = typeof(CompositeActivator).GetTypeInfo().GetDeclaredMethod("Invoke");

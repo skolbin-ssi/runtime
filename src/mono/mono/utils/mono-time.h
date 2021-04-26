@@ -20,7 +20,7 @@ gint64 mono_msec_boottime (void);
 gint64 mono_msec_ticks (void);
 
 /* Returns the number of 100ns ticks from unspecified time: this should be monotonic */
-gint64 mono_100ns_ticks (void);
+MONO_COMPONENT_API gint64 mono_100ns_ticks (void);
 
 /* Returns the number of 100ns ticks since 1/1/1601, UTC timezone */
 gint64 mono_100ns_datetime (void);
@@ -32,7 +32,7 @@ gint64 mono_100ns_datetime_from_timeval (struct timeval tv);
 #if defined(HOST_DARWIN)
 #include <mach/clock.h>
 typedef clock_serv_t mono_clock_id_t;
-#elif defined(__linux__)
+#elif defined(HAVE_CLOCKID_T)
 #include <sys/types.h>
 typedef clockid_t mono_clock_id_t;
 #else

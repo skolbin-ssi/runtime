@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.ComponentModel;
@@ -8,7 +7,6 @@ using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 
 namespace Microsoft.NET.HostModel.AppHost
 {
@@ -45,31 +43,23 @@ namespace Microsoft.NET.HostModel.AppHost
                 throw new AppNameTooLongException(appBinaryFilePath);
             }
 
-            BinaryUtils.CopyFile(appHostSourceFilePath, appHostDestinationFilePath);
-
             bool appHostIsPEImage = false;
 
-            void RewriteAppHost()
+            void RewriteAppHost(MemoryMappedViewAccessor accessor)
             {
                 // Re-write the destination apphost with the proper contents.
-                using (var memoryMappedFile = MemoryMappedFile.CreateFromFile(appHostDestinationFilePath))
+                BinaryUtils.SearchAndReplace(accessor, AppBinaryPathPlaceholderSearchValue, bytesToWrite);
+
+                appHostIsPEImage = PEUtils.IsPEImage(accessor);
+
+                if (windowsGraphicalUserInterface)
                 {
-                    using (MemoryMappedViewAccessor accessor = memoryMappedFile.CreateViewAccessor())
+                    if (!appHostIsPEImage)
                     {
-                        BinaryUtils.SearchAndReplace(accessor, AppBinaryPathPlaceholderSearchValue, bytesToWrite);
-
-                        appHostIsPEImage = PEUtils.IsPEImage(accessor);
-
-                        if (windowsGraphicalUserInterface)
-                        {
-                            if (!appHostIsPEImage)
-                            {
-                                throw new AppHostNotPEFileException();
-                            }
-
-                            PEUtils.SetWindowsGraphicalUserInterfaceBit(accessor);
-                        }
+                        throw new AppHostNotPEFileException();
                     }
+
+                    PEUtils.SetWindowsGraphicalUserInterfaceBit(accessor);
                 }
             }
 
@@ -91,19 +81,49 @@ namespace Microsoft.NET.HostModel.AppHost
                 }
             }
 
-            void RemoveSignatureIfMachO()
-            {
-                MachOUtils.RemoveSignature(appHostDestinationFilePath);
-            }
-
-            void SetLastWriteTime()
-            {
-                // Memory-mapped write does not updating last write time
-                File.SetLastWriteTimeUtc(appHostDestinationFilePath, DateTime.UtcNow);
-            }
-
             try
             {
+                RetryUtil.RetryOnIOError(() =>
+                {
+                    FileStream appHostSourceStream = null;
+                    MemoryMappedFile memoryMappedFile = null;
+                    MemoryMappedViewAccessor memoryMappedViewAccessor = null;
+                    try
+                    {
+                        // Open the source host file.
+                        appHostSourceStream = new FileStream(appHostSourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        memoryMappedFile = MemoryMappedFile.CreateFromFile(appHostSourceStream, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, true);
+                        memoryMappedViewAccessor = memoryMappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.CopyOnWrite);
+
+                        // Get the size of the source app host to ensure that we don't write extra data to the destination.
+                        // On Windows, the size of the view accessor is rounded up to the next page boundary.
+                        long sourceAppHostLength = appHostSourceStream.Length;
+
+                        // Transform the host file in-memory.
+                        RewriteAppHost(memoryMappedViewAccessor);
+
+                        // Save the transformed host.
+                        using (FileStream fileStream = new FileStream(appHostDestinationFilePath, FileMode.Create))
+                        {
+                            BinaryUtils.WriteToStream(memoryMappedViewAccessor, fileStream, sourceAppHostLength);
+
+                            // Remove the signature from MachO hosts.
+                            if (!appHostIsPEImage)
+                            {
+                                MachOUtils.RemoveSignature(fileStream);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        memoryMappedViewAccessor?.Dispose();
+                        memoryMappedFile?.Dispose();
+                        appHostSourceStream?.Dispose();
+                    }
+                });
+
+                RetryUtil.RetryOnWin32Error(UpdateResources);
+
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     var filePermissionOctal = Convert.ToInt32("755", 8); // -rwxr-xr-x
@@ -121,14 +141,6 @@ namespace Microsoft.NET.HostModel.AppHost
                         throw new Win32Exception(Marshal.GetLastWin32Error(), $"Could not set file permission {filePermissionOctal} for {appHostDestinationFilePath}.");
                     }
                 }
-
-                RetryUtil.RetryOnIOError(RewriteAppHost);
-
-                RetryUtil.RetryOnWin32Error(UpdateResources);
-
-                RetryUtil.RetryOnIOError(RemoveSignatureIfMachO);
-
-                RetryUtil.RetryOnIOError(SetLastWriteTime);
             }
             catch (Exception ex)
             {
@@ -156,7 +168,7 @@ namespace Microsoft.NET.HostModel.AppHost
             long bundleHeaderOffset)
         {
             byte[] bundleHeaderPlaceholder = {
-                // 8 bytes represent the bundle header-offset 
+                // 8 bytes represent the bundle header-offset
                 // Zero for non-bundle apphosts (default).
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 // 32 bytes represent the bundle signature: SHA-256 for ".net core bundle"
@@ -172,6 +184,9 @@ namespace Microsoft.NET.HostModel.AppHost
                                              bundleHeaderPlaceholder,
                                              BitConverter.GetBytes(bundleHeaderOffset),
                                              pad0s: false));
+
+            RetryUtil.RetryOnIOError(() =>
+                MachOUtils.AdjustHeadersForBundle(appHostPath));
 
             // Memory-mapped write does not updating last write time
             RetryUtil.RetryOnIOError(() =>
@@ -207,7 +222,7 @@ namespace Microsoft.NET.HostModel.AppHost
                             throw new PlaceHolderNotFoundInAppHostException(bundleSignature);
                         }
 
-                        headerOffset = accessor.ReadInt64(position - sizeof(Int64));
+                        headerOffset = accessor.ReadInt64(position - sizeof(long));
                     }
                 }
             }

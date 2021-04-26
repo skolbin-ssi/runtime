@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -21,14 +20,14 @@ namespace System.Linq.Parallel
     /// lazily because once GetOpenedEnumerator() is called, PLINQ starts precomputing the
     /// results of the query.
     /// </summary>
-    internal class QueryOpeningEnumerator<TOutput> : IEnumerator<TOutput>
+    internal sealed class QueryOpeningEnumerator<TOutput> : IEnumerator<TOutput>
     {
         private readonly QueryOperator<TOutput> _queryOperator;
         private IEnumerator<TOutput>? _openedQueryEnumerator;
         private QuerySettings _querySettings;
         private readonly ParallelMergeOptions? _mergeOptions;
         private readonly bool _suppressOrderPreservation;
-        private int _moveNextIteration = 0;
+        private int _moveNextIteration;
         private bool _hasQueryOpeningFailed;
 
         // -- Cancellation and Dispose fields--

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using OLEDB.Test.ModuleCore;
 using System.IO;
@@ -238,7 +237,7 @@ namespace System.Xml.Tests
                 try
                 {
                     int nBytes = 0;
-                    switch ((int)new Random().Next(4))
+                    switch ((int)Random.Shared.Next(4))
                     {
                         case 0:
                             CError.WriteLineIgnore("Selecting RCABH");

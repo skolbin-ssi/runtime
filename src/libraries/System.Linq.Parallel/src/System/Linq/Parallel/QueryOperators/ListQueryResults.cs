@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -16,7 +15,7 @@ namespace System.Linq.Parallel
     /// Class to represent an IList{T} as QueryResults{T}
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class ListQueryResults<T> : QueryResults<T>
+    internal sealed class ListQueryResults<T> : QueryResults<T>
     {
         private readonly IList<T> _source;
         private readonly int _partitionCount;

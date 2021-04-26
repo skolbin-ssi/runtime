@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -75,7 +74,7 @@ namespace System.Linq.Parallel
         // (possibly partitioned) data source.
         //
 
-        private class CountAggregationOperatorEnumerator<TKey> : InlinedAggregationOperatorEnumerator<int>
+        private sealed class CountAggregationOperatorEnumerator<TKey> : InlinedAggregationOperatorEnumerator<int>
         {
             private readonly QueryOperatorEnumerator<TSource, TKey> _source; // The source data.
 
@@ -110,7 +109,7 @@ namespace System.Linq.Parallel
                     do
                     {
                         if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                            _cancellationToken.ThrowIfCancellationRequested();;
+                            _cancellationToken.ThrowIfCancellationRequested();
                         checked
                         {
                             count++;

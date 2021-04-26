@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic.Utils;
 using System.Reflection;
 
@@ -97,6 +97,7 @@ namespace System.Linq.Expressions
         /// the Member property set to the <see cref="PropertyInfo"/> that represents the property accessed in <paramref name="propertyAccessor"/>,
         /// and <see cref="MemberMemberBinding.Bindings"/> properties set to the specified values.
         /// </returns>
+        [RequiresUnreferencedCode(PropertyFromAccessorRequiresUnreferencedCode)]
         public static MemberMemberBinding MemberBind(MethodInfo propertyAccessor, params MemberBinding[] bindings)
         {
             return MemberBind(propertyAccessor, (IEnumerable<MemberBinding>)bindings);
@@ -112,6 +113,7 @@ namespace System.Linq.Expressions
         /// the Member property set to the <see cref="PropertyInfo"/> that represents the property accessed in <paramref name="propertyAccessor"/>,
         /// and <see cref="MemberMemberBinding.Bindings"/> properties set to the specified values.
         /// </returns>
+        [RequiresUnreferencedCode(PropertyFromAccessorRequiresUnreferencedCode)]
         public static MemberMemberBinding MemberBind(MethodInfo propertyAccessor, IEnumerable<MemberBinding> bindings)
         {
             ContractUtils.RequiresNotNull(propertyAccessor, nameof(propertyAccessor));

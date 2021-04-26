@@ -1,18 +1,13 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Xml;
 
 namespace System.Configuration
 {
-    internal class HandlerBase
+    internal static class HandlerBase
     {
-        private HandlerBase()
-        {
-        }
-
         private static XmlNode GetAndRemoveAttribute(XmlNode node, string attrib, bool fRequired)
         {
             XmlNode a = node.Attributes.RemoveNamedItem(attrib);

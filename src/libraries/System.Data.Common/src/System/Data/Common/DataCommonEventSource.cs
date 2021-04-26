@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.Tracing;
 using System.Threading;
@@ -8,10 +7,10 @@ using System.Threading;
 namespace System.Data
 {
     [EventSource(Name = "System.Data.DataCommonEventSource")]
-    internal class DataCommonEventSource : EventSource
+    internal sealed class DataCommonEventSource : EventSource
     {
         internal static readonly DataCommonEventSource Log = new DataCommonEventSource();
-        private static long s_nextScopeId = 0;
+        private static long s_nextScopeId;
 
         private const int TraceEventId = 1;
 

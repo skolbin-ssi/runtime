@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -16,7 +15,7 @@ namespace System.Linq.Parallel
     /// A growing array. Unlike List{T}, it makes the internal array available to its user.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class GrowingArray<T>
+    internal sealed class GrowingArray<T>
     {
         private T[] _array;
         private int _count;

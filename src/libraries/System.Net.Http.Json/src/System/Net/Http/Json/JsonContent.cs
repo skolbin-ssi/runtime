@@ -1,8 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
+#if !NETCOREAPP
 using System.Diagnostics;
+#endif
 using System.IO;
 using System.Net.Http.Headers;
 using System.Text;
@@ -14,14 +15,7 @@ namespace System.Net.Http.Json
 {
     public sealed partial class JsonContent : HttpContent
     {
-        internal const string JsonMediaType = "application/json";
-        internal const string JsonType = "application";
-        internal const string JsonSubtype = "json";
-        private static MediaTypeHeaderValue DefaultMediaType
-            => new MediaTypeHeaderValue(JsonMediaType) { CharSet = "utf-8" };
-
-        internal static readonly JsonSerializerOptions s_defaultSerializerOptions
-            = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        internal static readonly JsonSerializerOptions s_defaultSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         private readonly JsonSerializerOptions? _jsonSerializerOptions;
         public Type ObjectType { get; }
@@ -41,7 +35,7 @@ namespace System.Net.Http.Json
 
             Value = inputValue;
             ObjectType = inputType;
-            Headers.ContentType = mediaType ?? DefaultMediaType;
+            Headers.ContentType = mediaType ?? JsonHelpers.GetDefaultMediaType();
             _jsonSerializerOptions = options ?? s_defaultSerializerOptions;
         }
 
@@ -52,7 +46,7 @@ namespace System.Net.Http.Json
             => new JsonContent(inputValue, inputType, mediaType, options);
 
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-            => SerializeToStreamAsyncCore(stream, CancellationToken.None);
+            => SerializeToStreamAsyncCore(stream, async: true, CancellationToken.None);
 
         protected override bool TryComputeLength(out long length)
         {
@@ -60,9 +54,9 @@ namespace System.Net.Http.Json
             return false;
         }
 
-        private async Task SerializeToStreamAsyncCore(Stream targetStream, CancellationToken cancellationToken)
+        private async Task SerializeToStreamAsyncCore(Stream targetStream, bool async, CancellationToken cancellationToken)
         {
-            Encoding? targetEncoding = GetEncoding(Headers.ContentType?.CharSet);
+            Encoding? targetEncoding = JsonHelpers.GetEncoding(Headers.ContentType?.CharSet);
 
             // Wrap provided stream into a transcoding stream that buffers the data transcoded from utf-8 to the targetEncoding.
             if (targetEncoding != null && targetEncoding != Encoding.UTF8)
@@ -71,15 +65,34 @@ namespace System.Net.Http.Json
                 Stream transcodingStream = Encoding.CreateTranscodingStream(targetStream, targetEncoding, Encoding.UTF8, leaveOpen: true);
                 try
                 {
-                    await JsonSerializer.SerializeAsync(transcodingStream, Value, ObjectType, _jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                    if (async)
+                    {
+                        await JsonSerializer.SerializeAsync(transcodingStream, Value, ObjectType, _jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Have to use Utf8JsonWriter because JsonSerializer doesn't support sync serialization into stream directly.
+                        // ToDo: Remove Utf8JsonWriter usage after https://github.com/dotnet/runtime/issues/1574
+                        using var writer = new Utf8JsonWriter(transcodingStream);
+                        JsonSerializer.Serialize(writer, Value, ObjectType, _jsonSerializerOptions);
+                    }
                 }
                 finally
                 {
-                    // DisposeAsync will flush any partial write buffers. In practice our partial write
+                    // Dispose/DisposeAsync will flush any partial write buffers. In practice our partial write
                     // buffers should be empty as we expect JsonSerializer to emit only well-formed UTF-8 data.
-                    await transcodingStream.DisposeAsync().ConfigureAwait(false);
+                    if (async)
+                    {
+                        await transcodingStream.DisposeAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        transcodingStream.Dispose();
+                    }
                 }
 #else
+                Debug.Assert(async);
+
                 using (TranscodingWriteStream transcodingStream = new TranscodingWriteStream(targetStream, targetEncoding))
                 {
                     await JsonSerializer.SerializeAsync(transcodingStream, Value, ObjectType, _jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
@@ -92,37 +105,22 @@ namespace System.Net.Http.Json
             }
             else
             {
-                await JsonSerializer.SerializeAsync(targetStream, Value, ObjectType, _jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        internal static Encoding? GetEncoding(string? charset)
-        {
-            Encoding? encoding = null;
-
-            if (charset != null)
-            {
-                try
+                if (async)
                 {
-                    // Remove at most a single set of quotes.
-                    if (charset.Length > 2 && charset[0] == '\"' && charset[charset.Length - 1] == '\"')
-                    {
-                        encoding = Encoding.GetEncoding(charset.Substring(1, charset.Length - 2));
-                    }
-                    else
-                    {
-                        encoding = Encoding.GetEncoding(charset);
-                    }
+                    await JsonSerializer.SerializeAsync(targetStream, Value, ObjectType, _jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                 }
-                catch (ArgumentException e)
+                else
                 {
-                    throw new InvalidOperationException(SR.CharSetInvalid, e);
+#if NETCOREAPP
+                    // Have to use Utf8JsonWriter because JsonSerializer doesn't support sync serialization into stream directly.
+                    // ToDo: Remove Utf8JsonWriter usage after https://github.com/dotnet/runtime/issues/1574
+                    using var writer = new Utf8JsonWriter(targetStream);
+                    JsonSerializer.Serialize(writer, Value, ObjectType, _jsonSerializerOptions);
+#else
+                    Debug.Fail("Synchronous serialization is only supported since .NET 5.0");
+#endif
                 }
-
-                Debug.Assert(encoding != null);
             }
-
-            return encoding;
         }
     }
 }

@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
 namespace System.Security.Cryptography.Dsa.Tests
 {
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public partial class DSAImportExport
     {
         public static bool SupportsFips186_3 => DSAFactory.SupportsFips186_3;
@@ -137,7 +137,7 @@ namespace System.Security.Cryptography.Dsa.Tests
         [InlineData(true)]
         public static void ExportAfterDispose(bool importKey)
         {
-            DSA key = importKey ? DSAFactory.Create(DSATestData.GetDSA1024Params()) : DSAFactory.Create(512);
+            DSA key = importKey ? DSAFactory.Create(DSATestData.GetDSA1024Params()) : DSAFactory.Create(1024);
             byte[] hash = new byte[20];
 
             // Ensure that the key got created, and then Dispose it.

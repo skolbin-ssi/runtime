@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -73,7 +72,7 @@ namespace System.Linq.Parallel
         // Returns an enumerable that represents the query executing sequentially.
         //
 
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "This method should never be called as it is an ending operator with LimitsParallelism=false")]
         internal override IEnumerable<TSource> AsSequentialQuery(CancellationToken token)
         {
             Debug.Fail("This method should never be called as it is an ending operator with LimitsParallelism=false.");
@@ -94,7 +93,7 @@ namespace System.Linq.Parallel
         // The enumerator type responsible for executing the Single operation.
         //
 
-        private class SingleQueryOperatorEnumerator<TKey> : QueryOperatorEnumerator<TSource, int>
+        private sealed class SingleQueryOperatorEnumerator<TKey> : QueryOperatorEnumerator<TSource, int>
         {
             private readonly QueryOperatorEnumerator<TSource, TKey> _source; // The data source to enumerate.
             private readonly Func<TSource, bool>? _predicate; // The optional predicate used during the search.

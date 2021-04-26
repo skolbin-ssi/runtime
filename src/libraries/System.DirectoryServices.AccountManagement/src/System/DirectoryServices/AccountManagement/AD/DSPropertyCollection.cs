@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -14,7 +13,7 @@ using System.Collections;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal class dSPropertyCollection
+    internal sealed class dSPropertyCollection
     {
         private readonly PropertyCollection _pc;
         private readonly ResultPropertyCollection _rp;
@@ -42,7 +41,7 @@ namespace System.DirectoryServices.AccountManagement
         }
     }
 
-    internal class dSPropertyValueCollection
+    internal sealed class dSPropertyValueCollection
     {
         private readonly PropertyValueCollection _pc;
         private readonly ResultPropertyValueCollection _rc;

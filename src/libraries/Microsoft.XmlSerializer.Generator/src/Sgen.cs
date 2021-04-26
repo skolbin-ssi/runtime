@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -15,7 +14,7 @@ using System.Xml.Serialization;
 
 namespace Microsoft.XmlSerializer.Generator
 {
-    internal class Sgen
+    internal sealed class Sgen
     {
         public static int Main(string[] args)
         {
@@ -454,7 +453,7 @@ namespace Microsoft.XmlSerializer.Generator
         private void WriteHeader()
         {
             // do not localize Copyright header
-            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, ".NET Xml Serialization Generation Utility, Version {0}]", ThisAssembly.InformationalVersion));
+            Console.WriteLine($".NET Xml Serialization Generation Utility, Version {ThisAssembly.InformationalVersion}]");
         }
 
         private void WriteHelp()

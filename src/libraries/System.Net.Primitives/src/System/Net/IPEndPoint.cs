@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
@@ -175,7 +173,7 @@ namespace System.Net
             return socketAddress.GetIPEndPoint();
         }
 
-        public override bool Equals(object? comparand)
+        public override bool Equals([NotNullWhen(true)] object? comparand)
         {
             return comparand is IPEndPoint other && other._address.Equals(_address) && other._port == _port;
         }

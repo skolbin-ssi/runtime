@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
@@ -8,6 +7,12 @@ namespace System.Runtime.CompilerServices.Tests
 {
     public static class AttributesTests
     {
+        [Fact]
+        public static void ModuleInitializerAttributeTests()
+        {
+            new ModuleInitializerAttribute();
+        }
+
         [Fact]
         public static void SkipLocalsInitAttributeTests()
         {
@@ -109,11 +114,13 @@ namespace System.Runtime.CompilerServices.Tests
             Assert.Equal((LoadHint)(-2), attr2.LoadHint);
         }
 
+#pragma warning disable SYSLIB0015 // Obsolete: DisablePrivateReflectionAttribute
         [Fact]
         public static void DisablePrivateReflectionAttributeTests()
         {
             new DisablePrivateReflectionAttribute();
         }
+#pragma warning restore SYSLIB0015 // Obsolete: DisablePrivateReflectionAttribute
 
         [Fact]
         public static void DiscardableAttributeTests()

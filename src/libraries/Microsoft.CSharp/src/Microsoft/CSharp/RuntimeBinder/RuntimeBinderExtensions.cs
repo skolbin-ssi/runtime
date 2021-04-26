@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -262,7 +262,7 @@ namespace Microsoft.CSharp.RuntimeBinder
                         modifiers: null);
                     if (apiMethod != null)
                     {
-                        Func<MemberInfo, MemberInfo, bool> apiDelegate = (Func<MemberInfo, MemberInfo, bool>)(apiMethod.CreateDelegate(typeof(Func<MemberInfo, MemberInfo, bool>)));
+                        Func<MemberInfo, MemberInfo, bool> apiDelegate = apiMethod.CreateDelegate<Func<MemberInfo, MemberInfo, bool>>();
                         try
                         {
                             bool result = apiDelegate(m1, m2);
@@ -277,9 +277,9 @@ namespace Microsoft.CSharp.RuntimeBinder
                     }
 
                     // See if MetadataToken property is available.
-                    PropertyInfo property = memberInfo.GetProperty("MetadataToken", typeof(int), Array.Empty<Type>());
+                    PropertyInfo property = memberInfo.GetProperty("MetadataToken", typeof(int), Type.EmptyTypes);
 
-                    if ((object)property != null && property.CanRead)
+                    if (property is not null && property.CanRead)
                     {
                         // (parameter1, parameter2) => parameter1.MetadataToken == parameter2.MetadataToken
                         var parameter1 = Expression.Parameter(memberInfo);
@@ -316,6 +316,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             return mi1.Module.Equals(mi2.Module) && s_MemberEquivalence(mi1, mi2);
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public static string GetIndexerName(this Type type)
         {
             Debug.Assert(type != null);
@@ -335,6 +336,7 @@ namespace Microsoft.CSharp.RuntimeBinder
             return name;
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         private static string GetTypeIndexerName(Type type)
         {
             Debug.Assert(type != null);

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -52,10 +51,6 @@ namespace System.Diagnostics
                 }
             }
         }
-
-        // -----------------------------
-        // ---- PAL layer ends here ----
-        // -----------------------------
 
         // Some dlls might not contain correct codepage information,
         // in which case the lookup will fail. Explorer will take
@@ -131,20 +126,18 @@ namespace System.Diagnostics
         //
         private bool GetVersionInfoForCodePage(IntPtr memIntPtr, string codepage)
         {
-            string template = "\\\\StringFileInfo\\\\{0}\\\\{1}";
-
-            _companyName = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "CompanyName"));
-            _fileDescription = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "FileDescription"));
-            _fileVersion = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "FileVersion"));
-            _internalName = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "InternalName"));
-            _legalCopyright = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "LegalCopyright"));
-            _originalFilename = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "OriginalFilename"));
-            _productName = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "ProductName"));
-            _productVersion = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "ProductVersion"));
-            _comments = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "Comments"));
-            _legalTrademarks = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "LegalTrademarks"));
-            _privateBuild = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "PrivateBuild"));
-            _specialBuild = GetFileVersionString(memIntPtr, string.Format(CultureInfo.InvariantCulture, template, codepage, "SpecialBuild"));
+            _companyName = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\CompanyName");
+            _fileDescription = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\FileDescription");
+            _fileVersion = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\FileVersion");
+            _internalName = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\InternalName");
+            _legalCopyright = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\LegalCopyright");
+            _originalFilename = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\OriginalFilename");
+            _productName = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\ProductName");
+            _productVersion = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\ProductVersion");
+            _comments = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\Comments");
+            _legalTrademarks = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\LegalTrademarks");
+            _privateBuild = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\PrivateBuild");
+            _specialBuild = GetFileVersionString(memIntPtr, $"\\\\StringFileInfo\\\\{codepage}\\\\SpecialBuild");
 
             _language = GetFileVersionLanguage(memIntPtr);
 

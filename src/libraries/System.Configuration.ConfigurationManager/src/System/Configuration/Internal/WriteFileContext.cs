@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using System.Threading;
@@ -16,7 +15,7 @@ using System.IO.Internal;
 
 namespace System.Configuration.Internal
 {
-    internal class WriteFileContext
+    internal sealed class WriteFileContext
     {
         private const int SavingTimeout = 10000;        // 10 seconds
         private const int SavingRetryInterval = 100;    // 100 milliseconds

@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.Serialization;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Xml
 {
@@ -66,13 +65,13 @@ namespace System.Xml
         ConstString
     }
 
-    internal class ValueHandle
+    internal sealed class ValueHandle
     {
         private readonly XmlBufferReader _bufferReader;
         private ValueHandleType _type;
         private int _offset;
         private int _length;
-        private static Base64Encoding s_base64Encoding;
+        private static Base64Encoding? s_base64Encoding;
         private static readonly string[] s_constStrings = {
                                         "string",
                                         "number",
@@ -774,7 +773,7 @@ namespace System.Xml
                             else
                             {
                                 DiagnosticUtility.DebugAssert(byteOffset + actualByteCount < bytes.Length,
-                                    string.Format("byteOffset {0} + actualByteCount {1} MUST BE < bytes.Length {2}", byteOffset, actualByteCount, bytes.Length));
+                                    $"byteOffset {byteOffset} + actualByteCount {actualByteCount} MUST BE < bytes.Length {bytes.Length}");
 
                                 // Request a few more bytes to get at least one character
                                 actualCharCount = decoder.GetChars(bytes, byteOffset + actualByteCount, 1, chars, charOffset);
@@ -819,7 +818,7 @@ namespace System.Xml
             return true;
         }
 
-        public bool TryGetDictionaryString(out XmlDictionaryString value)
+        public bool TryGetDictionaryString([NotNullWhen(true)] out XmlDictionaryString? value)
         {
             if (_type == ValueHandleType.Dictionary)
             {

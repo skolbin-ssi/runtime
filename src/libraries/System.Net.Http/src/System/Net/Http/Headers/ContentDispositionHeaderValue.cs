@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -135,14 +134,7 @@ namespace System.Net.Http.Headers
             Debug.Assert(source != null);
 
             _dispositionType = source._dispositionType;
-
-            if (source._parameters != null)
-            {
-                foreach (var parameter in source._parameters)
-                {
-                    this.Parameters.Add((NameValueHeaderValue)((ICloneable)parameter).Clone());
-                }
-            }
+            _parameters = source._parameters.Clone();
         }
 
         public ContentDispositionHeaderValue(string dispositionType)
@@ -163,7 +155,7 @@ namespace System.Net.Http.Headers
             return StringBuilderCache.GetStringAndRelease(sb);
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             ContentDispositionHeaderValue? other = obj as ContentDispositionHeaderValue;
 

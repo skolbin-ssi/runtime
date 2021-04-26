@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
@@ -8,7 +7,7 @@ namespace System.PrivateUri.Tests
 {
     public class UriBuilderRefreshTest
     {
-        private static readonly Uri s_starterUri = new Uri("http://user:psw@host:9090/path/file.txt?query#fragment");
+        private static readonly Uri s_starterUri = new Uri("http://user:PLACEHOLDER@host:9090/path/file.txt?query#fragment");
 
         [Fact]
         public void UriBuilder_ChangeScheme_Refreshed()

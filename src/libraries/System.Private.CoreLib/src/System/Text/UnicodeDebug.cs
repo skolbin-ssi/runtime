@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 
@@ -8,6 +7,15 @@ namespace System.Text
 {
     internal static class UnicodeDebug
     {
+        [Conditional("DEBUG")]
+        internal static void AssertIsBmpCodePoint(uint codePoint)
+        {
+            if (!UnicodeUtility.IsBmpCodePoint(codePoint))
+            {
+                Debug.Fail($"The value {ToHexString(codePoint)} is not a valid BMP code point.");
+            }
+        }
+
         [Conditional("DEBUG")]
         internal static void AssertIsHighSurrogateCodePoint(uint codePoint)
         {

@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Threading;
 
 namespace System.Transactions
 {
-    internal class CheapUnfairReaderWriterLock
+    internal sealed class CheapUnfairReaderWriterLock
     {
         private object? _writerFinishedEvent;
 
@@ -121,7 +120,7 @@ namespace System.Transactions
 
     // This transaction table implementation uses an array of lists to avoid contention.  The list for a
     // transaction is decided by its hashcode.
-    internal class TransactionTable
+    internal sealed class TransactionTable
     {
         // Use a timer to initiate looking for transactions that have timed out.
         private readonly Timer _timer;
@@ -538,7 +537,7 @@ namespace System.Transactions
     }
 
 
-    internal class BucketSet
+    internal sealed class BucketSet
     {
         // Buckets are kept in sets.  Each element of a set will have the same absoluteTimeout.
         internal object? nextSetWeak;
@@ -596,7 +595,7 @@ namespace System.Transactions
     }
 
 
-    internal class Bucket
+    internal sealed class Bucket
     {
         private bool _timedOut;
         private int _index;

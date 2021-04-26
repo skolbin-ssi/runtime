@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using Test.Cryptography;
 using Xunit;
 
 namespace System.Net.Test.Common
@@ -16,8 +16,8 @@ namespace System.Net.Test.Common
     {
         public static partial class Certificates
         {
-            private const string CertificatePassword = "testcertificate";
-            private const string TestDataFolder = "TestData";
+            private const string CertificatePassword = "PLACEHOLDER";
+            private const string TestDataFolder = "TestDataCertificates";
             private const int MutexTimeoutMs = 120_000;
 
             private static readonly X509Certificate2 s_serverCertificate;
@@ -63,7 +63,7 @@ namespace System.Net.Test.Common
                     }
                 }
             }
-            
+
             // These Get* methods make a copy of the certificates so that consumers own the lifetime of the
             // certificates handed back.  Consumers are expected to dispose of their certs when done with them.
 

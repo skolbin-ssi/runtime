@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #if ES_BUILD_STANDALONE
 using System;
@@ -9,6 +8,9 @@ using System;
 #if ES_BUILD_STANDALONE
 namespace Microsoft.Diagnostics.Tracing
 #else
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Versioning;
+
 namespace System.Diagnostics.Tracing
 #endif
 {
@@ -18,6 +20,9 @@ namespace System.Diagnostics.Tracing
     /// function to collect metrics on its own rather than the user having to call WriteMetric()
     /// every time.
     /// </summary>
+#if NETCOREAPP
+    [UnsupportedOSPlatform("browser")]
+#endif
     public partial class PollingCounter : DiagnosticCounter
     {
         /// <summary>
@@ -42,6 +47,11 @@ namespace System.Diagnostics.Tracing
         private readonly Func<double> _metricProvider;
         private double _lastVal;
 
+#if !ES_BUILD_STANDALONE
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "The DynamicDependency will preserve the properties of CounterPayload")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(CounterPayload))]
+#endif
         internal override void WritePayload(float intervalSec, int pollingIntervalMillisec)
         {
             lock (this)
@@ -79,7 +89,7 @@ namespace System.Diagnostics.Tracing
     /// This is the payload that is sent in the with EventSource.Write
     /// </summary>
     [EventData]
-    internal class PollingPayloadType
+    internal sealed class PollingPayloadType
     {
         public PollingPayloadType(CounterPayload payload) { Payload = payload; }
         public CounterPayload Payload { get; set; }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace System.Xml.Xsl.XsltOld
 {
@@ -62,7 +61,7 @@ namespace System.Xml.Xsl.XsltOld
                     Debug.Assert(frame != null);
                     Debug.Assert(frame.NodeSet != null);
 
-                    string value = processor.ValueOf(frame, _selectKey);
+                    string? value = processor.ValueOf(frame, _selectKey);
 
                     if (processor.TextEvent(value, _disableOutputEscaping))
                     {
@@ -88,7 +87,7 @@ namespace System.Xml.Xsl.XsltOld
         }
     }
 
-    internal class BuiltInRuleTextAction : Action
+    internal sealed class BuiltInRuleTextAction : Action
     {
         private const int ResultStored = 2;
         internal override void Execute(Processor processor, ActionFrame frame)
@@ -101,7 +100,7 @@ namespace System.Xml.Xsl.XsltOld
                     Debug.Assert(frame != null);
                     Debug.Assert(frame.NodeSet != null);
 
-                    string value = processor.ValueOf(frame.NodeSet.Current);
+                    string value = processor.ValueOf(frame.NodeSet.Current!);
 
                     if (processor.TextEvent(value, /*disableOutputEscaping:*/false))
                     {

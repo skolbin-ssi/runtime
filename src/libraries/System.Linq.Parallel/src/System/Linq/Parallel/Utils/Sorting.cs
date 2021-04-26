@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -33,7 +32,7 @@ namespace System.Linq.Parallel
         internal abstract TInputOutput[] Sort();
     }
 
-    internal class SortHelper<TInputOutput, TKey> : SortHelper<TInputOutput>, IDisposable
+    internal sealed class SortHelper<TInputOutput, TKey> : SortHelper<TInputOutput>, IDisposable
     {
         private readonly QueryOperatorEnumerator<TInputOutput, TKey> _source; // The data source from which to pull data.
         private readonly int _partitionCount; // The partition count.

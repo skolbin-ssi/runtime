@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics; // for TraceInformation
 using System.Diagnostics.CodeAnalysis;
@@ -21,7 +20,7 @@ namespace System.Threading
     // allocate N of these, where N is the maximum number of locks held simultaneously
     // by that thread.
     //
-    internal class ReaderWriterCount
+    internal sealed class ReaderWriterCount
     {
         // Which lock does this object belong to?  This is a numeric ID for two reasons:
         // 1) We don't want this field to keep the lock object alive, and a WeakReference would

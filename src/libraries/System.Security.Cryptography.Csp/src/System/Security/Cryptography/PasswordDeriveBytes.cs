@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
 using System.Diagnostics;
@@ -8,11 +7,15 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
+#pragma warning disable CA5373 // Call to obsolete key derivation function PasswordDeriveBytes.*
+
 namespace System.Security.Cryptography
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
     public partial class PasswordDeriveBytes : DeriveBytes
     {
+        private const string HashAlgorithmUnreferencedCodeMessage = "The hash implementation might be removed. Ensure the referenced hash algorithm is not trimmed.";
+
         private int _extraCount;
         private int _prefix;
         private int _iterations;
@@ -24,25 +27,35 @@ namespace System.Security.Cryptography
         private HashAlgorithm? _hash;
         private readonly CspParameters? _cspParams;
 
+#pragma warning disable CA1416 // Validate platform compatibility, CspParametersis is windows only type, we might want to annotate this constructors windows only, suppressing for now
         public PasswordDeriveBytes(string strPassword, byte[]? rgbSalt) : this(strPassword, rgbSalt, new CspParameters()) { }
 
         public PasswordDeriveBytes(byte[] password, byte[]? salt) : this(password, salt, new CspParameters()) { }
 
+        [RequiresUnreferencedCode(HashAlgorithmUnreferencedCodeMessage)]
         public PasswordDeriveBytes(string strPassword, byte[]? rgbSalt, string strHashName, int iterations) :
             this(strPassword, rgbSalt, strHashName, iterations, new CspParameters()) { }
 
+        [RequiresUnreferencedCode(HashAlgorithmUnreferencedCodeMessage)]
         public PasswordDeriveBytes(byte[] password, byte[]? salt, string hashName, int iterations) :
             this(password, salt, hashName, iterations, new CspParameters()) { }
+#pragma warning restore CA1416
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "The correct hash algorithm is being preserved by the DynamicDependency.")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(SHA1CryptoServiceProvider))]
         public PasswordDeriveBytes(string strPassword, byte[]? rgbSalt, CspParameters? cspParams) :
             this(strPassword, rgbSalt, "SHA1", 100, cspParams) { }
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "The correct hash algorithm is being preserved by the DynamicDependency.")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(SHA1CryptoServiceProvider))]
         public PasswordDeriveBytes(byte[] password, byte[]? salt, CspParameters? cspParams) :
             this(password, salt, "SHA1", 100, cspParams) { }
 
+        [RequiresUnreferencedCode(HashAlgorithmUnreferencedCodeMessage)]
         public PasswordDeriveBytes(string strPassword, byte[]? rgbSalt, string strHashName, int iterations, CspParameters? cspParams) :
             this((new UTF8Encoding(false)).GetBytes(strPassword), rgbSalt, strHashName, iterations, cspParams) { }
 
+        [RequiresUnreferencedCode(HashAlgorithmUnreferencedCodeMessage)]
         public PasswordDeriveBytes(byte[] password, byte[]? salt, string hashName, int iterations, CspParameters? cspParams)
         {
             IterationCount = iterations;
@@ -55,6 +68,7 @@ namespace System.Security.Cryptography
         public string HashName
         {
             get { return _hashName!; }
+            [RequiresUnreferencedCode(HashAlgorithmUnreferencedCodeMessage)]
             set
             {
                 if (_baseValue != null)

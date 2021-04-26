@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -135,7 +134,7 @@ namespace System.Linq.Parallel
             // RightChildResultsRecipient.
             //
 
-            private class LeftChildResultsRecipient : IPartitionedStreamRecipient<TLeftInput>
+            private sealed class LeftChildResultsRecipient : IPartitionedStreamRecipient<TLeftInput>
             {
                 private readonly IPartitionedStreamRecipient<TOutput> _outputRecipient;
                 private readonly BinaryQueryOperatorResults _results;
@@ -168,7 +167,7 @@ namespace System.Linq.Parallel
             // WrapPartitionedStream method.
             //
 
-            private class RightChildResultsRecipient<TLeftKey> : IPartitionedStreamRecipient<TRightInput>
+            private sealed class RightChildResultsRecipient<TLeftKey> : IPartitionedStreamRecipient<TRightInput>
             {
                 private readonly IPartitionedStreamRecipient<TOutput> _outputRecipient;
                 private readonly PartitionedStream<TLeftInput, TLeftKey> _leftPartitionedStream;

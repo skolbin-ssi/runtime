@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -17,7 +16,7 @@ namespace System.Linq.Parallel
     /// Very simple heap data structure, of fixed size.
     /// </summary>
     /// <typeparam name="TElement"></typeparam>
-    internal class FixedMaxHeap<TElement>
+    internal sealed class FixedMaxHeap<TElement>
     {
         private readonly TElement[] _elements; // Element array.
         private int _count; // Current count.

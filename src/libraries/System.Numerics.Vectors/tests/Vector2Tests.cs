@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -37,6 +36,36 @@ namespace System.Numerics.Tests
             Assert.Equal(3.0, a[2]);
             Assert.Equal(2.0, b[0]);
             Assert.Equal(3.0, b[1]);
+        }
+
+        [Fact]
+        public void Vector2CopyToSpanTest()
+        {
+            Vector2 vector = new Vector2(1.0f, 2.0f);
+            Span<float> destination = new float[2];
+
+            Assert.Throws<ArgumentException>(() => vector.CopyTo(new Span<float>(new float[1])));
+            vector.CopyTo(destination);
+
+            Assert.Equal(1.0f, vector.X);
+            Assert.Equal(2.0f, vector.Y);
+            Assert.Equal(vector.X, destination[0]);
+            Assert.Equal(vector.Y, destination[1]);
+        }
+
+        [Fact]
+        public void Vector2TryCopyToTest()
+        {
+            Vector2 vector = new Vector2(1.0f, 2.0f);
+            Span<float> destination = new float[2];
+
+            Assert.False(vector.TryCopyTo(new Span<float>(new float[1])));
+            Assert.True(vector.TryCopyTo(destination));
+
+            Assert.Equal(1.0f, vector.X);
+            Assert.Equal(2.0f, vector.Y);
+            Assert.Equal(vector.X, destination[0]);
+            Assert.Equal(vector.Y, destination[1]);
         }
 
         [Fact]
@@ -435,6 +464,37 @@ namespace System.Numerics.Tests
             Assert.True(MathHelper.Equal(expected, actual), "Vector2f.Lerp did not return the expected value.");
         }
 
+        // A test for Lerp (Vector2f, Vector2f, float)
+        // Lerp test with values known to be innacurate with the old lerp impl
+        [Fact]
+        public void Vector2LerpTest7()
+        {
+            Vector2 a = new Vector2(0.44728136f);
+            Vector2 b = new Vector2(0.46345946f);
+
+            float t = 0.26402435f;
+
+            Vector2 expected = new Vector2(0.45155275f);
+            Vector2 actual = Vector2.Lerp(a, b, t);
+            Assert.True(MathHelper.Equal(expected, actual), "Vector2f.Lerp did not return the expected value.");
+        }
+
+        // A test for Lerp (Vector2f, Vector2f, float)
+        // Lerp test with values known to be innacurate with the old lerp impl
+        // (Old code incorrectly gets 0.33333588)
+        [Fact]
+        public void Vector2LerpTest8()
+        {
+            Vector2 a = new Vector2(-100);
+            Vector2 b = new Vector2(0.33333334f);
+
+            float t = 1f;
+
+            Vector2 expected = new Vector2(0.33333334f);
+            Vector2 actual = Vector2.Lerp(a, b, t);
+            Assert.True(MathHelper.Equal(expected, actual), "Vector2f.Lerp did not return the expected value.");
+        }
+
         // A test for Transform(Vector2f, Matrix4x4)
         [Fact]
         public void Vector2TransformTest()
@@ -802,6 +862,18 @@ namespace System.Numerics.Tests
             target = new Vector2(value);
             expected = new Vector2(value, value);
             Assert.Equal(expected, target);
+        }
+
+        // A test for Vector2f (ReadOnlySpan<float>)
+        [Fact]
+        public void Vector2ConstructorTest5()
+        {
+            float value = 1.0f;
+            Vector2 target = new Vector2(new[] { value, value });
+            Vector2 expected = new Vector2(value);
+
+            Assert.Equal(expected, target);
+            Assert.Throws<IndexOutOfRangeException>(() => new Vector2(new float[1]));
         }
 
         // A test for Add (Vector2f, Vector2f)

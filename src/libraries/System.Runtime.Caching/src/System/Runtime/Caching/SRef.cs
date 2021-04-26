@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Globalization;
@@ -12,7 +11,7 @@ using System.Runtime.InteropServices;
 namespace System.Runtime.Caching
 {
     // until then we provide a stub
-    internal class SRefMultiple
+    internal sealed class SRefMultiple
     {
         internal SRefMultiple(object[] targets)
         {
@@ -23,7 +22,7 @@ namespace System.Runtime.Caching
         }
     }
 
-    internal class GCHandleRef<T> : IDisposable
+    internal sealed class GCHandleRef<T> : IDisposable
     where T : class, IDisposable
     {
         private GCHandle _handle;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 
@@ -10,18 +9,18 @@ namespace System.DirectoryServices.ActiveDirectory
     {
         internal DomainCollection() { }
 
-        internal DomainCollection(ArrayList values)
+        internal DomainCollection(ArrayList? values)
         {
             if (values != null)
             {
                 for (int i = 0; i < values.Count; i++)
                 {
-                    Add((Domain)values[i]);
+                    Add((Domain)values[i]!);
                 }
             }
         }
 
-        public Domain this[int index] => (Domain)InnerList[index];
+        public Domain this[int index] => (Domain)InnerList[index]!;
 
         public bool Contains(Domain domain)
         {
@@ -30,7 +29,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                Domain tmp = (Domain)InnerList[i];
+                Domain tmp = (Domain)InnerList[i]!;
                 if (Utils.Compare(tmp.Name, domain.Name) == 0)
                 {
                     return true;
@@ -46,7 +45,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                Domain tmp = (Domain)InnerList[i];
+                Domain tmp = (Domain)InnerList[i]!;
                 if (Utils.Compare(tmp.Name, domain.Name) == 0)
                 {
                     return i;

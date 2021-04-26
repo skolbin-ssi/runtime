@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -215,7 +214,7 @@ namespace System.PrivateUri.Tests
         [InlineData(null, "")]
         public void Password_Get_Set(string value, string expected)
         {
-            var uriBuilder = new UriBuilder("http://userinfo1:userinfo2@domain/path?query#fragment");
+            var uriBuilder = new UriBuilder("http://userinfo1:PLACEHOLDER@domain/path?query#fragment");
             uriBuilder.Password = value;
             Assert.Equal(expected, uriBuilder.Password);
 

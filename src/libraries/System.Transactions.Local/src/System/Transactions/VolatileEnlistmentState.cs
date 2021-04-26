@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Threading;
@@ -78,7 +77,7 @@ namespace System.Transactions
     // but no one has begun committing or aborting the transaction.  From this state the enlistment
     // can abort the transaction or call read only to indicate that it does not want to
     // participate further in the transaction.
-    internal class VolatileEnlistmentActive : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentActive : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -129,7 +128,7 @@ namespace System.Transactions
     }
 
     // Preparing state is the time after prepare has been called but no response has been received.
-    internal class VolatileEnlistmentPreparing : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentPreparing : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -202,7 +201,7 @@ namespace System.Transactions
     // SPC state for a volatile enlistment is the point at which there is exactly 1 enlisment
     // and it supports SPC.  The TM will send a single phase commit to the enlistment and wait
     // for the response from the TM.
-    internal class VolatileEnlistmentSPC : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentSPC : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -275,7 +274,7 @@ namespace System.Transactions
     // Prepared state for a volatile enlistment is the point at which prepare has been called
     // and the enlistment has responded prepared.  No enlistment operations are valid at this
     // point.  The RM must wait for the TM to take the next action.
-    internal class VolatileEnlistmentPrepared : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentPrepared : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -308,7 +307,7 @@ namespace System.Transactions
     }
 
     // Aborting state is when Rollback has been sent to the enlistment.
-    internal class VolatileEnlistmentPreparingAborting : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentPreparingAborting : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -357,7 +356,7 @@ namespace System.Transactions
     }
 
     // Aborting state is when Rollback has been sent to the enlistment.
-    internal class VolatileEnlistmentAborting : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentAborting : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -400,7 +399,7 @@ namespace System.Transactions
     }
 
     // Committing state is when Commit has been sent to the enlistment.
-    internal class VolatileEnlistmentCommitting : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentCommitting : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -434,7 +433,7 @@ namespace System.Transactions
     }
 
     // InDoubt state is for an enlistment that has sent indoubt but has not been responeded to.
-    internal class VolatileEnlistmentInDoubt : VolatileEnlistmentState
+    internal sealed class VolatileEnlistmentInDoubt : VolatileEnlistmentState
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {
@@ -511,7 +510,7 @@ namespace System.Transactions
     }
 
     // At some point either early or late the enlistment responded ReadOnly
-    internal class VolatileEnlistmentDone : VolatileEnlistmentEnded
+    internal sealed class VolatileEnlistmentDone : VolatileEnlistmentEnded
     {
         internal override void EnterState(InternalEnlistment enlistment)
         {

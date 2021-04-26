@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Specialized;
 using System.Configuration.Internal;
@@ -11,7 +10,7 @@ namespace System.Configuration
 {
     // Configuration host that intercepts calls to filename functions
     // to support SaveAs to an alternate file stream.
-    internal class UpdateConfigHost : DelegatingConfigHost
+    internal sealed class UpdateConfigHost : DelegatingConfigHost
     {
         private HybridDictionary _streams; // oldStreamname -> StreamUpdate
 

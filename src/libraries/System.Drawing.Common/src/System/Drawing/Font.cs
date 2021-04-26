@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -14,9 +14,9 @@ namespace System.Drawing
     /// <summary>
     /// Defines a particular format for text, including font face, size, and style attributes.
     /// </summary>
-#if NETCOREAPP
-    [TypeConverter("System.Drawing.FontConverter, System.Windows.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51")]
-#endif
+    [Editor("System.Drawing.Design.FontEditor, System.Drawing.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a",
+            "System.Drawing.Design.UITypeEditor, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")]
+    [TypeConverter(typeof(FontConverter))]
     [Serializable]
     [System.Runtime.CompilerServices.TypeForwardedFrom("System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")]
     public sealed partial class Font : MarshalByRefObject, ICloneable, IDisposable, ISerializable
@@ -29,7 +29,7 @@ namespace System.Drawing
         private byte _gdiCharSet = SafeNativeMethods.DEFAULT_CHARSET;
         private bool _gdiVerticalFont;
         private string _systemFontName = "";
-        private string _originalFontName = null!;
+        private string? _originalFontName;
 
         // Return value is in Unit (the unit the font was created in)
         /// <summary>
@@ -77,11 +77,15 @@ namespace System.Drawing
         /// Gets the face name of this <see cref='Font'/> .
         /// </summary>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Editor("System.Drawing.Design.FontNameEditor, System.Drawing.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a",
+                "System.Drawing.Design.UITypeEditor, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")]
+        [TypeConverter(typeof(FontConverter.FontNameConverter))]
         public string Name => FontFamily.Name;
 
         /// <summary>
         /// Gets the unit of measure for this <see cref='Font'/>.
         /// </summary>
+        [TypeConverter(typeof(FontConverter.FontUnitConverter))]
         public GraphicsUnit Unit => _fontUnit;
 
         /// <summary>
@@ -108,7 +112,7 @@ namespace System.Drawing
         /// This property is required by the framework and not intended to be used directly.
         /// </summary>
         [Browsable(false)]
-        public string OriginalFontName => _originalFontName;
+        public string? OriginalFontName => _originalFontName;
 
         /// <summary>
         /// Gets the name of this <see cref='Font'/>.
@@ -221,7 +225,7 @@ namespace System.Drawing
         /// Returns a value indicating whether the specified object is a <see cref='Font'/> equivalent to this
         /// <see cref='Font'/>.
         /// </summary>
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             if (obj == this)
             {
@@ -250,24 +254,14 @@ namespace System.Drawing
         /// </summary>
         public override int GetHashCode()
         {
-            return unchecked((int)((((uint)_fontStyle << 13) | ((uint)_fontStyle >> 19)) ^
-                         (((uint)_fontUnit << 26) | ((uint)_fontUnit >> 6)) ^
-                         (((uint)_fontSize << 7) | ((uint)_fontSize >> 25))));
+            return HashCode.Combine(Name, Style, Size, Unit);
         }
 
         /// <summary>
         /// Returns a human-readable string representation of this <see cref='Font'/>.
         /// </summary>
-        public override string ToString()
-        {
-            return string.Format(CultureInfo.CurrentCulture, "[{0}: Name={1}, Size={2}, Units={3}, GdiCharSet={4}, GdiVerticalFont={5}]",
-                                    GetType().Name,
-                                    FontFamily.Name,
-                                    _fontSize,
-                                    (int)_fontUnit,
-                                    _gdiCharSet,
-                                    _gdiVerticalFont);
-        }
+        public override string ToString() =>
+            $"[{GetType().Name}: Name={FontFamily.Name}, Size={_fontSize}, Units={(int)_fontUnit}, GdiCharSet={_gdiCharSet}, GdiVerticalFont={_gdiVerticalFont}]";
 
         // This is used by SystemFonts when constructing a system Font objects.
         internal void SetSystemFontName(string systemFontName) => _systemFontName = systemFontName;

@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 using System.Threading;
@@ -11,10 +10,11 @@ namespace System.Runtime.Tests
 {
     public class ProfileOptimizationTest : FileCleanupTestBase
     {
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [InlineData(false)]
         [InlineData(true)]
         [ActiveIssue("https://github.com/dotnet/runtime/issues/31853", TestRuntimes.Mono)]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
         public void ProfileOptimization_CheckFileExists(bool stopProfile)
         {
             string profileFile = GetTestFileName();

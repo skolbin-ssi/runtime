@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.ComponentModel
 {
@@ -23,6 +24,7 @@ namespace System.ComponentModel
         /// Adds the specified component to the <see cref='System.ComponentModel.Container'/>
         /// The component is unnamed.
         /// </summary>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode", Justification = "No name is provided.")]
         public virtual void Add(IComponent component) => Add(component, null);
 
         // Adds a component to the container.
@@ -30,6 +32,7 @@ namespace System.ComponentModel
         /// Adds the specified component to the <see cref='System.ComponentModel.Container'/> and assigns
         /// a name to it.
         /// </summary>
+        [RequiresUnreferencedCode("The Type of components in the container cannot be statically discovered to validate the name.")]
         public virtual void Add(IComponent component, string name)
         {
             lock (_syncObj)
@@ -213,6 +216,7 @@ namespace System.ComponentModel
         /// verifies that name is either null or unique compared to the names of other
         /// components in the container.
         /// </summary>
+        [RequiresUnreferencedCode("The Type of components in the container cannot be statically discovered.")]
         protected virtual void ValidateName(IComponent component, string name)
         {
             if (component == null)
@@ -238,7 +242,7 @@ namespace System.ComponentModel
             }
         }
 
-        private class Site : ISite
+        private sealed class Site : ISite
         {
             private string _name;
 
@@ -275,6 +279,7 @@ namespace System.ComponentModel
             public string Name
             {
                 get => _name;
+                [RequiresUnreferencedCode("The Type of components in the container cannot be statically discovered to validate the name.")]
                 set
                 {
                     if (value == null || _name == null || !value.Equals(_name))

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers;
 using System.Diagnostics;
@@ -75,10 +74,6 @@ namespace System.IO
                 token.Dispose();
             }
         }
-
-        // -----------------------------
-        // ---- PAL layer ends here ----
-        // -----------------------------
 
         private CancellationTokenSource? _cancellation;
 
@@ -185,7 +180,7 @@ namespace System.IO
                 // A reference to the RunLoop that we can use to start or stop a Watcher
                 private static CFRunLoopRef s_watcherRunLoop = IntPtr.Zero;
 
-                private static int s_scheduledStreamsCount = 0;
+                private static int s_scheduledStreamsCount;
 
                 private static readonly object s_lockObject = new object();
 
@@ -204,12 +199,15 @@ namespace System.IO
                         Debug.Assert(s_scheduledStreamsCount == 0);
                         s_scheduledStreamsCount = 1;
                         var runLoopStarted = new ManualResetEventSlim();
-                        new Thread(args =>
+                        new Thread(static args =>
                         {
                             object[] inputArgs = (object[])args!;
                             WatchForFileSystemEventsThreadStart((ManualResetEventSlim)inputArgs[0], (SafeEventStreamHandle)inputArgs[1]);
                         })
-                        { IsBackground = true }.Start(new object[] { runLoopStarted, eventStream });
+                        {
+                            IsBackground = true,
+                            Name = ".NET File Watcher"
+                        }.UnsafeStart(new object[] { runLoopStarted, eventStream });
 
                         runLoopStarted.Wait();
                     }
@@ -478,24 +476,17 @@ namespace System.IO
 
                 this._context = ExecutionContext.Capture();
 
-                ParsedEvent ParseEvent(byte* nativeEventPath)
+                static ParsedEvent ParseEvent(byte* nativeEventPath)
                 {
-                    int byteCount = 0;
                     Debug.Assert(nativeEventPath != null);
-                    byte* temp = nativeEventPath;
 
-                    // Finds the position of null character.
-                    while (*temp != 0)
-                    {
-                        temp++;
-                        byteCount++;
-                    }
+                    ReadOnlySpan<byte> eventPath = MemoryMarshal.CreateReadOnlySpanFromNullTerminated(nativeEventPath);
+                    Debug.Assert(!eventPath.IsEmpty, "Empty events are not supported");
 
-                    Debug.Assert(byteCount > 0, "Empty events are not supported");
-                    char[] tempBuffer = ArrayPool<char>.Shared.Rent(Encoding.UTF8.GetMaxCharCount(byteCount));
+                    char[] tempBuffer = ArrayPool<char>.Shared.Rent(Encoding.UTF8.GetMaxCharCount(eventPath.Length));
 
                     // Converting an array of bytes to UTF-8 char array
-                    int charCount = Encoding.UTF8.GetChars(new ReadOnlySpan<byte>(nativeEventPath, byteCount), tempBuffer);
+                    int charCount = Encoding.UTF8.GetChars(eventPath, tempBuffer);
                     return new ParsedEvent(tempBuffer.AsSpan(0, charCount), tempBuffer);
                 }
 
@@ -582,7 +573,7 @@ namespace System.IO
                 return _includeChildren || _fullDirectory.AsSpan().StartsWith(System.IO.Path.GetDirectoryName(eventPath), StringComparison.OrdinalIgnoreCase);
             }
 
-            private unsafe int? FindRenameChangePairedChange(
+            private int? FindRenameChangePairedChange(
                 int currentIndex,
                 Span<FSEventStreamEventFlags> flags, Span<FSEventStreamEventId> ids)
             {

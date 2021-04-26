@@ -1,12 +1,11 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Reflection.Context.Projection;
 
 namespace System.Reflection.Context.Custom
 {
-    internal class CustomEventInfo : ProjectingEventInfo
+    internal sealed class CustomEventInfo : ProjectingEventInfo
     {
         public CustomEventInfo(EventInfo template, CustomReflectionContext context)
             : base(template, context.Projector)

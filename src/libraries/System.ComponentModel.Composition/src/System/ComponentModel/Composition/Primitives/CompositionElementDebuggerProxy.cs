@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Microsoft.Internal;
 
@@ -10,7 +9,7 @@ namespace System.ComponentModel.Composition.Primitives
     // when viewing CompositionError.Element in the watch and data tips windows, we
     // need this proxy so that the underlying object wrapped by the CompositionElement
     // placeholder is displayed by default.
-    internal class CompositionElementDebuggerProxy
+    internal sealed class CompositionElementDebuggerProxy
     {
         private readonly CompositionElement _element;
 

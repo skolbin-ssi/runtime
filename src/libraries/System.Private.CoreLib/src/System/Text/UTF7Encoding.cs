@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 //
 // Don't override IsAlwaysNormalized because it is just a Unicode Transformation and could be confused.
@@ -27,9 +26,11 @@ namespace System.Text
         private const string optionalChars =
             "!\"#$%&*;<=>@[]^_`{|}";
 
+#pragma warning disable SYSLIB0001
         // Used by Encoding.UTF7 for lazy initialization
         // The initialization code will not be run until a static member of the class is referenced
         internal static readonly UTF7Encoding s_default = new UTF7Encoding();
+#pragma warning restore SYSLIB0001
 
         // The set of base 64 characters.
         private byte[] _base64Bytes;
@@ -46,11 +47,13 @@ namespace System.Text
 
         private const int UTF7_CODEPAGE = 65000;
 
+        [Obsolete(Obsoletions.SystemTextEncodingUTF7Message, DiagnosticId = Obsoletions.SystemTextEncodingUTF7DiagId, UrlFormat = Obsoletions.SharedUrlFormat)]
         public UTF7Encoding()
             : this(false)
         {
         }
 
+        [Obsolete(Obsoletions.SystemTextEncodingUTF7Message, DiagnosticId = Obsoletions.SystemTextEncodingUTF7DiagId, UrlFormat = Obsoletions.SharedUrlFormat)]
         public UTF7Encoding(bool allowOptionals)
             : base(UTF7_CODEPAGE) // Set the data item.
         {
@@ -99,7 +102,7 @@ namespace System.Text
             this.decoderFallback = new DecoderUTF7Fallback();
         }
 
-        public override bool Equals(object? value)
+        public override bool Equals([NotNullWhen(true)] object? value)
         {
             if (value is UTF7Encoding that)
             {
@@ -160,7 +163,9 @@ namespace System.Text
         {
             // Validate input
             if (s == null)
-                throw new ArgumentNullException(nameof(s));
+            {
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+            }
 
             fixed (char* pChars = s)
                 return GetByteCount(pChars, s.Length, null);
@@ -846,7 +851,7 @@ namespace System.Text
             // Maximum number of characters that this instance of this fallback could return
             public override int MaxCharCount => 1; // returns 1 char per bad byte
 
-            public override bool Equals(object? value) => value is DecoderUTF7Fallback;
+            public override bool Equals([NotNullWhen(true)] object? value) => value is DecoderUTF7Fallback;
 
             public override int GetHashCode() => 984;
         }
@@ -854,7 +859,7 @@ namespace System.Text
         private sealed class DecoderUTF7FallbackBuffer : DecoderFallbackBuffer
         {
             // Store our default string
-            private char cFallback = (char)0;
+            private char cFallback;
             private int iCount = -1;
             private int iSize;
 

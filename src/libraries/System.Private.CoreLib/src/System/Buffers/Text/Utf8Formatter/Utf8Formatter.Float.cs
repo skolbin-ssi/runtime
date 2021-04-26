@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Text;
@@ -59,7 +58,7 @@ namespace System.Buffers.Text
             return TryFormatFloatingPoint<float>(value, destination, out bytesWritten, format);
         }
 
-        private static bool TryFormatFloatingPoint<T>(T value, Span<byte> destination, out int bytesWritten, StandardFormat format) where T : IFormattable, ISpanFormattable
+        private static bool TryFormatFloatingPoint<T>(T value, Span<byte> destination, out int bytesWritten, StandardFormat format) where T : ISpanFormattable
         {
             Span<char> formatText = stackalloc char[0];
 

@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -19,11 +18,14 @@ using Xunit;
 
 namespace System.Runtime.Serialization.Formatters.Tests
 {
+    [ConditionalClass(typeof(PlatformDetection), nameof(PlatformDetection.IsBinaryFormatterSupported))]
+    [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
     public partial class BinaryFormatterTests : FileCleanupTestBase
     {
         // On 32-bit we can't test these high inputs as they cause OutOfMemoryExceptions.
         [ConditionalTheory(typeof(Environment), nameof(Environment.Is64BitProcess))]
         [SkipOnCoreClr("Long running tests: https://github.com/dotnet/runtime/issues/11191", RuntimeConfiguration.Checked)]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/35915", typeof(PlatformDetection), nameof(PlatformDetection.IsMonoInterpreter))]
         [InlineData(2 * 6_584_983 - 2)] // previous limit
         [InlineData(2 * 7_199_369 - 2)] // last pre-computed prime number
         public void SerializeHugeObjectGraphs(int limit)
@@ -49,6 +51,7 @@ namespace System.Runtime.Serialization.Formatters.Tests
         [SkipOnCoreClr("Takes too long on Checked", RuntimeConfiguration.Checked)]
         [ActiveIssue("https://github.com/dotnet/runtime/issues/34008", TestPlatforms.Linux, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
         [ActiveIssue("https://github.com/dotnet/runtime/issues/34753", TestPlatforms.Windows, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
+        [SkipOnPlatform(TestPlatforms.Browser, "Takes too long on Browser.")]
         [MemberData(nameof(BasicObjectsRoundtrip_MemberData))]
         public void ValidateBasicObjectsRoundtrip(object obj, FormatterAssemblyStyle assemblyFormat, TypeFilterLevel filterLevel, FormatterTypeStyle typeFormat)
         {
@@ -94,11 +97,22 @@ namespace System.Runtime.Serialization.Formatters.Tests
                 CheckObjectTypeIntegrity(customSerializableObj);
             }
 
+            // TimeZoneInfo objects have three properties (DisplayName, StandardName, DaylightName)
+            // that are localized.  Since the blobs were generated from the invariant culture, they
+            // will have English strings embedded.  Thus, we can only test them against English
+            // language cultures or the invariant culture.
+            if (obj is TimeZoneInfo && (
+                CultureInfo.CurrentUICulture.TwoLetterISOLanguageName != "en" ||
+                CultureInfo.CurrentUICulture.Name.Length != 0))
+            {
+                return;
+            }
+
             SanityCheckBlob(obj, blobs);
 
-            // SqlException, ReflectionTypeLoadException and LicenseException aren't deserializable from Desktop --> Core.
+            // ReflectionTypeLoadException and LicenseException aren't deserializable from Desktop --> Core.
             // Therefore we remove the second blob which is the one from Desktop.
-            if (!PlatformDetection.IsNetFramework && (obj is SqlException || obj is ReflectionTypeLoadException || obj is LicenseException))
+            if (!PlatformDetection.IsNetFramework && (obj is ReflectionTypeLoadException || obj is LicenseException))
             {
                 var tmpList = new List<TypeSerializableValue>(blobs);
                 tmpList.RemoveAt(1);
@@ -187,6 +201,7 @@ namespace System.Runtime.Serialization.Formatters.Tests
         [Fact]
         [ActiveIssue("https://github.com/dotnet/runtime/issues/34008", TestPlatforms.Linux, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
         [ActiveIssue("https://github.com/dotnet/runtime/issues/34753", TestPlatforms.Windows, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
+        [SkipOnPlatform(TestPlatforms.Browser, "Takes too long on Browser.")]
         public void RoundtripManyObjectsInOneStream()
         {
             object[][] objects = SerializableObjects_MemberData().ToArray();
@@ -481,7 +496,7 @@ namespace System.Runtime.Serialization.Formatters.Tests
             }
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [MemberData(nameof(CrossProcessObjects_MemberData))]
         public void Roundtrip_CrossProcess(object obj)
         {

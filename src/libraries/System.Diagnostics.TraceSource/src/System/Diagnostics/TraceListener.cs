@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -24,7 +24,7 @@ namespace System.Diagnostics
         private StringDictionary? _attributes;
 
         private string? _listenerName;
-        private TraceFilter? _filter = null;
+        private TraceFilter? _filter;
 
         /// <devdoc>
         /// <para>Initializes a new instance of the <see cref='System.Diagnostics.TraceListener'/> class.</para>
@@ -37,7 +37,7 @@ namespace System.Diagnostics
         /// <para>Initializes a new instance of the <see cref='System.Diagnostics.TraceListener'/> class using the specified name as the
         ///    listener.</para>
         /// </devdoc>
-        protected TraceListener(string name)
+        protected TraceListener(string? name)
         {
             _listenerName = name;
         }
@@ -55,9 +55,10 @@ namespace System.Diagnostics
         /// <devdoc>
         /// <para> Gets or sets a name for this <see cref='System.Diagnostics.TraceListener'/>.</para>
         /// </devdoc>
+        [AllowNull]
         public virtual string Name
         {
-            get { return (_listenerName == null) ? "" : _listenerName; }
+            get { return _listenerName ?? ""; }
 
             set { _listenerName = value; }
         }
@@ -199,17 +200,9 @@ namespace System.Diagnostics
         /// </devdoc>
         public virtual void Fail(string? message, string? detailMessage)
         {
-            StringBuilder failMessage = new StringBuilder();
-            failMessage.Append(SR.TraceListenerFail);
-            failMessage.Append(' ');
-            failMessage.Append(message);
-            if (detailMessage != null)
-            {
-                failMessage.Append(' ');
-                failMessage.Append(detailMessage);
-            }
-
-            WriteLine(failMessage.ToString());
+            WriteLine(detailMessage is null ?
+                SR.TraceListenerFail + " " + message :
+                SR.TraceListenerFail + " " + message + " " + detailMessage);
         }
 
         /// <devdoc>
@@ -359,19 +352,7 @@ namespace System.Diagnostics
 
             WriteHeader(source, eventType, id);
 
-            StringBuilder sb = new StringBuilder();
-            if (data != null)
-            {
-                for (int i = 0; i < data.Length; i++)
-                {
-                    if (i != 0)
-                        sb.Append(", ");
-
-                    if (data[i] != null)
-                        sb.Append(data[i]!.ToString());
-                }
-            }
-            WriteLine(sb.ToString());
+            WriteLine(data != null ? string.Join(", ", data) : string.Empty);
 
             WriteFooter(eventCache);
         }
@@ -393,14 +374,14 @@ namespace System.Diagnostics
             WriteFooter(eventCache);
         }
 
-        public virtual void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string format, params object?[]? args)
+        public virtual void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string? format, params object?[]? args)
         {
             if (Filter != null && !Filter.ShouldTrace(eventCache, source, eventType, id, format, args))
                 return;
 
             WriteHeader(source, eventType, id);
             if (args != null)
-                WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
+                WriteLine(string.Format(CultureInfo.InvariantCulture, format!, args));
             else
                 WriteLine(format);
 
@@ -409,7 +390,7 @@ namespace System.Diagnostics
 
         private void WriteHeader(string source, TraceEventType eventType, int id)
         {
-            Write(string.Format(CultureInfo.InvariantCulture, "{0} {1}: {2} : ", source, eventType.ToString(), id.ToString(CultureInfo.InvariantCulture)));
+            Write($"{source} {eventType.ToString()}: {id.ToString(CultureInfo.InvariantCulture)} : ");
         }
 
         private void WriteFooter(TraceEventCache? eventCache)
@@ -427,7 +408,7 @@ namespace System.Diagnostics
                 Write("LogicalOperationStack=");
                 Stack operationStack = eventCache.LogicalOperationStack;
                 bool first = true;
-                foreach (object? obj in operationStack)
+                foreach (object obj in operationStack)
                 {
                     if (!first)
                     {
@@ -438,7 +419,7 @@ namespace System.Diagnostics
                         first = false;
                     }
 
-                    Write(obj!.ToString());
+                    Write(obj.ToString());
                 }
 
                 WriteLine(string.Empty);

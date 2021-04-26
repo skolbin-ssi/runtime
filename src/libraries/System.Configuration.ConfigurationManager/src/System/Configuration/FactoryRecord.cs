@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Configuration.Internal;
@@ -9,7 +8,7 @@ using System.Diagnostics;
 namespace System.Configuration
 {
     [DebuggerDisplay("FactoryRecord {ConfigKey}")]
-    internal class FactoryRecord : IConfigErrorInfo
+    internal sealed class FactoryRecord : IConfigErrorInfo
     {
         private const int FlagAllowLocation = 0x0001; // Does the factory allow location directives?
         private const int FlagRestartOnExternalChanges = 0x0002; // Restart on external changes?

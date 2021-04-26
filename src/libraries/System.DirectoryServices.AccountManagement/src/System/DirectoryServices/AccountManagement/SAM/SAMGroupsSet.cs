@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -13,7 +12,7 @@ using System.Runtime.InteropServices;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal class SAMGroupsSet : ResultSet
+    internal sealed class SAMGroupsSet : ResultSet
     {
         internal SAMGroupsSet(UnsafeNativeMethods.IADsMembers iADsMembers, SAMStoreCtx storeCtx, DirectoryEntry ctxBase)
         {
@@ -98,7 +97,7 @@ namespace System.DirectoryServices.AccountManagement
 
         private bool _atBeginning = true;
 
-        private DirectoryEntry _current = null;
+        private DirectoryEntry _current;
     }
 }
 

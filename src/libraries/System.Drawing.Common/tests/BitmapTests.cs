@@ -1,5 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
-// See the LICENSE file in the project root for more information.
+// The .NET Foundation licenses this file to you under the MIT license.
 //
 // (C) 2004 Ximian, Inc.  http://www.ximian.com
 // Copyright (C) 2004,2006-2007 Novell, Inc (http://www.novell.com)
@@ -104,14 +104,12 @@ namespace System.Drawing.Tests
         }
 
         [ConditionalFact(Helpers.IsDrawingSupported)]
-        public void Ctor_NullType_ThrowsNullReferenceException()
+        public void Ctor_NullType_ThrowsArgumentNullException()
         {
-            Assert.Throws<NullReferenceException>(() => new Bitmap(null, "name"));
+            AssertExtensions.Throws<ArgumentNullException, NullReferenceException>("type", () => new Bitmap(null, "name"));
         }
 
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/22221", TestPlatforms.AnyUnix)]
         [ConditionalTheory(Helpers.IsDrawingSupported)]
-        [InlineData(typeof(Bitmap), null)]
         [InlineData(typeof(Bitmap), "")]
         [InlineData(typeof(Bitmap), "bitmap_173x183_indexed_8bit.bmp")]
         [InlineData(typeof(BitmapTests), "bitmap_173x183_INDEXED_8bit.bmp")]
@@ -119,6 +117,12 @@ namespace System.Drawing.Tests
         public void Ctor_InvalidResource_ThrowsArgumentException(Type type, string resource)
         {
             AssertExtensions.Throws<ArgumentException>(null, () => new Bitmap(type, resource));
+        }
+
+        [ConditionalFact(Helpers.IsDrawingSupported)]
+        public void Ctor_InvalidResource_ThrowsArgumentNullException()
+        {
+            AssertExtensions.Throws<ArgumentNullException, ArgumentException>("resource", null, () => new Bitmap(typeof(Bitmap), null));
         }
 
         [ConditionalTheory(Helpers.IsDrawingSupported)]
@@ -1207,7 +1211,7 @@ namespace System.Drawing.Tests
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     // "Reserved" is documented as "Reserved. Do not use.", so it's not clear whether we actually need to test this in any unit tests.
-                    // Additionally, the values are not consistent accross Windows (GDI+) and Unix (libgdiplus)
+                    // Additionally, the values are not consistent across Windows (GDI+) and Unix (libgdiplus)
                     Assert.Equal(expectedReserved, data.Reserved);
                 }
 
@@ -1741,7 +1745,7 @@ namespace System.Drawing.Tests
 
             using (FileStream stream = new FileStream(path, FileMode.Open))
             {
-                using (Bitmap bitmap = new Bitmap(new NonSeekableStream(stream)))
+                using (Bitmap bitmap = new Bitmap(new TestStream(stream, canSeek: false)))
                 {
                     Assert.Equal(100, bitmap.Height);
                     Assert.Equal(100, bitmap.Width);
@@ -1750,22 +1754,55 @@ namespace System.Drawing.Tests
             }
         }
 
-        private class NonSeekableStream : Stream
+        [ConditionalTheory(Helpers.IsDrawingSupported)]
+        [InlineData(true, false)]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        public void SaveToRestrictiveStream(bool canRead, bool canSeek)
+        {
+            using (Stream backingStream = new MemoryStream())
+            using (Stream restrictiveStream = new TestStream(backingStream, canRead, canSeek))
+            {
+                using (Bitmap bitmap = new Bitmap(100, 100))
+                {
+                    bitmap.Save(restrictiveStream, ImageFormat.Png);
+                }
+
+                backingStream.Position = 0;
+
+                using (Bitmap bitmap = new Bitmap(backingStream))
+                {
+                    Assert.Equal(100, bitmap.Height);
+                    Assert.Equal(100, bitmap.Width);
+                    Assert.Equal(ImageFormat.Png, bitmap.RawFormat);
+                }
+            }
+        }
+
+        private class TestStream : Stream
         {
             private Stream _stream;
+            private bool _canRead;
+            private bool _canSeek;
 
-            public NonSeekableStream(Stream stream)
+            public TestStream(Stream stream, bool canRead = true, bool canSeek = true)
             {
                 _stream = stream;
+                _canRead = canRead;
+                _canSeek = canSeek;
             }
 
-            public override bool CanRead => _stream.CanRead;
-            public override bool CanSeek => false;
+            public override bool CanRead => _canRead && _stream.CanRead;
+            public override bool CanSeek => _canSeek && _stream.CanSeek;
             public override bool CanWrite => _stream.CanWrite;
             public override long Length => _stream.Length;
-            public override long Position { get => _stream.Position; set => throw new InvalidOperationException(); }
+            public override long Position
+            {
+                get => _stream.Position;
+                set => _stream.Position = _canSeek ? value : throw new NotSupportedException();
+            }
             public override void Flush() => _stream.Flush();
-            public override int Read(byte[] buffer, int offset, int count) => _stream.Read(buffer, offset, count);
+            public override int Read(byte[] buffer, int offset, int count) => _canRead ?  _stream.Read(buffer, offset, count) : throw new NotSupportedException();
             public override long Seek(long offset, SeekOrigin origin) => _stream.Seek(offset, origin);
             public override void SetLength(long value) => _stream.SetLength(value);
             public override void Write(byte[] buffer, int offset, int count) => _stream.Write(buffer, offset, count);

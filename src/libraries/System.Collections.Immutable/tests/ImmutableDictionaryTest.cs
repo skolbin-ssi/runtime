@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,6 +22,18 @@ namespace System.Collections.Immutable.Tests
         public void AddExistingKeyDifferentValueTest()
         {
             AddExistingKeyDifferentValueTestHelper(Empty(StringComparer.Ordinal, StringComparer.Ordinal), "Company", "Microsoft", "MICROSOFT");
+        }
+
+        [Fact]
+        public void AddRangeShouldThrowOnNullKeyTest()
+        {
+            var items = new[] { new KeyValuePair<string, string>(null, "value") };
+
+            var map = Empty(StringComparer.Ordinal, StringComparer.Ordinal);
+            Assert.Throws<ArgumentNullException>(() => map.AddRange(items));
+
+            map = map.WithComparers(new BadHasher<string>());
+            Assert.Throws<ArgumentNullException>(() => map.AddRange(items));
         }
 
         [Fact]
@@ -58,6 +69,16 @@ namespace System.Collections.Immutable.Tests
                 .SetItem("A", 1);
             map = map.SetItem("a", 2);
             Assert.Equal("a", map.Keys.Single());
+        }
+
+        [Fact]
+        public void SetItemsThrowOnNullKey()
+        {
+            var map = Empty<string, int>().WithComparers(StringComparer.OrdinalIgnoreCase);
+            var items = new[] { new KeyValuePair<string, int>(null, 0) };
+            Assert.Throws<ArgumentNullException>(() => map.SetItems(items));
+            map = map.WithComparers(new BadHasher<string>());
+            Assert.Throws<ArgumentNullException>(() => map.SetItems(items));
         }
 
         /// <summary>

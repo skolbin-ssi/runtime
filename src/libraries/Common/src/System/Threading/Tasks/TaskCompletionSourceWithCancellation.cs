@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 namespace System.Threading.Tasks
 {
     /// <summary>
@@ -10,23 +8,15 @@ namespace System.Threading.Tasks
     /// <seealso cref="OperationCanceledException"/>s contain the relevant <see cref="CancellationToken"/>,
     /// while also avoiding unnecessary allocations for closure captures.
     /// </summary>
-    internal class TaskCompletionSourceWithCancellation<T> : TaskCompletionSource<T>
+    internal sealed class TaskCompletionSourceWithCancellation<T> : TaskCompletionSource<T>
     {
-        private CancellationToken _cancellationToken;
-
         public TaskCompletionSourceWithCancellation() : base(TaskCreationOptions.RunContinuationsAsynchronously)
         {
         }
 
-        private void OnCancellation()
-        {
-            TrySetCanceled(_cancellationToken);
-        }
-
         public async ValueTask<T> WaitWithCancellationAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
-            using (cancellationToken.UnsafeRegister(s => ((TaskCompletionSourceWithCancellation<T>)s!).OnCancellation(), this))
+            using (cancellationToken.UnsafeRegister(static (s, cancellationToken) => ((TaskCompletionSourceWithCancellation<T>)s!).TrySetCanceled(cancellationToken), this))
             {
                 return await Task.ConfigureAwait(false);
             }

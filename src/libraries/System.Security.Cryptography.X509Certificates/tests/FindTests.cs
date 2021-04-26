@@ -1,11 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 
 using Xunit;
@@ -95,7 +93,7 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                     Assert.NotSame(expected, match);
 
                     // FriendlyName is Windows-only.
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    if (OperatingSystem.IsWindows())
                     {
                         // Verify that the find result and original are linked, not just equal.
                         match.FriendlyName = "HAHA";
@@ -963,8 +961,8 @@ namespace System.Security.Cryptography.X509Certificates.Tests
         private static void TestFindByKeyUsage(bool shouldMatch, object matchCriteria)
         {
             using (var noKeyUsages = new X509Certificate2(TestData.MsCertificate))
-            using (var noKeyUsages2 = new X509Certificate2(Path.Combine("TestData", "test.cer")))
-            using (var keyUsages = new X509Certificate2(Path.Combine("TestData", "microsoft.cer")))
+            using (var noKeyUsages2 = new X509Certificate2(TestFiles.TestCertFile))
+            using (var keyUsages = new X509Certificate2(TestFiles.MicrosoftRootCertFile))
             {
                 var coll = new X509Certificate2Collection { noKeyUsages, noKeyUsages2, keyUsages, };
                 X509Certificate2Collection results = coll.Find(X509FindType.FindByKeyUsage, matchCriteria, false);

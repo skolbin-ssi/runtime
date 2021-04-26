@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 
@@ -22,7 +21,7 @@ namespace System.Management
     }
 
     //Class for calling GetErrorInfo from managed code
-    internal class WbemErrorInfo
+    internal static class WbemErrorInfo
     {
         public static IWbemClassObjectFreeThreaded GetErrorInfo()
         {

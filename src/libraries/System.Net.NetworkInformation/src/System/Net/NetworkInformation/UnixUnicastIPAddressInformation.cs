@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 using System.Net.Sockets;
 
 namespace System.Net.NetworkInformation
 {
     /// Provides information about a network interface's unicast address
-    internal class UnixUnicastIPAddressInformation : UnicastIPAddressInformation
+    internal sealed class UnixUnicastIPAddressInformation : UnicastIPAddressInformation
     {
         private readonly IPAddress _address;
         private readonly int _prefixLength;

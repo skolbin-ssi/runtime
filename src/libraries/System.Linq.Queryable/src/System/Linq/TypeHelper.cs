@@ -1,10 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace System.Linq
 {
@@ -31,11 +26,6 @@ namespace System.Linq
                 type = type.BaseType!;
             }
             return null;
-        }
-
-        internal static IEnumerable<MethodInfo> GetStaticMethods(this Type type)
-        {
-            return type.GetRuntimeMethods().Where(m => m.IsStatic);
         }
     }
 }

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.IO;
@@ -60,7 +59,7 @@ namespace System.Net.Http.Functional.Tests
                     await server.AcceptConnectionAsync(async connection =>
                     {
                         await connection.ReadRequestHeaderAsync();
-                        await connection.Writer.WriteAsync(
+                        await connection.WriteStringAsync(
                             LoopbackServer.GetContentModeResponse(
                                 contentMode,
                                 string.Concat(Enumerable.Repeat('s', 10_000)),

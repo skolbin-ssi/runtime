@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -26,7 +25,7 @@ namespace System.IO
     //  - IEnumerator<T> instances from the same IEnumerable<T> party on the same underlying
     //    reader.
     //
-    internal class ReadLinesIterator : Iterator<string>
+    internal sealed class ReadLinesIterator : Iterator<string>
     {
         private readonly string _path;
         private readonly Encoding _encoding;

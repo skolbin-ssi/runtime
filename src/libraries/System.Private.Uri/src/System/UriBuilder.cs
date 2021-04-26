@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -46,7 +45,7 @@ namespace System
 
         public UriBuilder(Uri uri)
         {
-            if ((object?)uri == null)
+            if (uri is null)
                 throw new ArgumentNullException(nameof(uri));
 
             Init(uri);
@@ -352,7 +351,7 @@ namespace System
 
         // methods
 
-        public override bool Equals(object? rparam)
+        public override bool Equals([NotNullWhen(true)] object? rparam)
         {
             if (rparam == null)
             {

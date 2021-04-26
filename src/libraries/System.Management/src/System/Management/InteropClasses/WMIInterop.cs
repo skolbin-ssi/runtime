@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Runtime.InteropServices;
@@ -73,58 +72,6 @@ namespace System.Management
         ~IWbemClassObjectFreeThreaded()
         {
             Dispose_(true);
-        }
-
-        private void DeserializeFromBlob(byte[] rg)
-        {
-            IntPtr hGlobal = IntPtr.Zero;
-            System.Runtime.InteropServices.ComTypes.IStream stream = null;
-            try
-            {
-                // If something goes wrong, we want to make sure the object is invalidated
-                pWbemClassObject = IntPtr.Zero;
-
-                hGlobal = Marshal.AllocHGlobal(rg.Length);
-                Marshal.Copy(rg, 0, hGlobal, rg.Length);
-                stream = Interop.Ole32.CreateStreamOnHGlobal(hGlobal, false);
-                pWbemClassObject = Interop.Ole32.CoUnmarshalInterface(stream, IID_IWbemClassObject);
-            }
-            finally
-            {
-                if (stream != null)
-                    Marshal.ReleaseComObject(stream);
-                if (hGlobal != IntPtr.Zero)
-                    Marshal.FreeHGlobal(hGlobal);
-            }
-        }
-
-        private byte[] SerializeToBlob()
-        {
-            byte[] rg = null;
-            System.Runtime.InteropServices.ComTypes.IStream stream = null;
-            IntPtr pData = IntPtr.Zero;
-            try
-            {
-                // Stream will own the HGlobal
-                stream = Interop.Ole32.CreateStreamOnHGlobal(IntPtr.Zero, true);
-
-                Interop.Ole32.CoMarshalInterface(stream, IID_IWbemClassObject, pWbemClassObject, (uint)MSHCTX.MSHCTX_DIFFERENTMACHINE, IntPtr.Zero, (uint)MSHLFLAGS.MSHLFLAGS_TABLEWEAK);
-
-                System.Runtime.InteropServices.ComTypes.STATSTG statstg;
-                stream.Stat(out statstg, (int)STATFLAG.STATFLAG_DEFAULT);
-                rg = new byte[statstg.cbSize];
-                pData = Interop.Kernel32.GlobalLock(Interop.Ole32.GetHGlobalFromStream(stream));
-                Marshal.Copy(pData, rg, 0, (int)statstg.cbSize);
-            }
-            finally
-            {
-                if (pData != IntPtr.Zero)
-                    Interop.Kernel32.GlobalUnlock(pData);
-                if (stream != null)
-                    Marshal.ReleaseComObject(stream);
-            }
-            GC.KeepAlive(this);
-            return rg;
         }
 
         // Interface methods
@@ -517,7 +464,7 @@ namespace System.Management
         }
     }
 
-    internal class MarshalWbemObject : ICustomMarshaler
+    internal sealed class MarshalWbemObject : ICustomMarshaler
     {
         public static ICustomMarshaler GetInstance(string cookie)
         {
@@ -1430,15 +1377,14 @@ namespace System.Management
     }
     #endregion
 
-    internal class MTAHelper
+    internal static class MTAHelper
     {
-
-        private class MTARequest
+        private sealed class MTARequest
         {
             public AutoResetEvent evtDone = new AutoResetEvent(false);
-            public Type typeToCreate = null;
-            public object createdObject = null;
-            public Exception exception = null;
+            public Type typeToCreate;
+            public object createdObject;
+            public Exception exception;
 
             public MTARequest(Type typeToCreate)
             {
@@ -1451,7 +1397,7 @@ namespace System.Management
 
         private static readonly AutoResetEvent evtGo = new AutoResetEvent(false); // tells the worker to create an object on our behalf
 
-        private static bool workerThreadInitialized = false;
+        private static bool workerThreadInitialized;
         // Initialize worker thread
         // This is not done in a static constructor so that we don't do this in an MTA only application
         private static void InitWorkerThread()
@@ -1645,7 +1591,7 @@ namespace System.Management
     ///     4. Delegate with parameter and return value.
     ///
     /// </summary>
-    internal class ThreadDispatch
+    internal sealed class ThreadDispatch
     {
         #region Private fields
         private Thread thread;

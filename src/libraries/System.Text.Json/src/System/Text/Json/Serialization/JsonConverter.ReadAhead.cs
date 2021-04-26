@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -18,9 +17,9 @@ namespace System.Text.Json.Serialization
         // AggressiveInlining used since this method is on a hot path and short. The optionally called
         // method DoSingleValueReadWithReadAhead is not inlined.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool SingleValueReadWithReadAhead(ClassType classType, ref Utf8JsonReader reader, ref ReadStack state)
+        internal static bool SingleValueReadWithReadAhead(ConverterStrategy converterStrategy, ref Utf8JsonReader reader, ref ReadStack state)
         {
-            bool readAhead = (state.ReadAhead && (classType & (ClassType.Value | ClassType.NewValue)) != 0);
+            bool readAhead = state.ReadAhead && converterStrategy == ConverterStrategy.Value;
             if (!readAhead)
             {
                 return reader.Read();

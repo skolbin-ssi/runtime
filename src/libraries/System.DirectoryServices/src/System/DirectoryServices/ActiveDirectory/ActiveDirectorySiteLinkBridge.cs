@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 using System.Collections;
@@ -12,15 +11,15 @@ namespace System.DirectoryServices.ActiveDirectory
 {
     public class ActiveDirectorySiteLinkBridge : IDisposable
     {
-        internal readonly DirectoryContext context = null;
-        private readonly string _name = null;
+        internal readonly DirectoryContext context;
+        private readonly string _name;
         private readonly ActiveDirectoryTransportType _transport = ActiveDirectoryTransportType.Rpc;
-        private bool _disposed = false;
+        private bool _disposed;
 
-        private bool _existing = false;
-        internal DirectoryEntry cachedEntry = null;
+        private bool _existing;
+        internal DirectoryEntry? cachedEntry;
         private readonly ActiveDirectorySiteLinkCollection _links = new ActiveDirectorySiteLinkCollection();
-        private bool _linksRetrieved = false;
+        private bool _linksRetrieved;
 
         public ActiveDirectorySiteLinkBridge(DirectoryContext context, string bridgeName) : this(context, bridgeName, ActiveDirectoryTransportType.Rpc)
         {
@@ -43,8 +42,8 @@ namespace System.DirectoryServices.ActiveDirectory
             try
             {
                 de = DirectoryEntryManager.GetDirectoryEntry(context, WellKnownDN.RootDSE);
-                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext);
-                string parentDN = null;
+                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext)!;
+                string parentDN;
                 if (transport == ActiveDirectoryTransportType.Rpc)
                     parentDN = "CN=IP,CN=Inter-Site Transports,CN=Sites," + config;
                 else
@@ -115,7 +114,7 @@ namespace System.DirectoryServices.ActiveDirectory
             try
             {
                 de = DirectoryEntryManager.GetDirectoryEntry(context, WellKnownDN.RootDSE);
-                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext);
+                string config = (string)PropertyManager.GetPropertyValue(context, de, PropertyManager.ConfigurationNamingContext)!;
                 string containerDN = "CN=Inter-Site Transports,CN=Sites," + config;
                 if (transport == ActiveDirectoryTransportType.Rpc)
                     containerDN = "CN=IP," + containerDN;
@@ -141,7 +140,7 @@ namespace System.DirectoryServices.ActiveDirectory
                                                       SearchScope.OneLevel,
                                                       false, /* don't need paged search */
                                                       false /* don't need to cache result */);
-                SearchResult srchResult = adSearcher.FindOne();
+                SearchResult? srchResult = adSearcher.FindOne();
 
                 if (srchResult == null)
                 {
@@ -237,7 +236,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             try
             {
-                cachedEntry.CommitChanges();
+                cachedEntry!.CommitChanges();
             }
             catch (COMException e)
             {
@@ -268,7 +267,7 @@ namespace System.DirectoryServices.ActiveDirectory
             {
                 try
                 {
-                    cachedEntry.Parent.Children.Remove(cachedEntry);
+                    cachedEntry!.Parent.Children.Remove(cachedEntry);
                 }
                 catch (COMException e)
                 {
@@ -296,7 +295,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
             else
             {
-                return DirectoryEntryManager.GetDirectoryEntryInternal(context, cachedEntry.Path);
+                return DirectoryEntryManager.GetDirectoryEntryInternal(context, cachedEntry!.Path);
             }
         }
 
@@ -352,15 +351,15 @@ namespace System.DirectoryServices.ActiveDirectory
         private void GetLinks()
         {
             ArrayList propertyList = new ArrayList();
-            NativeComInterfaces.IAdsPathname pathCracker = null;
+            NativeComInterfaces.IAdsPathname? pathCracker = null;
             pathCracker = (NativeComInterfaces.IAdsPathname)new NativeComInterfaces.Pathname();
             // need to turn off the escaping for name
             pathCracker.EscapedMode = NativeComInterfaces.ADS_ESCAPEDMODE_OFF_EX;
             string propertyName = "siteLinkList";
 
             propertyList.Add(propertyName);
-            Hashtable values = Utils.GetValuesWithRangeRetrieval(cachedEntry, "(objectClass=*)", propertyList, SearchScope.Base);
-            ArrayList siteLinkLists = (ArrayList)values[propertyName.ToLowerInvariant()];
+            Hashtable values = Utils.GetValuesWithRangeRetrieval(cachedEntry!, "(objectClass=*)", propertyList, SearchScope.Base);
+            ArrayList siteLinkLists = (ArrayList)values[propertyName.ToLowerInvariant()]!;
 
             // somehow no site link list
             if (siteLinkLists == null)
@@ -369,7 +368,7 @@ namespace System.DirectoryServices.ActiveDirectory
             // construct the site link object
             for (int i = 0; i < siteLinkLists.Count; i++)
             {
-                string dn = (string)siteLinkLists[i];
+                string dn = (string)siteLinkLists[i]!;
                 // escaping manipulation
                 pathCracker.Set(dn, NativeComInterfaces.ADS_SETTYPE_DN);
                 string rdn = pathCracker.Retrieve(NativeComInterfaces.ADS_FORMAT_LEAF);

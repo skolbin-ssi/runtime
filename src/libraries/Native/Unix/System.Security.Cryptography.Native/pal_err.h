@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #include "pal_compiler.h"
 #include <stdint.h>
@@ -8,7 +7,7 @@
 
 #include <pthread.h>
 
-#ifdef NEED_OPENSSL_1_1
+#if defined NEED_OPENSSL_1_1 || defined NEED_OPENSSL_3_0
 extern pthread_mutex_t g_err_mutex;
 extern int volatile g_err_unloaded;
 #endif

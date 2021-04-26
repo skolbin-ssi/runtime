@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -22,7 +21,7 @@ namespace System.Linq.Parallel
     /// <typeparam name="TInputOutput">The kind of elements.</typeparam>
     /// <typeparam name="THashKey">The key used to distribute elements.</typeparam>
     /// <typeparam name="TIgnoreKey">The kind of keys found in the source (ignored).</typeparam>
-    internal class HashRepartitionEnumerator<TInputOutput, THashKey, TIgnoreKey> : QueryOperatorEnumerator<Pair<TInputOutput, THashKey>, int>
+    internal sealed class HashRepartitionEnumerator<TInputOutput, THashKey, TIgnoreKey> : QueryOperatorEnumerator<Pair<TInputOutput, THashKey>, int>
 
     {
         private const int ENUMERATION_NOT_STARTED = -1; // Sentinel to note we haven't begun enumerating yet.
@@ -37,7 +36,7 @@ namespace System.Linq.Parallel
         private readonly CancellationToken _cancellationToken; // A token for canceling the process.
         private Mutables? _mutables; // Mutable fields for this enumerator.
 
-        private class Mutables
+        private sealed class Mutables
         {
             internal int _currentBufferIndex; // Current buffer index.
             internal ListChunk<Pair<TInputOutput, THashKey>>? _currentBuffer; // The buffer we're currently enumerating.
@@ -207,7 +206,7 @@ namespace System.Linq.Parallel
             while (_source.MoveNext(ref element!, ref ignoreKey))
             {
                 if ((loopCount++ & CancellationState.POLL_INTERVAL) == 0)
-                    _cancellationToken.ThrowIfCancellationRequested();;
+                    _cancellationToken.ThrowIfCancellationRequested();
 
                 // Calculate the element's destination partition index, placing it into the
                 // appropriate buffer from which partitions will later enumerate.

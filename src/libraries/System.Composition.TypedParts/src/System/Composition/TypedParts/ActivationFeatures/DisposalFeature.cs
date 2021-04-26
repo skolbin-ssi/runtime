@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Composition.Hosting.Core;
@@ -11,7 +10,7 @@ namespace System.Composition.TypedParts.ActivationFeatures
     /// <summary>
     /// Modifies the activator so that disposable instances are bound to the appropriate scope.
     /// </summary>
-    internal class DisposalFeature : ActivationFeature
+    internal sealed class DisposalFeature : ActivationFeature
     {
         public override CompositeActivator RewriteActivator(
             TypeInfo partType,

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -839,6 +839,10 @@ namespace System.Transactions
             }
         }
 
+#if !ES_BUILD_STANDALONE
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "TransactionScopeResult parameter is an enum and is trimmer safe")]
+#endif
         [Event(TRANSACTIONSCOPE_CREATED_EVENTID, Keywords = Keywords.TraceBase, Level = EventLevel.Informational, Task = Tasks.TransactionScope, Opcode = Opcodes.Created, Message = "Transactionscope was created: Transaction ID is {0}, TransactionScope Result is {1}")]
         private void TransactionScopeCreated(string transactionID, TransactionScopeResult transactionScopeResult)
         {
@@ -1103,7 +1107,7 @@ namespace System.Transactions
             WriteEvent(TRANSACTION_ABORTED_EVENTID, transactionID);
         }
         #endregion
-        public class Opcodes
+        public static class Opcodes
         {
             public const EventOpcode Aborted = (EventOpcode)100;
             public const EventOpcode Activity = (EventOpcode)101;
@@ -1136,7 +1140,7 @@ namespace System.Transactions
             public const EventOpcode Timeout = (EventOpcode)128;
         }
 
-        public class Tasks
+        public static class Tasks
         {
             public const EventTask ConfiguredDefaultTimeout = (EventTask)1;
             public const EventTask Enlistment = (EventTask)2;
@@ -1149,7 +1153,7 @@ namespace System.Transactions
             public const EventTask TransactionState = (EventTask)9;
         }
 
-        public class Keywords
+        public static class Keywords
         {
             public const EventKeywords TraceBase = (EventKeywords)0x0001;
             public const EventKeywords TraceLtm = (EventKeywords)0x0002;

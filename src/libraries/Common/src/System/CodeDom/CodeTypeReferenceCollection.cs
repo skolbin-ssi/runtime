@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 
@@ -13,7 +12,7 @@ namespace System.Runtime.Serialization
 #if !FEATURE_SERIALIZATION
     public class CodeTypeReferenceCollection : CollectionBase
 #else
-    internal class CodeTypeReferenceCollection : CollectionBase
+    internal sealed class CodeTypeReferenceCollection : CollectionBase
 #endif
     {
         public CodeTypeReferenceCollection() { }
@@ -30,7 +29,7 @@ namespace System.Runtime.Serialization
 
         public CodeTypeReference this[int index]
         {
-            get { return ((CodeTypeReference)(List[index])); }
+            get { return ((CodeTypeReference)(List[index]!)); }
             set { List[index] = value; }
         }
 

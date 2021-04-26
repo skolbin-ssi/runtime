@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -16,7 +15,7 @@ namespace System.DirectoryServices.AccountManagement
     /// if disposeDirEntry parameter is set to true in its constructor.
     /// </summary>
     ///
-    internal class RangeRetriever : CollectionBase, IEnumerable, IEnumerator, IDisposable
+    internal sealed class RangeRetriever : CollectionBase, IEnumerable, IEnumerator, IDisposable
     {
         ///
         /// <summary>
@@ -228,22 +227,22 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        private bool _disposed = false;                  // keeps track of whether this object was disposed or not.
-        private readonly bool _disposeDirEntry = false;  // If set to true then the RangeRetriever object will own the directory entry
-                                                         // supplied to it in the constructor and will be responsible for disposing this entry
-                                                         // when Dispose() is called on this object.
-        private bool _cacheValues = false;               // If set to true then the attribute values will be cached in the InnerList
-                                                         // By default caching is turned off.
-        private readonly DirectoryEntry _de;             // the DirectoryEntry whose property we're retrieving the values of
-        private readonly string _propertyName;           // the property we're retrieving the values of
+        private bool _disposed;                  // keeps track of whether this object was disposed or not.
+        private readonly bool _disposeDirEntry;  // If set to true then the RangeRetriever object will own the directory entry
+                                                 // supplied to it in the constructor and will be responsible for disposing this entry
+                                                 // when Dispose() is called on this object.
+        private bool _cacheValues;               // If set to true then the attribute values will be cached in the InnerList
+                                                 // By default caching is turned off.
+        private readonly DirectoryEntry _de;     // the DirectoryEntry whose property we're retrieving the values of
+        private readonly string _propertyName;   // the property we're retrieving the values of
 
-        private bool _endReached = false;                // if true, all property values (from all chunks) have been retrieved
+        private bool _endReached;                // if true, all property values (from all chunks) have been retrieved
 
-        private int _lowRange = 0;                       // the lower-bound of the current chunk
-        private int _currentIndex = 0;                   // Index of the next object we will return.
-        private bool _cacheFilled = false;               // Set to true after we have visited all attributes in the directory
+        private int _lowRange;                   // the lower-bound of the current chunk
+        private int _currentIndex;               // Index of the next object we will return.
+        private bool _cacheFilled;               // Set to true after we have visited all attributes in the directory
 
-        private object _currentResult = null;            // the property value the enumerator is positioned at
-        private IEnumerator _currentEnumerator = null;   // the PropertyValueCollection enumerator for the current chunk
+        private object _currentResult;           // the property value the enumerator is positioned at
+        private IEnumerator _currentEnumerator;  // the PropertyValueCollection enumerator for the current chunk
     }
 }

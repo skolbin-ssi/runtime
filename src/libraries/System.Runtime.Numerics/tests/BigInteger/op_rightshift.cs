@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
@@ -147,6 +146,10 @@ namespace System.Numerics.Tests
             {
                 tempByteArray1 = GetRandomPosByteArray(s_random, 100);
                 tempByteArray2 = BitConverter.GetBytes(s_random.Next(8 * tempByteArray1.Length, 1000));
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray2);
+                }
                 VerifyRightShiftString(Print(tempByteArray2) + Print(tempByteArray1) + "b>>");
             }
 
@@ -155,6 +158,10 @@ namespace System.Numerics.Tests
             {
                 tempByteArray1 = GetRandomNegByteArray(s_random, 100);
                 tempByteArray2 = BitConverter.GetBytes(s_random.Next(8 * tempByteArray1.Length, 1000));
+                if (!BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(tempByteArray2);
+                }
                 VerifyRightShiftString(Print(tempByteArray2) + Print(tempByteArray1) + "b>>");
             }
         }

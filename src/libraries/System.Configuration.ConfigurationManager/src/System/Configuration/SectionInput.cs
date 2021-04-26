@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +7,7 @@ using System.Diagnostics;
 namespace System.Configuration
 {
     [DebuggerDisplay("SectionInput {SectionXmlInfo.ConfigKey}")]
-    internal class SectionInput
+    internal sealed class SectionInput
     {
         // result can be null, so we use this object to indicate whether it has been evaluated
         private static readonly object s_unevaluated = new object();

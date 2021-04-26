@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 
@@ -9,3 +8,5 @@ using Xunit;
 // create unique identities for every test to allow every test to have
 // it's own store.
 [assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly, DisableTestParallelization = true)]
+[assembly: ActiveIssue("https://github.com/dotnet/runtime/issues/48720", TestPlatforms.AnyUnix, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
+[assembly: SkipOnPlatform(TestPlatforms.Browser, "System.IO.IsolatedStorage is not supported on Browser")]

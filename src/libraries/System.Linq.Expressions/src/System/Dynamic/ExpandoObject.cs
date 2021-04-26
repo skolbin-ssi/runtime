@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -347,7 +346,7 @@ namespace System.Dynamic
 
         [DebuggerTypeProxy(typeof(KeyCollectionDebugView))]
         [DebuggerDisplay("Count = {Count}")]
-        private class KeyCollection : ICollection<string>
+        private sealed class KeyCollection : ICollection<string>
         {
             private readonly ExpandoObject _expando;
             private readonly int _expandoVersion;
@@ -486,7 +485,7 @@ namespace System.Dynamic
 
         [DebuggerTypeProxy(typeof(ValueCollectionDebugView))]
         [DebuggerDisplay("Count = {Count}")]
-        private class ValueCollection : ICollection<object?>
+        private sealed class ValueCollection : ICollection<object?>
         {
             private readonly ExpandoObject _expando;
             private readonly int _expandoVersion;
@@ -774,7 +773,7 @@ namespace System.Dynamic
 
         #region MetaExpando
 
-        private class MetaExpando : DynamicMetaObject
+        private sealed class MetaExpando : DynamicMetaObject
         {
             public MetaExpando(Expression expression, ExpandoObject value)
                 : base(expression, BindingRestrictions.Empty, value)
@@ -1025,7 +1024,7 @@ namespace System.Dynamic
         /// pair.  This enables us to do a class check in a thread safe manner w/o
         /// requiring locks.
         /// </summary>
-        private class ExpandoData
+        private sealed class ExpandoData
         {
             internal static ExpandoData Empty = new ExpandoData();
 

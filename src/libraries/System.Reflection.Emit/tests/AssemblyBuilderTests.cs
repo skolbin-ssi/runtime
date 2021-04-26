@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -296,6 +295,34 @@ namespace System.Reflection.Emit.Tests
             }
         }
 
+        public class CustomAttribute : Attribute
+        {
+            public CustomAttribute()
+            {
+            }
+        }
+
+        [Fact]
+        public void GetReferencedAssemblies()
+        {
+            // Create an assembly tagged with a custom attribute
+            var cattr_asm = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("custom_attr_assembly"), AssemblyBuilderAccess.Run);
+
+            ConstructorInfo classCtorInfo = typeof(CustomAttribute).GetConstructor(new Type[] { });
+            CustomAttributeBuilder cattr = new CustomAttributeBuilder(
+                        classCtorInfo,
+                        new object[] { });
+
+            Assert.Equal(0, cattr_asm.GetReferencedAssemblies().Length);
+
+            cattr_asm.SetCustomAttribute(cattr);
+
+            // Should now have a single reference, to this assembly
+            Assert.Equal(1, cattr_asm.GetReferencedAssemblies().Length);
+            Assert.Equal(typeof(CustomAttribute).Assembly.GetName().Name, cattr_asm.GetReferencedAssemblies()[0].Name);
+            Assert.Equal(typeof(CustomAttribute).Assembly.GetName().GetPublicKeyToken(), cattr_asm.GetReferencedAssemblies()[0].GetPublicKeyToken());
+        }
+
         private static void VerifyAssemblyBuilder(AssemblyBuilder assembly, AssemblyName name, IEnumerable<CustomAttributeBuilder> attributes)
         {
             Assert.StartsWith(name.ToString(), assembly.FullName);
@@ -313,5 +340,91 @@ namespace System.Reflection.Emit.Tests
             Assert.Empty(assembly.DefinedTypes);
             Assert.Empty(assembly.GetTypes());
         }
+
+	private static void SamplePrivateMethod ()
+	{
+	}
+
+	internal static void SampleInternalMethod ()
+	{
+	}
+
+	[Fact]
+	void Invoke_Private_CrossAssembly_ThrowsMethodAccessException()
+	{
+	    TypeBuilder tb = Helpers.DynamicType(TypeAttributes.Public);
+	    var mb = tb.DefineMethod ("MyMethod", MethodAttributes.Public | MethodAttributes.Static, typeof(void), new Type[] {  });
+
+	    var ilg = mb.GetILGenerator ();
+
+	    var callee = typeof (AssemblyTests).GetMethod ("SamplePrivateMethod", BindingFlags.Static | BindingFlags.NonPublic);
+
+	    ilg.Emit (OpCodes.Call, callee);
+	    ilg.Emit (OpCodes.Ret);
+
+	    var ty = tb.CreateType ();
+
+	    var mi = ty.GetMethod ("MyMethod", BindingFlags.Static | BindingFlags.Public);
+
+	    var d = (Action) mi.CreateDelegate (typeof(Action));
+
+	    Assert.Throws<MethodAccessException>(() => d ());
+	}
+
+	[Fact]
+	void Invoke_Internal_CrossAssembly_ThrowsMethodAccessException()
+	{
+	    TypeBuilder tb = Helpers.DynamicType(TypeAttributes.Public);
+	    var mb = tb.DefineMethod ("MyMethod", MethodAttributes.Public | MethodAttributes.Static, typeof(void), new Type[] {  });
+
+	    var ilg = mb.GetILGenerator ();
+
+	    var callee = typeof (AssemblyTests).GetMethod ("SampleInternalMethod", BindingFlags.Static | BindingFlags.NonPublic);
+
+	    ilg.Emit (OpCodes.Call, callee);
+	    ilg.Emit (OpCodes.Ret);
+
+	    var ty = tb.CreateType ();
+
+	    var mi = ty.GetMethod ("MyMethod", BindingFlags.Static | BindingFlags.Public);
+
+	    var d = (Action) mi.CreateDelegate (typeof(Action));
+
+	    Assert.Throws<MethodAccessException>(() => d ());
+	}
+	
+	[Fact]
+	void Invoke_Private_SameAssembly_ThrowsMethodAccessException()
+	{
+	    ModuleBuilder modb = Helpers.DynamicModule();
+	    
+	    string calleeName = "PrivateMethod";
+
+	    TypeBuilder tbCalled = modb.DefineType ("CalledClass", TypeAttributes.Public);
+	    var mbCalled = tbCalled.DefineMethod (calleeName, MethodAttributes.Private | MethodAttributes.Static);
+	    mbCalled.GetILGenerator().Emit (OpCodes.Ret);
+
+	    var tyCalled = tbCalled.CreateType();
+	    var callee = tyCalled.GetMethod (calleeName, BindingFlags.NonPublic | BindingFlags.Static);
+
+	    TypeBuilder tb = modb.DefineType("CallerClass", TypeAttributes.Public);
+	    var mb = tb.DefineMethod ("MyMethod", MethodAttributes.Public | MethodAttributes.Static, typeof(void), new Type[] {  });
+
+	    var ilg = mb.GetILGenerator ();
+
+	    ilg.Emit (OpCodes.Call, callee);
+	    ilg.Emit (OpCodes.Ret);
+
+	    var ty = tb.CreateType ();
+
+	    var mi = ty.GetMethod ("MyMethod", BindingFlags.Static | BindingFlags.Public);
+
+	    var d = (Action) mi.CreateDelegate (typeof(Action));
+
+	    Assert.Throws<MethodAccessException>(() => d ());
+	}
+
+
+
     }
 }

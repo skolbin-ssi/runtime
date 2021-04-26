@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace System.Timers
 {
@@ -14,7 +14,7 @@ namespace System.Timers
     [AttributeUsage(AttributeTargets.All)]
     public class TimersDescriptionAttribute : DescriptionAttribute
     {
-        private bool _replaced = false;
+        private bool _replaced;
 
         /// <summary>
         /// Constructs a new sys description.
@@ -24,7 +24,11 @@ namespace System.Timers
         /// <summary>
         /// Constructs a new localized sys description.
         /// </summary>
-        internal TimersDescriptionAttribute(string description, string defaultValue) : base(SR.GetResourceString(description, defaultValue)) { }
+        internal TimersDescriptionAttribute(string description, string unused) : base(SR.GetResourceString(description))
+        {
+            // Needed for overload resolution
+            Debug.Assert(unused == null);
+        }
 
         /// <summary>
         /// Retrieves the description text.

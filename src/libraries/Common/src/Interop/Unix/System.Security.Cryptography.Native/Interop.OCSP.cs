@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -45,7 +44,7 @@ internal static partial class Interop
         {
             X509VerifyStatusCode response = CryptoNative_X509ChainGetCachedOcspStatus(ctx, cachePath, chainDepth);
 
-            if (response < 0)
+            if (response.Code < 0)
             {
                 Debug.Fail($"Unexpected response from X509ChainGetCachedOcspSuccess: {response}");
                 throw new CryptographicException();
@@ -71,7 +70,7 @@ internal static partial class Interop
         {
             X509VerifyStatusCode response = CryptoNative_X509ChainVerifyOcsp(ctx, req, resp, cachePath, chainDepth);
 
-            if (response < 0)
+            if (response.Code < 0)
             {
                 Debug.Fail($"Unexpected response from X509ChainGetCachedOcspSuccess: {response}");
                 throw new CryptographicException();
@@ -102,7 +101,7 @@ internal static partial class Interop
 
 namespace System.Security.Cryptography.X509Certificates
 {
-    internal class SafeOcspRequestHandle : SafeHandleZeroOrMinusOneIsInvalid
+    internal sealed class SafeOcspRequestHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         public SafeOcspRequestHandle()
             : base(true)
@@ -117,7 +116,7 @@ namespace System.Security.Cryptography.X509Certificates
         }
     }
 
-    internal class SafeOcspResponseHandle : SafeHandleZeroOrMinusOneIsInvalid
+    internal sealed class SafeOcspResponseHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         public SafeOcspResponseHandle()
             : base(true)

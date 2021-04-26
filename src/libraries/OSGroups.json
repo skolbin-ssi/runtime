@@ -1,11 +1,8 @@
 {
   "runtimes": {
-    "Unix" : {      
+    "Unix" : {
     },
     "Browser" : {
-      "#import": [
-        "Linux"
-      ]
     },
     "Linux": {
       "#import": [
@@ -17,14 +14,29 @@
         "Unix"
         ]
       },
+    "MacCatalyst": {
+      "#import": [
+        "iOS"
+        ]
+      },
     "iOS": {
       "#import": [
         "Unix"
         ]
       },
+    "iOSSimulator": {
+      "#import": [
+        "iOS"
+        ]
+      },
     "tvOS": {
       "#import": [
         "Unix"
+        ]
+      },
+    "tvOSSimulator": {
+      "#import": [
+        "tvOS"
         ]
       },
     "Android": {
@@ -38,6 +50,16 @@
         ]
       },
     "NetBSD": {
+      "#import": [
+        "Unix"
+        ]
+      },
+    "illumos": {
+      "#import": [
+        "Unix"
+        ]
+      },
+    "Solaris": {
       "#import": [
         "Unix"
         ]

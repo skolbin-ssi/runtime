@@ -1,16 +1,14 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
-#if SYSTEM_PRIVATE_CORELIB
 using Internal.Runtime.CompilerServices;
-#endif
 
 // Some routines inspired by the Stanford Bit Twiddling Hacks by Sean Eron Anderson:
 // http://graphics.stanford.edu/~seander/bithacks.html
@@ -22,12 +20,7 @@ namespace System.Numerics
     /// The methods use hardware intrinsics when available on the underlying platform,
     /// otherwise they use optimized software fallbacks.
     /// </summary>
-#if SYSTEM_PRIVATE_CORELIB
-    public
-#else
-    internal
-#endif
-        static class BitOperations
+    public static class BitOperations
     {
         // C# no-alloc optimization that directly wraps the data section of the dll (similar to string constants)
         // https://github.com/dotnet/roslyn/pull/24621
@@ -47,6 +40,60 @@ namespace System.Numerics
             08, 12, 20, 28, 15, 17, 24, 07,
             19, 27, 23, 06, 26, 05, 04, 31
         };
+
+        /// <summary>
+        /// Evaluate whether a given integral value is a power of 2.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsPow2(int value) => (value & (value - 1)) == 0 && value > 0;
+
+        /// <summary>
+        /// Evaluate whether a given integral value is a power of 2.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [CLSCompliant(false)]
+        public static bool IsPow2(uint value) => (value & (value - 1)) == 0 && value != 0 ;
+
+        /// <summary>
+        /// Evaluate whether a given integral value is a power of 2.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsPow2(long value) => (value & (value - 1)) == 0 && value > 0;
+
+        /// <summary>
+        /// Evaluate whether a given integral value is a power of 2.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [CLSCompliant(false)]
+        public static bool IsPow2(ulong value) => (value & (value - 1)) == 0 && value != 0;
+
+        /// <summary>Round the given integral value up to a power of 2.</summary>
+        /// <param name="value">The value.</param>
+        internal static uint RoundUpToPowerOf2(uint value)
+        {
+            // TODO: https://github.com/dotnet/runtime/issues/43135
+            // When this is exposed publicly, decide on the behavior for the boundary cases...
+            // the accelerated and fallback paths differ.
+            Debug.Assert(value > 0 && value <= (uint.MaxValue / 2) + 1);
+
+            if (Lzcnt.IsSupported || ArmBase.IsSupported || X86Base.IsSupported)
+            {
+                return 1u << (32 - LeadingZeroCount(value - 1));
+            }
+
+            // Based on https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+            --value;
+            value |= value >> 1;
+            value |= value >> 2;
+            value |= value >> 4;
+            value |= value >> 8;
+            value |= value >> 16;
+            return value + 1;
+        }
 
         /// <summary>
         /// Count the number of leading zero bits in a mask.
@@ -123,21 +170,18 @@ namespace System.Numerics
 
         /// <summary>
         /// Returns the integer (floor) log of the specified value, base 2.
-        /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
+        /// Note that by convention, input value 0 returns 0 since log(0) is undefined.
         /// </summary>
         /// <param name="value">The value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [CLSCompliant(false)]
         public static int Log2(uint value)
         {
-            // Enforce conventional contract 0->0 (Log(0) is undefined)
-            if (value == 0)
-            {
-                return 0;
-            }
+            // The 0->0 contract is fulfilled by setting the LSB to 1.
+            // Log(1) is 0, and setting the LSB for values > 1 does not change the log2 result.
+            value |= 1;
 
             // value    lzcnt   actual  expected
-            // ..0000   32      0        0 (by convention, guard clause)
             // ..0001   31      31-31    0
             // ..0010   30      31-30    1
             // 0010..    2      31-2    29
@@ -153,8 +197,8 @@ namespace System.Numerics
                 return 31 ^ ArmBase.LeadingZeroCount(value);
             }
 
-            // BSR returns the answer we're looking for directly.
-            // However BSR is much slower than LZCNT on AMD processors, so we leave it as a fallback only.
+            // BSR returns the log2 result directly. However BSR is slower than LZCNT
+            // on AMD processors, so we leave it as a fallback only.
             if (X86Base.IsSupported)
             {
                 return (int)X86Base.BitScanReverse(value);
@@ -166,18 +210,14 @@ namespace System.Numerics
 
         /// <summary>
         /// Returns the integer (floor) log of the specified value, base 2.
-        /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
+        /// Note that by convention, input value 0 returns 0 since log(0) is undefined.
         /// </summary>
         /// <param name="value">The value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [CLSCompliant(false)]
         public static int Log2(ulong value)
         {
-            // Enforce conventional contract 0->0 (Log(0) is undefined)
-            if (value == 0)
-            {
-                return 0;
-            }
+            value |= 1;
 
             if (Lzcnt.X64.IsSupported)
             {
@@ -230,11 +270,38 @@ namespace System.Numerics
                 (IntPtr)(int)((value * 0x07C4ACDDu) >> 27));
         }
 
+        /// <summary>Returns the integer (ceiling) log of the specified value, base 2.</summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int Log2Ceiling(uint value)
+        {
+            int result = Log2(value);
+            if (PopCount(value) != 1)
+            {
+                result++;
+            }
+            return result;
+        }
+
+        /// <summary>Returns the integer (ceiling) log of the specified value, base 2.</summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int Log2Ceiling(ulong value)
+        {
+            int result = Log2(value);
+            if (PopCount(value) != 1)
+            {
+                result++;
+            }
+            return result;
+        }
+
         /// <summary>
         /// Returns the population count (number of bits set) of a mask.
         /// Similar in behavior to the x86 instruction POPCNT.
         /// </summary>
         /// <param name="value">The value.</param>
+        [Intrinsic]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [CLSCompliant(false)]
         public static int PopCount(uint value)
@@ -248,11 +315,7 @@ namespace System.Numerics
             {
                 // PopCount works on vector so convert input value to vector first.
 
-                // Vector64.CreateScalar(uint) generates suboptimal code by storing and
-                // loading the result to memory.
-                // See https://github.com/dotnet/runtime/issues/35976 for details.
-                // Hence use Vector64.Create(ulong) to create Vector64<ulong> and operate on that.
-                Vector64<ulong> input = Vector64.Create((ulong)value);
+                Vector64<uint> input = Vector64.CreateScalar(value);
                 Vector64<byte> aggregated = AdvSimd.Arm64.AddAcross(AdvSimd.PopCount(input.AsByte()));
                 return aggregated.ToScalar();
             }
@@ -279,6 +342,7 @@ namespace System.Numerics
         /// Similar in behavior to the x86 instruction POPCNT.
         /// </summary>
         /// <param name="value">The value.</param>
+        [Intrinsic]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [CLSCompliant(false)]
         public static int PopCount(ulong value)

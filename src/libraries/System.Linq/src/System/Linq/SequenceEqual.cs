@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -13,11 +12,6 @@ namespace System.Linq
 
         public static bool SequenceEqual<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second, IEqualityComparer<TSource>? comparer)
         {
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<TSource>.Default;
-            }
-
             if (first == null)
             {
                 ThrowHelper.ThrowArgumentNullException(ExceptionArgument.first);
@@ -30,6 +24,11 @@ namespace System.Linq
 
             if (first is ICollection<TSource> firstCol && second is ICollection<TSource> secondCol)
             {
+                if (first is TSource[] firstArray && second is TSource[] secondArray)
+                {
+                    return ((ReadOnlySpan<TSource>)firstArray).SequenceEqual(secondArray, comparer);
+                }
+
                 if (firstCol.Count != secondCol.Count)
                 {
                     return false;
@@ -37,6 +36,8 @@ namespace System.Linq
 
                 if (firstCol is IList<TSource> firstList && secondCol is IList<TSource> secondList)
                 {
+                    comparer ??= EqualityComparer<TSource>.Default;
+
                     int count = firstCol.Count;
                     for (int i = 0; i < count; i++)
                     {
@@ -53,6 +54,8 @@ namespace System.Linq
             using (IEnumerator<TSource> e1 = first.GetEnumerator())
             using (IEnumerator<TSource> e2 = second.GetEnumerator())
             {
+                comparer ??= EqualityComparer<TSource>.Default;
+
                 while (e1.MoveNext())
                 {
                     if (!(e2.MoveNext() && comparer.Equals(e1.Current, e2.Current)))

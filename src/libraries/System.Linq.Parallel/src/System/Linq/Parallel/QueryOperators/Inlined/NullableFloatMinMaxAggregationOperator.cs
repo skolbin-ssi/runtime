@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -106,7 +105,7 @@ namespace System.Linq.Parallel
         // (possibly partitioned) data source.
         //
 
-        private class NullableFloatMinMaxAggregationOperatorEnumerator<TKey> : InlinedAggregationOperatorEnumerator<float?>
+        private sealed class NullableFloatMinMaxAggregationOperatorEnumerator<TKey> : InlinedAggregationOperatorEnumerator<float?>
         {
             private readonly QueryOperatorEnumerator<float?, TKey> _source; // The source data.
             private readonly int _sign; // The sign for comparisons (-1 means min, 1 means max).
@@ -145,7 +144,7 @@ namespace System.Linq.Parallel
                         while (source.MoveNext(ref elem, ref keyUnused))
                         {
                             if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                                _cancellationToken.ThrowIfCancellationRequested();;
+                                _cancellationToken.ThrowIfCancellationRequested();
 
                             if (elem == null) continue;
                             if (currentElement == null || elem < currentElement || float.IsNaN(elem.GetValueOrDefault()))
@@ -160,7 +159,7 @@ namespace System.Linq.Parallel
                         while (source.MoveNext(ref elem, ref keyUnused))
                         {
                             if ((i++ & CancellationState.POLL_INTERVAL) == 0)
-                                _cancellationToken.ThrowIfCancellationRequested();;
+                                _cancellationToken.ThrowIfCancellationRequested();
 
                             if (elem == null) continue;
                             if (currentElement == null || elem > currentElement || float.IsNaN(currentElement.GetValueOrDefault()))

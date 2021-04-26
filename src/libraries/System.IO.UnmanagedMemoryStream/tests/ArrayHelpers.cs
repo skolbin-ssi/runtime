@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -54,21 +53,7 @@ namespace System.IO.Tests
             {
             }
 
-            public bool Equals(T[] x, T[] y)
-            {
-                if (x.Length != y.Length)
-                {
-                    return false;
-                }
-                for (int i = 0; i < x.Length; i++)
-                {
-                    if (!EqualityComparer<T>.Default.Equals(x[i], y[i]))
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
+            public bool Equals(T[] x, T[] y) => x.AsSpan().SequenceEqual(y);
 
             public int GetHashCode(T[] obj)
             {

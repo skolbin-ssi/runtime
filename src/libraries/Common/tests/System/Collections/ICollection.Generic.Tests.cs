@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Xunit;
 
 namespace System.Collections.Tests
@@ -332,6 +333,46 @@ namespace System.Collections.Tests
                 collection.Clear();
                 collection.Clear();
                 Assert.Equal(0, collection.Count);
+            }
+        }
+
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsPreciseGcSupported))]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ICollection_Generic_Remove_ReferenceRemovedFromCollection(bool useRemove)
+        {
+            if (typeof(T).IsValueType || IsReadOnly || AddRemoveClear_ThrowsNotSupported)
+            {
+                return;
+            }
+
+            ICollection<T> collection = GenericICollectionFactory();
+
+            WeakReference<object> wr = PopulateAndRemove(collection, useRemove);
+            Assert.True(SpinWait.SpinUntil(() =>
+            {
+                GC.Collect();
+                return !wr.TryGetTarget(out _);
+            }, 30_000));
+            GC.KeepAlive(collection);
+
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            WeakReference<object> PopulateAndRemove(ICollection<T> collection, bool useRemove)
+            {
+                AddToCollection(collection, 1);
+                T value = collection.First();
+
+                if (useRemove)
+                {
+                    Assert.True(collection.Remove(value));
+                }
+                else
+                {
+                    collection.Clear();
+                    Assert.Equal(0, collection.Count);
+                }
+
+                return new WeakReference<object>(value);
             }
         }
 

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Runtime.InteropServices;
@@ -9,8 +8,8 @@ namespace System.DirectoryServices.ActiveDirectory
 {
     public class ReplicationFailureCollection : ReadOnlyCollectionBase
     {
-        private readonly DirectoryServer _server = null;
-        private readonly Hashtable _nameTable = null;
+        private readonly DirectoryServer _server;
+        private readonly Hashtable _nameTable;
 
         internal ReplicationFailureCollection(DirectoryServer server)
         {
@@ -19,7 +18,7 @@ namespace System.DirectoryServices.ActiveDirectory
             _nameTable = Hashtable.Synchronized(tempNameTable);
         }
 
-        public ReplicationFailure this[int index] => (ReplicationFailure)InnerList[index];
+        public ReplicationFailure this[int index] => (ReplicationFailure)InnerList[index]!;
 
         public bool Contains(ReplicationFailure failure)
         {

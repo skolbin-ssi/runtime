@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +15,7 @@ namespace System.ComponentModel.EventBasedAsync.Tests
         private const int TimeoutShort = 300;
         private const int TimeoutLong = 30000;
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public void TestBackgroundWorkerBasic()
         {
             var orignal = SynchronizationContext.Current;
@@ -71,29 +70,28 @@ namespace System.ComponentModel.EventBasedAsync.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public async Task RunWorkerAsync_NoOnWorkHandler_SetsResultToNull()
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource();
             var backgroundWorker = new BackgroundWorker { WorkerReportsProgress = true };
             backgroundWorker.RunWorkerCompleted += (sender, e) =>
             {
                 Assert.Null(e.Result);
                 Assert.False(backgroundWorker.IsBusy);
-                tcs.SetResult(true);
+                tcs.SetResult();
             };
 
             backgroundWorker.RunWorkerAsync();
 
-            await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))); // Usually takes 100th of a sec
-            Assert.True(tcs.Task.IsCompleted);
+            await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10)); // Usually takes 100th of a sec
         }
 
         #region TestCancelAsync
 
         private ManualResetEventSlim manualResetEvent3;
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public void TestCancelAsync()
         {
             BackgroundWorker bw = new BackgroundWorker();
@@ -157,7 +155,7 @@ namespace System.ComponentModel.EventBasedAsync.Tests
 
         #endregion
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public void TestThrowExceptionInDoWork()
         {
             var original = SynchronizationContext.Current;
@@ -210,7 +208,7 @@ namespace System.ComponentModel.EventBasedAsync.Tests
             Assert.False(bw.CancellationPending);
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public void RunWorkerAsyncTwice()
         {
             var bw = new BackgroundWorker();
@@ -235,7 +233,7 @@ namespace System.ComponentModel.EventBasedAsync.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public void TestCancelInsideDoWork()
         {
             var original = SynchronizationContext.Current;
@@ -327,7 +325,7 @@ namespace System.ComponentModel.EventBasedAsync.Tests
             bw.Dispose();
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsPreciseGcSupported))]
         public void TestFinalization()
         {
             // BackgroundWorker has a finalizer that exists purely for backwards compatibility

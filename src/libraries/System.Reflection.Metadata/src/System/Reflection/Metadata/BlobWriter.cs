@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -382,9 +381,19 @@ namespace System.Reflection.Metadata
                 return;
             }
 
-            fixed (char* ptr = &value[0])
+            if (BitConverter.IsLittleEndian)
             {
-                WriteBytesUnchecked((byte*)ptr, value.Length * sizeof(char));
+                fixed (char* ptr = &value[0])
+                {
+                    WriteBytesUnchecked((byte*)ptr, value.Length * sizeof(char));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < value.Length; i++)
+                {
+                    WriteUInt16((ushort)value[i]);
+                }
             }
         }
 
@@ -399,9 +408,19 @@ namespace System.Reflection.Metadata
                 Throw.ArgumentNull(nameof(value));
             }
 
-            fixed (char* ptr = value)
+            if (BitConverter.IsLittleEndian)
             {
-                WriteBytesUnchecked((byte*)ptr, value.Length * sizeof(char));
+                fixed (char* ptr = value)
+                {
+                    WriteBytesUnchecked((byte*)ptr, value.Length * sizeof(char));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < value.Length; i++)
+                {
+                    WriteUInt16((ushort)value[i]);
+                }
             }
         }
 

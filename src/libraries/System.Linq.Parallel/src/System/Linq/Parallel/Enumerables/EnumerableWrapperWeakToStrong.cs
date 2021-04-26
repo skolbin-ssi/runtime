@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -20,7 +19,7 @@ namespace System.Linq.Parallel
     /// a weakly typed IEnumerable object, allowing it to be accessed as a strongly typed
     /// IEnumerable{object}.
     /// </summary>
-    internal class EnumerableWrapperWeakToStrong : IEnumerable<object?>
+    internal sealed class EnumerableWrapperWeakToStrong : IEnumerable<object?>
     {
         private readonly IEnumerable _wrappedEnumerable; // The wrapped enumerable object.
 
@@ -36,7 +35,7 @@ namespace System.Linq.Parallel
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable<object>)this).GetEnumerator();
+            return ((IEnumerable<object?>)this).GetEnumerator();
         }
 
         public IEnumerator<object?> GetEnumerator()
@@ -48,7 +47,7 @@ namespace System.Linq.Parallel
         // A wrapper over IEnumerator that provides IEnumerator<object> interface
         //
 
-        private class WrapperEnumeratorWeakToStrong : IEnumerator<object?>
+        private sealed class WrapperEnumeratorWeakToStrong : IEnumerator<object?>
         {
             private readonly IEnumerator _wrappedEnumerator; // The weakly typed enumerator we've wrapped.
 

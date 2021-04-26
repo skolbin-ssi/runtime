@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +23,7 @@ namespace System.Net.Sockets.Tests
         private const int SmallTimeoutMicroseconds = 10 * 1000;
         private const int FailTimeoutMicroseconds  = 30 * 1000 * 1000;
 
-        [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
+        [SkipOnPlatform(TestPlatforms.OSX, "typical OSX install has very low max open file descriptors value")]
         [Theory]
         [InlineData(90, 0)]
         [InlineData(0, 90)]
@@ -110,7 +109,7 @@ namespace System.Net.Sockets.Tests
             }
         }
 
-        [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
+        [SkipOnPlatform(TestPlatforms.OSX, "typical OSX install has very low max open file descriptors value")]
         [Fact]
         public void Select_ReadError_NoneReady_ManySockets()
         {
@@ -143,7 +142,7 @@ namespace System.Net.Sockets.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
+        [SkipOnPlatform(TestPlatforms.OSX, "typical OSX install has very low max open file descriptors value")]
         public void Select_Read_OneReadyAtATime_ManySockets()
         {
             Select_Read_OneReadyAtATime(90); // value larger than the internal value in SocketPal.Unix that swaps between stack and heap allocation
@@ -177,7 +176,7 @@ namespace System.Net.Sockets.Tests
             }
         }
 
-        [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
+        [SkipOnPlatform(TestPlatforms.OSX, "typical OSX install has very low max open file descriptors value")]
         [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // [ActiveIssue("https://github.com/dotnet/runtime/issues/18258")]
         public void Select_Error_OneReadyAtATime()
         {
@@ -299,7 +298,7 @@ namespace System.Net.Sockets.Tests
                 }
 
                 // Give the task 5 seconds to complete; if not, assume it's hung.
-                await t.TimeoutAfter(5000);
+                await t.WaitAsync(TimeSpan.FromSeconds(5));
             }
         }
 

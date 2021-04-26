@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Composition.Convention;
@@ -16,7 +15,7 @@ namespace System.Composition.TypedParts.ActivationFeatures
     /// Modifies activators of parts that have <see cref="OnImportsSatisfiedAttribute"/> so that
     /// their [OnImportsSatisfied] method is correctly called.
     /// </summary>
-    internal class OnImportsSatisfiedFeature : ActivationFeature
+    internal sealed class OnImportsSatisfiedFeature : ActivationFeature
     {
         private readonly AttributedModelProvider _attributeContext;
 

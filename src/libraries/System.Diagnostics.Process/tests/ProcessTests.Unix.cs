@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -33,8 +33,8 @@ namespace System.Diagnostics.Tests
             }
         }
 
-        [Fact]
-        public void MainWindowHandle_GetUnix_ThrowsPlatformNotSupportedException()
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
+        public void MainWindowHandle_GetUnix_ReturnsDefaultValue()
         {
             CreateDefaultProcess();
 
@@ -109,7 +109,7 @@ namespace System.Diagnostics.Tests
         [OuterLoop]
         public void ProcessStart_UseShellExecute_OnUnix_OpenMissingFile_DoesNotThrow()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
+            if (OperatingSystem.IsLinux() &&
                 s_allowedProgramsToRun.FirstOrDefault(program => IsProgramInstalled(program)) == null)
             {
                 return;
@@ -140,12 +140,12 @@ namespace System.Diagnostics.Tests
                 File.WriteAllText(fileToOpen, $"{nameof(ProcessStart_UseShellExecute_OnUnix_SuccessWhenProgramInstalled)}");
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || programToOpen != null)
+            if (OperatingSystem.IsMacOS() || programToOpen != null)
             {
                 using (var px = Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = fileToOpen }))
                 {
                     Assert.NotNull(px);
-                    if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) // on OSX, process name is dotnet for some reason. Refer to https://github.com/dotnet/runtime/issues/23525
+                    if (!OperatingSystem.IsMacOS()) // on OSX, process name is dotnet for some reason. Refer to https://github.com/dotnet/runtime/issues/23525
                     {
                         Assert.Equal(programToOpen, px.ProcessName);
                     }
@@ -157,15 +157,13 @@ namespace System.Diagnostics.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // On OSX, ProcessName returns the script interpreter.
+        [SkipOnPlatform(TestPlatforms.OSX, "On OSX, ProcessName returns the script interpreter.")]
         public void ProcessNameMatchesScriptName()
         {
             string scriptName = GetTestFileName();
             string filename = Path.Combine(TestDirectory, scriptName);
             File.WriteAllText(filename, $"#!/bin/sh\nsleep 600\n"); // sleep 10 min.
-            // set x-bit
-            int mode = Convert.ToInt32("744", 8);
-            Assert.Equal(0, chmod(filename, mode));
+            ChMod(filename, "744"); // set x-bit
 
             using (var process = Process.Start(new ProcessStartInfo { FileName = filename }))
             {
@@ -186,7 +184,7 @@ namespace System.Diagnostics.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [PlatformSpecific(TestPlatforms.Linux)] // s_allowedProgramsToRun is Linux specific
         public void ProcessStart_UseShellExecute_OnUnix_FallsBackWhenNotRealExecutable()
         {
@@ -199,8 +197,7 @@ namespace System.Diagnostics.Tests
             // Create a file that has the x-bit set, but which isn't a valid script.
             string filename = WriteScriptFile(TestDirectory, GetTestFileName(), returnValue: 0);
             File.WriteAllText(filename, $"not a script");
-            int mode = Convert.ToInt32("744", 8);
-            Assert.Equal(0, chmod(filename, mode));
+            ChMod(filename, "744"); // set x-bit
 
             RemoteInvokeOptions options = new RemoteInvokeOptions();
             options.StartInfo.EnvironmentVariables["PATH"] = path;
@@ -260,7 +257,7 @@ namespace System.Diagnostics.Tests
             Assert.True(File.Exists(testFilePath));
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [InlineData((string)null, true)]
         [InlineData("", true)]
         [InlineData("open", true)]
@@ -420,7 +417,7 @@ namespace System.Diagnostics.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [Trait(XunitConstants.Category, XunitConstants.RequiresElevation)]
         public void TestPriorityClassUnix()
         {
@@ -447,7 +444,7 @@ namespace System.Diagnostics.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [Trait(XunitConstants.Category, XunitConstants.RequiresElevation)]
         public void TestBasePriorityOnUnix()
         {
@@ -483,9 +480,7 @@ namespace System.Diagnostics.Tests
         {
             string path = GetTestFilePath();
             File.Create(path).Dispose();
-            int mode = Convert.ToInt32("644", 8);
-
-            Assert.Equal(0, chmod(path, mode));
+            ChMod(path, "644");
 
             Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(path));
             Assert.NotEqual(0, e.NativeErrorCode);
@@ -496,15 +491,13 @@ namespace System.Diagnostics.Tests
         {
             string path = GetTestFilePath();
             File.Create(path).Dispose();
-            int mode = Convert.ToInt32("744", 8);
-
-            Assert.Equal(0, chmod(path, mode)); // execute permissions
+            ChMod(path, "744"); // set x-bit
 
             Win32Exception e = Assert.Throws<Win32Exception>(() => Process.Start(path));
             Assert.NotEqual(0, e.NativeErrorCode);
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public void TestStartWithNonExistingUserThrows()
         {
             Process p = CreateProcessPortable(RemotelyInvokable.Dummy);
@@ -512,7 +505,7 @@ namespace System.Diagnostics.Tests
             Assert.Throws<Win32Exception>(() => p.Start());
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public void TestExitCodeKilledChild()
         {
             using (Process p = CreateProcessLong())
@@ -548,9 +541,8 @@ namespace System.Diagnostics.Tests
             return RemoteExecutor.SuccessExitCode;
         }
 
-        [Fact]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/28922", TestPlatforms.AnyUnix)]
-        public unsafe void TestCheckChildProcessUserAndGroupIds()
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
+        public void TestCheckChildProcessUserAndGroupIds()
         {
             string userName = GetCurrentRealUserName();
             string userId = GetUserId(userName);
@@ -559,7 +551,7 @@ namespace System.Diagnostics.Tests
             // If this test runs as the user, we expect to be able to match the user groups exactly.
             // Except on OSX, where getgrouplist may return a list of groups truncated to NGROUPS_MAX.
             bool checkGroupsExact = userId == geteuid().ToString() &&
-                                    !RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+                                    !OperatingSystem.IsMacOS();
 
             // Start as username
             var invokeOptions = new RemoteInvokeOptions();
@@ -573,12 +565,11 @@ namespace System.Diagnostics.Tests
         /// Tests when running as root and starting a new process as a normal user,
         /// the new process doesn't have elevated privileges.
         /// </summary>
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [OuterLoop("Needs sudo access")]
         [Trait(XunitConstants.Category, XunitConstants.RequiresElevation)]
         [InlineData(true)]
         [InlineData(false)]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/30003", TestPlatforms.AnyUnix)]
         public unsafe void TestCheckChildProcessUserAndGroupIdsElevated(bool useRootGroups)
         {
             Func<string, string, int> runsAsRoot = (string username, string useRootGroupsArg) =>
@@ -602,7 +593,7 @@ namespace System.Diagnostics.Tests
 
                 // On systems with a low value of NGROUPS_MAX (e.g 16 on OSX), the groups may be truncated.
                 // On Linux NGROUPS_MAX is 65536, so we expect to see every group.
-                bool checkGroupsExact = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+                bool checkGroupsExact = OperatingSystem.IsLinux();
 
                 // Start as username
                 var invokeOptions = new RemoteInvokeOptions();
@@ -649,7 +640,7 @@ namespace System.Diagnostics.Tests
         /// Tests whether child processes are reaped (cleaning up OS resources)
         /// when they terminate.
         /// </summary>
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [PlatformSpecific(TestPlatforms.Linux)] // Test uses Linux specific '/proc' filesystem
         public async Task TestChildProcessCleanup()
         {
@@ -665,7 +656,7 @@ namespace System.Diagnostics.Tests
         /// Tests whether child processes are reaped (cleaning up OS resources)
         /// when they terminate after the Process was Disposed.
         /// </summary>
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [InlineData(false, false)]
         [InlineData(false, true)]
         [InlineData(true, false)]
@@ -721,7 +712,7 @@ namespace System.Diagnostics.Tests
         /// <summary>
         /// Tests the ProcessWaitState reference count drops to zero.
         /// </summary>
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [PlatformSpecific(TestPlatforms.AnyUnix)] // Test validates Unix implementation
         public async Task TestProcessWaitStateReferenceCount()
         {
@@ -771,12 +762,14 @@ namespace System.Diagnostics.Tests
             }
         }
 
+        private static bool IsStressModeEnabledAndRemoteExecutorSupported => TestEnvironment.IsStressModeEnabled && RemoteExecutor.IsSupported;
+
         /// <summary>
         /// Verifies a new Process instance can refer to a process with a recycled pid for which
         /// there is still an existing Process instance. Operations on the existing instance will
         /// throw since that process has exited.
         /// </summary>
-        [ConditionalFact(typeof(TestEnvironment), nameof(TestEnvironment.IsStressModeEnabled))]
+        [ConditionalFact(nameof(IsStressModeEnabledAndRemoteExecutorSupported))]
         public void TestProcessRecycledPid()
         {
             const int LinuxPidMaxDefault = 32768;
@@ -810,7 +803,25 @@ namespace System.Diagnostics.Tests
             Assert.True(foundRecycled);
         }
 
-        [Theory]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
+        [InlineData("/dev/stdin",  O_RDONLY)]
+        [InlineData("/dev/stdout", O_WRONLY)]
+        [InlineData("/dev/stderr", O_WRONLY)]
+        public void ChildProcessRedirectedIO_FilePathOpenShouldSucceed(string filename, int flags)
+        {
+            var options = new RemoteInvokeOptions { StartInfo = new ProcessStartInfo { RedirectStandardOutput = true, RedirectStandardInput = true, RedirectStandardError = true }};
+            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(ExecuteChildProcess, filename, flags.ToString(CultureInfo.InvariantCulture), options))
+            { }
+
+            static void ExecuteChildProcess(string filename, string flags)
+            {
+                int result = open(filename, int.Parse(flags, CultureInfo.InvariantCulture));
+                Assert.True(result >= 0, $"failed to open file with {result} and errno {Marshal.GetLastWin32Error()}.");
+            }
+        }
+
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [InlineData(true)]
         [InlineData(false)]
         public async Task Kill_ExitedNonChildProcess_DoesNotThrow(bool killTree)
@@ -896,18 +907,13 @@ namespace System.Diagnostics.Tests
             return (int)referenCountField.GetValue(waitState);
         }
 
-        private void RunTestAsSudo(Func<string, int> testMethod, string arg)
-        {
-            RemoteInvokeOptions options = new RemoteInvokeOptions()
-            {
-                RunAsSudo = true
-            };
-            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(testMethod, arg, options))
-            { }
-        }
-
         [DllImport("libc")]
         private static extern int chmod(string path, int mode);
+
+        private static void ChMod(string filename, string mode)
+        {
+            Assert.Equal(0, chmod(filename, Convert.ToInt32(mode, 8)));
+        }
 
         [DllImport("libc")]
         private static extern uint geteuid();
@@ -935,7 +941,11 @@ namespace System.Diagnostics.Tests
                 }
 
                 // Return this as a HashSet to filter out duplicates.
-                return new HashSet<uint>(groups.Slice(0, rv).ToArray());
+                var result = new HashSet<uint>(groups.Slice(0, rv).ToArray());
+                // according to https://man7.org/linux/man-pages/man2/getgroups.2.html it's not specified
+                // if this group is included in the list returned by getgroups
+                result.Add(getegid());
+                return result;
             }
         }
 
@@ -950,15 +960,19 @@ namespace System.Diagnostics.Tests
         [DllImport("libc", SetLastError = true)]
         private static extern int kill(int pid, int sig);
 
+        [DllImport("libc", SetLastError = true)]
+        private static extern int open(string pathname, int flags);
+
+        private const int O_RDONLY = 0;
+        private const int O_WRONLY = 1;
+
         private static readonly string[] s_allowedProgramsToRun = new string[] { "xdg-open", "gnome-open", "kfmclient" };
 
         private string WriteScriptFile(string directory, string name, int returnValue)
         {
             string filename = Path.Combine(directory, name);
             File.WriteAllText(filename, $"#!/bin/sh\nexit {returnValue}\n");
-            // set x-bit
-            int mode = Convert.ToInt32("744", 8);
-            Assert.Equal(0, chmod(filename, mode));
+            ChMod(filename, "744"); // set x-bit
             return filename;
         }
 

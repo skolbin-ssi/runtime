@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 using System.Collections;
@@ -64,11 +63,11 @@ namespace System.DirectoryServices
         /// <devdoc>
         /// Returns the child with the given name and of the given type.
         /// </devdoc>
-        public DirectoryEntry Find(string name, string schemaClassName)
+        public DirectoryEntry Find(string name, string? schemaClassName)
         {
             CheckIsContainer();
             // Note: schemaClassName == null does not work for IIS: provider.
-            object o = null;
+            object? o = null;
             try
             {
                 o = _container.ContainerObject.GetObject(schemaClassName, name);
@@ -102,11 +101,11 @@ namespace System.DirectoryServices
         /// Supports a simple ForEach-style iteration over a collection and defines
         /// enumerators, size, and synchronization methods.
         /// </devdoc>
-        private class ChildEnumerator : IEnumerator
+        private sealed class ChildEnumerator : IEnumerator
         {
             private readonly DirectoryEntry _container;
-            private SafeNativeMethods.EnumVariant _enumVariant;
-            private DirectoryEntry _currentEntry;
+            private SafeNativeMethods.EnumVariant? _enumVariant;
+            private DirectoryEntry? _currentEntry;
 
             internal ChildEnumerator(DirectoryEntry container)
             {

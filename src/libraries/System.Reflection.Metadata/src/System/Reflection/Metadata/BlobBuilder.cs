@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -957,10 +956,9 @@ namespace System.Reflection.Metadata
             }
             else
             {
-                byte[] bytes = Encoding.Unicode.GetBytes(value);
-                fixed (byte* ptr = &bytes[0])
+                for (int i = 0; i < value.Length; i++)
                 {
-                    WriteBytesUnchecked((byte*)ptr, bytes.Length);
+                    WriteUInt16((ushort)value[i]);
                 }
             }
         }
@@ -991,10 +989,9 @@ namespace System.Reflection.Metadata
             }
             else
             {
-                byte[] bytes = Encoding.Unicode.GetBytes(value);
-                fixed (byte* ptr = bytes)
+                for (int i = 0; i < value.Length; i++)
                 {
-                    WriteBytesUnchecked((byte*)ptr, bytes.Length);
+                    WriteUInt16((ushort)value[i]);
                 }
             }
         }

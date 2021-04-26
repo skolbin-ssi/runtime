@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.IO;
@@ -9,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace System.Net
 {
-    internal class BufferedReadStream : DelegatedStream
+    internal sealed class BufferedReadStream : DelegatedStream
     {
         private byte[]? _storedBuffer;
         private int _storedLength;
@@ -158,7 +157,7 @@ namespace System.Net
             Buffer.BlockCopy(buffer, offset, _storedBuffer!, _storedOffset, count);
         }
 
-        private class ReadAsyncResult : LazyAsyncResult
+        private sealed class ReadAsyncResult : LazyAsyncResult
         {
             private readonly BufferedReadStream _parent;
             private int _read;

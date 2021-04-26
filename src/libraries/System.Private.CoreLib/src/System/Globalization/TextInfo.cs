@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -27,7 +27,7 @@ namespace System.Globalization
         }
 
         private string? _listSeparator;
-        private bool _isReadOnly = false;
+        private bool _isReadOnly;
 
         private readonly string _cultureName;
         private readonly CultureData _cultureData;
@@ -38,7 +38,7 @@ namespace System.Globalization
         private Tristate _isAsciiCasingSameAsInvariant = Tristate.NotInitialized;
 
         // Invariant text info
-        internal static readonly TextInfo Invariant = new TextInfo(CultureData.Invariant, readOnly: true);
+        internal static readonly TextInfo Invariant = new TextInfo(CultureData.Invariant, readOnly: true) { _isAsciiCasingSameAsInvariant = Tristate.True };
 
         internal TextInfo(CultureData cultureData)
         {
@@ -619,7 +619,7 @@ namespace System.Globalization
         /// </summary>
         public bool IsRightToLeft => _cultureData.IsRightToLeft;
 
-        public override bool Equals(object? obj)
+        public override bool Equals([NotNullWhen(true)] object? obj)
         {
             return obj is TextInfo otherTextInfo
                 && CultureName.Equals(otherTextInfo.CultureName);

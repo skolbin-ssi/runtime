@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 // ------------------------------------------------------------------------------
 // Changes to this file must follow the https://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
@@ -87,6 +86,7 @@ namespace System.Diagnostics
         public string? SwitchDescription { get { throw null; } set { } }
         public string SwitchName { get { throw null; } set { } }
         public System.Type SwitchType { get { throw null; } set { } }
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Types may be trimmed from the assembly.")]
         public static System.Diagnostics.SwitchAttribute[] GetAll(System.Reflection.Assembly assembly) { throw null; }
     }
     [System.AttributeUsageAttribute(System.AttributeTargets.Class)]
@@ -207,12 +207,13 @@ namespace System.Diagnostics
     public abstract partial class TraceListener : System.MarshalByRefObject, System.IDisposable
     {
         protected TraceListener() { }
-        protected TraceListener(string name) { }
+        protected TraceListener(string? name) { }
         public System.Collections.Specialized.StringDictionary Attributes { get { throw null; } }
         public System.Diagnostics.TraceFilter? Filter { get { throw null; } set { } }
         public int IndentLevel { get { throw null; } set { } }
         public int IndentSize { get { throw null; } set { } }
         public virtual bool IsThreadSafe { get { throw null; } }
+        [System.Diagnostics.CodeAnalysis.AllowNullAttribute]
         public virtual string Name { get { throw null; } set { } }
         protected bool NeedIndent { get { throw null; } set { } }
         public System.Diagnostics.TraceOptions TraceOutputOptions { get { throw null; } set { } }
@@ -227,7 +228,7 @@ namespace System.Diagnostics
         public virtual void TraceData(System.Diagnostics.TraceEventCache? eventCache, string source, System.Diagnostics.TraceEventType eventType, int id, params object?[]? data) { }
         public virtual void TraceEvent(System.Diagnostics.TraceEventCache? eventCache, string source, System.Diagnostics.TraceEventType eventType, int id) { }
         public virtual void TraceEvent(System.Diagnostics.TraceEventCache? eventCache, string source, System.Diagnostics.TraceEventType eventType, int id, string? message) { }
-        public virtual void TraceEvent(System.Diagnostics.TraceEventCache? eventCache, string source, System.Diagnostics.TraceEventType eventType, int id, string format, params object?[]? args) { }
+        public virtual void TraceEvent(System.Diagnostics.TraceEventCache? eventCache, string source, System.Diagnostics.TraceEventType eventType, int id, string? format, params object?[]? args) { }
         public virtual void TraceTransfer(System.Diagnostics.TraceEventCache? eventCache, string source, int id, string? message, System.Guid relatedActivityId) { }
         public virtual void Write(object? o) { }
         public virtual void Write(object? o, string? category) { }
@@ -300,11 +301,11 @@ namespace System.Diagnostics
         [System.Diagnostics.ConditionalAttribute("TRACE")]
         public void TraceEvent(System.Diagnostics.TraceEventType eventType, int id, string? message) { }
         [System.Diagnostics.ConditionalAttribute("TRACE")]
-        public void TraceEvent(System.Diagnostics.TraceEventType eventType, int id, string format, params object?[]? args) { }
+        public void TraceEvent(System.Diagnostics.TraceEventType eventType, int id, string? format, params object?[]? args) { }
         [System.Diagnostics.ConditionalAttribute("TRACE")]
-        public void TraceInformation(string message) { }
+        public void TraceInformation(string? message) { }
         [System.Diagnostics.ConditionalAttribute("TRACE")]
-        public void TraceInformation(string format, params object?[]? args) { }
+        public void TraceInformation(string? format, params object?[]? args) { }
         [System.Diagnostics.ConditionalAttribute("TRACE")]
         public void TraceTransfer(int id, string? message, System.Guid relatedActivityId) { }
     }

@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -90,7 +89,7 @@ namespace System.Text.RegularExpressions
 
             if (!regex.RightToLeft)
             {
-                regex.Run(input, startat, ref state, (ref (List<string> results, int prevat, string input, int count) state, Match match) =>
+                regex.Run(input, startat, ref state, static (ref (List<string> results, int prevat, string input, int count) state, Match match) =>
                 {
                     state.results.Add(state.input.Substring(state.prevat, match.Index - state.prevat));
                     state.prevat = match.Index + match.Length;
@@ -105,7 +104,7 @@ namespace System.Text.RegularExpressions
                     }
 
                     return --state.count != 0;
-                });
+                }, reuseMatchObject: true);
 
                 if (state.results.Count == 0)
                 {
@@ -118,7 +117,7 @@ namespace System.Text.RegularExpressions
             {
                 state.prevat = input.Length;
 
-                regex.Run(input, startat, ref state, (ref (List<string> results, int prevat, string input, int count) state, Match match) =>
+                regex.Run(input, startat, ref state, static (ref (List<string> results, int prevat, string input, int count) state, Match match) =>
                 {
                     state.results.Add(state.input.Substring(match.Index + match.Length, state.prevat - match.Index - match.Length));
                     state.prevat = match.Index;
@@ -133,7 +132,7 @@ namespace System.Text.RegularExpressions
                     }
 
                     return --state.count != 0;
-                });
+                }, reuseMatchObject: true);
 
                 if (state.results.Count == 0)
                 {

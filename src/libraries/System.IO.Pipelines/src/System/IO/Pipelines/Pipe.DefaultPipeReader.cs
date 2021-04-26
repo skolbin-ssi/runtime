@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,9 +7,7 @@ using System.Threading.Tasks.Sources;
 
 namespace System.IO.Pipelines
 {
-    /// <summary>
-    /// Default <see cref="PipeWriter"/> and <see cref="PipeReader"/> implementation.
-    /// </summary>
+    /// <summary>The default <see cref="System.IO.Pipelines.PipeWriter" /> and <see cref="System.IO.Pipelines.PipeReader" /> implementation.</summary>
     public sealed partial class Pipe
     {
         private sealed class DefaultPipeReader : PipeReader, IValueTaskSource<ReadResult>

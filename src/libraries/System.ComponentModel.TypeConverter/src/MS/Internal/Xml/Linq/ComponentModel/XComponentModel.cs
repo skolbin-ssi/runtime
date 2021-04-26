@@ -1,39 +1,41 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Xml.Linq;
 
 namespace MS.Internal.Xml.Linq.ComponentModel
 {
-    internal class XTypeDescriptionProvider<T> : TypeDescriptionProvider
+    internal sealed class XTypeDescriptionProvider<T> : TypeDescriptionProvider
     {
         public XTypeDescriptionProvider() : base(TypeDescriptor.GetProvider(typeof(T)))
         {
         }
 
-        public override ICustomTypeDescriptor GetTypeDescriptor(Type type, object instance)
+        public override ICustomTypeDescriptor GetTypeDescriptor([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type, object instance)
         {
             return new XTypeDescriptor<T>(base.GetTypeDescriptor(type, instance));
         }
     }
 
-    internal class XTypeDescriptor<T> : CustomTypeDescriptor
+    internal sealed class XTypeDescriptor<T> : CustomTypeDescriptor
     {
         public XTypeDescriptor(ICustomTypeDescriptor parent) : base(parent)
         {
         }
 
+        [RequiresUnreferencedCode(PropertyDescriptor.PropertyDescriptorPropertyTypeMessage)]
         public override PropertyDescriptorCollection GetProperties()
         {
             return GetProperties(null);
         }
 
+        [RequiresUnreferencedCode(PropertyDescriptor.PropertyDescriptorPropertyTypeMessage + " " + AttributeCollection.FilterRequiresUnreferencedCodeMessage)]
         public override PropertyDescriptorCollection GetProperties(Attribute[] attributes)
         {
             PropertyDescriptorCollection properties = new PropertyDescriptorCollection(null);
@@ -139,7 +141,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XElementAttributePropertyDescriptor : XPropertyDescriptor<XElement, object>
+    internal sealed class XElementAttributePropertyDescriptor : XPropertyDescriptor<XElement, object>
     {
         private XDeferredSingleton<XAttribute> _value;
         private XAttribute _changeState;
@@ -191,7 +193,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XElementDescendantsPropertyDescriptor : XPropertyDescriptor<XElement, IEnumerable<XElement>>
+    internal sealed class XElementDescendantsPropertyDescriptor : XPropertyDescriptor<XElement, IEnumerable<XElement>>
     {
         private XDeferredAxis<XElement> _value;
         private XName _changeState;
@@ -244,7 +246,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XElementElementPropertyDescriptor : XPropertyDescriptor<XElement, object>
+    internal sealed class XElementElementPropertyDescriptor : XPropertyDescriptor<XElement, object>
     {
         private XDeferredSingleton<XElement> _value;
         private XElement _changeState;
@@ -312,7 +314,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XElementElementsPropertyDescriptor : XPropertyDescriptor<XElement, IEnumerable<XElement>>
+    internal sealed class XElementElementsPropertyDescriptor : XPropertyDescriptor<XElement, IEnumerable<XElement>>
     {
         private XDeferredAxis<XElement> _value;
         private object _changeState;
@@ -376,7 +378,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XElementValuePropertyDescriptor : XPropertyDescriptor<XElement, string>
+    internal sealed class XElementValuePropertyDescriptor : XPropertyDescriptor<XElement, string>
     {
         private XElement _element;
 
@@ -428,7 +430,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XElementXmlPropertyDescriptor : XPropertyDescriptor<XElement, string>
+    internal sealed class XElementXmlPropertyDescriptor : XPropertyDescriptor<XElement, string>
     {
         private XElement _element;
 
@@ -452,7 +454,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XAttributeValuePropertyDescriptor : XPropertyDescriptor<XAttribute, string>
+    internal sealed class XAttributeValuePropertyDescriptor : XPropertyDescriptor<XAttribute, string>
     {
         private XAttribute _attribute;
 
@@ -492,7 +494,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XDeferredAxis<T> : IEnumerable<T>, IEnumerable where T : XObject
+    internal sealed class XDeferredAxis<T> : IEnumerable<T>, IEnumerable where T : XObject
     {
         private readonly Func<XElement, XName, IEnumerable<T>> _func;
         internal XElement element;
@@ -538,7 +540,7 @@ namespace MS.Internal.Xml.Linq.ComponentModel
         }
     }
 
-    internal class XDeferredSingleton<T> where T : XObject
+    internal sealed class XDeferredSingleton<T> where T : XObject
     {
         private readonly Func<XElement, XName, T> _func;
         internal XElement element;

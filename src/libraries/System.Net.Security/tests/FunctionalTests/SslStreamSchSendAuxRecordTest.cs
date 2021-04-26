@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Net.Test.Common;
 using System.Security.Authentication;
@@ -109,7 +108,7 @@ namespace System.Net.Security.Tests
                     return Task.FromResult<string>(null);
                 });
 
-                await Task.WhenAll(tasks).TimeoutAfter(TestConfiguration.PassingTestTimeoutMilliseconds);
+                await Task.WhenAll(tasks).WaitAsync(TestConfiguration.PassingTestTimeout);
 
                 if (serverAuxRecordDetectedInconclusive || clientAuxRecordDetectedInconclusive)
                 {

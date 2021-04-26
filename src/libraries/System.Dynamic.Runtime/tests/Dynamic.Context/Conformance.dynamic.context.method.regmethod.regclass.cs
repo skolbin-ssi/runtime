@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 using ManagedTests.DynamicCSharp.Conformance.dynamic.context.method.regmethod.regclass.regclassregmeth.regclassregmeth;
@@ -303,13 +302,13 @@ namespace ManagedTests.DynamicCSharp.Conformance.dynamic.context.method.regmetho
         {
             p1 = 2;
             p3 = 3;
-            return new MyClass { Field = (int)p2 }; ;
+            return new MyClass { Field = (int)p2 };
         }
 
         public MyClass Method_ReturnMyClass(out ulong l)
         {
             l = 3;
-            return  new MyClass { Field = (int)l }; ;
+            return  new MyClass { Field = (int)l };
         }
 
         public MyClass Method_ReturnMyClass(params MyStruct[] arr) => new MyClass { Field = 1 };

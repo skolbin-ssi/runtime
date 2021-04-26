@@ -1,24 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Microsoft.Win32.SafeHandles;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.IO.Pipes;
 using System.Security;
 using System.Text;
 using System.Threading;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace System.Diagnostics
 {
     public partial class Process : IDisposable
     {
-        private static readonly UTF8Encoding s_utf8NoBom =
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        private static volatile bool s_initialized = false;
+        private static volatile bool s_initialized;
         private static readonly object s_initializedGate = new object();
-        private static readonly Interop.Sys.SigChldCallback s_sigChildHandler = OnSigChild;
         private static readonly ReaderWriterLockSlim s_processStartLock = new ReaderWriterLockSlim();
         private static int s_childrenUsingTerminalCount;
 
@@ -41,20 +40,29 @@ namespace System.Diagnostics
         }
 
         [CLSCompliant(false)]
+        [SupportedOSPlatform("windows")]
         public static Process Start(string fileName, string userName, SecureString password, string domain)
         {
             throw new PlatformNotSupportedException(SR.ProcessStartWithPasswordAndDomainNotSupported);
         }
 
         [CLSCompliant(false)]
+        [SupportedOSPlatform("windows")]
         public static Process Start(string fileName, string arguments, string userName, SecureString password, string domain)
         {
             throw new PlatformNotSupportedException(SR.ProcessStartWithPasswordAndDomainNotSupported);
         }
 
         /// <summary>Terminates the associated process immediately.</summary>
+        [UnsupportedOSPlatform("ios")]
+        [UnsupportedOSPlatform("tvos")]
         public void Kill()
         {
+            if (OperatingSystem.IsIOS() || OperatingSystem.IsTvOS())
+            {
+                throw new PlatformNotSupportedException();
+            }
+
             EnsureState(State.HaveId);
 
             // Check if we know the process has exited. This avoids us targetting another
@@ -202,14 +210,8 @@ namespace System.Diagnostics
 
             if (exited && milliseconds == Timeout.Infinite) // if we have a hard timeout, we cannot wait for the streams
             {
-                if (_output != null)
-                {
-                    _output.WaitUtilEOF();
-                }
-                if (_error != null)
-                {
-                    _error.WaitUtilEOF();
-                }
+                _output?.EOF.GetAwaiter().GetResult();
+                _error?.EOF.GetAwaiter().GetResult();
             }
 
             return exited;
@@ -305,18 +307,30 @@ namespace System.Diagnostics
             }
         }
 
-        /// <summary>Gets the ID of the current process.</summary>
-        private static int GetCurrentProcessId()
+        /// <summary>Checks whether the argument is a direct child of this process.</summary>
+        private bool IsParentOf(Process possibleChildProcess)
         {
-            return Interop.Sys.GetPid();
+            try
+            {
+                return Id == possibleChildProcess.ParentProcessId;
+            }
+            catch (Exception e) when (IsProcessInvalidException(e))
+            {
+                return false;
+            }
         }
 
-        /// <summary>Checks whether the argument is a direct child of this process.</summary>
-        private bool IsParentOf(Process possibleChildProcess) =>
-            Id == possibleChildProcess.ParentProcessId;
-
-        private bool Equals(Process process) =>
-            Id == process.Id;
+        private bool Equals(Process process)
+        {
+            try
+            {
+                return Id == process.Id;
+            }
+            catch (Exception e) when (IsProcessInvalidException(e))
+            {
+                return false;
+            }
+        }
 
         partial void ThrowIfExited(bool refresh)
         {
@@ -356,6 +370,11 @@ namespace System.Diagnostics
         /// <param name="startInfo">The start info with which to start the process.</param>
         private bool StartCore(ProcessStartInfo startInfo)
         {
+            if (OperatingSystem.IsIOS() || OperatingSystem.IsTvOS())
+            {
+                throw new PlatformNotSupportedException();
+            }
+
             EnsureInitialized();
 
             string? filename;
@@ -451,21 +470,21 @@ namespace System.Diagnostics
             if (startInfo.RedirectStandardInput)
             {
                 Debug.Assert(stdinFd >= 0);
-                _standardInput = new StreamWriter(OpenStream(stdinFd, FileAccess.Write),
-                    startInfo.StandardInputEncoding ?? s_utf8NoBom, StreamBufferSize)
+                _standardInput = new StreamWriter(OpenStream(stdinFd, PipeDirection.Out),
+                    startInfo.StandardInputEncoding ?? Encoding.Default, StreamBufferSize)
                 { AutoFlush = true };
             }
             if (startInfo.RedirectStandardOutput)
             {
                 Debug.Assert(stdoutFd >= 0);
-                _standardOutput = new StreamReader(OpenStream(stdoutFd, FileAccess.Read),
-                    startInfo.StandardOutputEncoding ?? s_utf8NoBom, true, StreamBufferSize);
+                _standardOutput = new StreamReader(OpenStream(stdoutFd, PipeDirection.In),
+                    startInfo.StandardOutputEncoding ?? Encoding.Default, true, StreamBufferSize);
             }
             if (startInfo.RedirectStandardError)
             {
                 Debug.Assert(stderrFd >= 0);
-                _standardError = new StreamReader(OpenStream(stderrFd, FileAccess.Read),
-                    startInfo.StandardErrorEncoding ?? s_utf8NoBom, true, StreamBufferSize);
+                _standardError = new StreamReader(OpenStream(stderrFd, PipeDirection.In),
+                    startInfo.StandardErrorEncoding ?? Encoding.Default, true, StreamBufferSize);
             }
 
             return true;
@@ -545,10 +564,6 @@ namespace System.Diagnostics
             }
         }
 
-        // -----------------------------
-        // ---- PAL layer ends here ----
-        // -----------------------------
-
         /// <summary>Finalizable holder for the underlying shared wait state object.</summary>
         private ProcessWaitState.Holder? _waitStateHolder;
 
@@ -563,7 +578,7 @@ namespace System.Diagnostics
         private static string[] ParseArgv(ProcessStartInfo psi, string? resolvedExe = null, bool ignoreArguments = false)
         {
             if (string.IsNullOrEmpty(resolvedExe) &&
-                (ignoreArguments || (string.IsNullOrEmpty(psi.Arguments) && psi.ArgumentList.Count == 0)))
+                (ignoreArguments || (string.IsNullOrEmpty(psi.Arguments) && !psi.HasArgumentList)))
             {
                 return new string[] { psi.FileName };
             }
@@ -586,7 +601,7 @@ namespace System.Diagnostics
                 {
                     ParseArgumentsIntoList(psi.Arguments, argvList);
                 }
-                else
+                else if (psi.HasArgumentList)
                 {
                     argvList.AddRange(psi.ArgumentList);
                 }
@@ -687,7 +702,7 @@ namespace System.Diagnostics
             }
 
             // Then check the executable's directory
-            string? path = GetExePath();
+            string? path = Environment.ProcessPath;
             if (path != null)
             {
                 try
@@ -763,14 +778,12 @@ namespace System.Diagnostics
 
         /// <summary>Opens a stream around the specified file descriptor and with the specified access.</summary>
         /// <param name="fd">The file descriptor.</param>
-        /// <param name="access">The access mode.</param>
+        /// <param name="direction">The pipe direction.</param>
         /// <returns>The opened stream.</returns>
-        private static FileStream OpenStream(int fd, FileAccess access)
+        private static Stream OpenStream(int fd, PipeDirection direction)
         {
             Debug.Assert(fd >= 0);
-            return new FileStream(
-                new SafeFileHandle((IntPtr)fd, ownsHandle: true),
-                access, StreamBufferSize, isAsync: false);
+            return new AnonymousPipeClientStream(direction, new SafePipeHandle((IntPtr)fd, ownsHandle: true));
         }
 
         /// <summary>Parses a command-line argument string into a list of arguments.</summary>
@@ -992,7 +1005,7 @@ namespace System.Diagnostics
 
         private bool WaitForInputIdleCore(int milliseconds) => throw new InvalidOperationException(SR.InputIdleUnkownError);
 
-        private static void EnsureInitialized()
+        private static unsafe void EnsureInitialized()
         {
             if (s_initialized)
             {
@@ -1009,20 +1022,21 @@ namespace System.Diagnostics
                     }
 
                     // Register our callback.
-                    Interop.Sys.RegisterForSigChld(s_sigChildHandler);
+                    Interop.Sys.RegisterForSigChld(&OnSigChild);
 
                     s_initialized = true;
                 }
             }
         }
 
-        private static void OnSigChild(bool reapAll)
+        [UnmanagedCallersOnly]
+        private static void OnSigChild(int reapAll)
         {
             // Lock to avoid races with Process.Start
             s_processStartLock.EnterWriteLock();
             try
             {
-                ProcessWaitState.CheckChildren(reapAll);
+                ProcessWaitState.CheckChildren(reapAll != 0);
             }
             finally
             {

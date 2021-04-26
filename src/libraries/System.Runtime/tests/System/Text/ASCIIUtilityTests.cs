@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Buffers;
 using System.Numerics;
@@ -433,7 +432,7 @@ namespace System.Text.Tests
             return typeof(object).Assembly.GetType("System.Text.ASCIIUtility");
         }
 
-        private sealed class UnsafeLazyDelegate<TDelegate> where TDelegate : class
+        private sealed class UnsafeLazyDelegate<TDelegate> where TDelegate : Delegate
         {
             private readonly Lazy<TDelegate> _lazyDelegate;
 
@@ -450,7 +449,7 @@ namespace System.Text.Tests
 
                     // Construct the TDelegate pointing to this method
 
-                    return (TDelegate)Activator.CreateInstance(typeof(TDelegate), new object[] { null, methodInfo.MethodHandle.GetFunctionPointer() });
+                    return methodInfo.CreateDelegate<TDelegate>();
                 });
             }
 

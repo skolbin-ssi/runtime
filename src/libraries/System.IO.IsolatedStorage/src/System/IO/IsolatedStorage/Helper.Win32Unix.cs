@@ -1,8 +1,6 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 using System.Reflection;
 using System.Security;
 using System.Threading;
@@ -55,7 +53,9 @@ namespace System.IO.IsolatedStorage
                 throw new IsolatedStorageException(SR.IsolatedStorage_Init);
 
             AssemblyName assemblyName = assembly.GetName();
+#pragma warning disable SYSLIB0012
             Uri codeBase = new Uri(assembly.CodeBase!);
+#pragma warning restore SYSLIB0012
 
             hash = IdentityHelper.GetNormalizedStrongNameHash(assemblyName)!;
             if (hash != null)

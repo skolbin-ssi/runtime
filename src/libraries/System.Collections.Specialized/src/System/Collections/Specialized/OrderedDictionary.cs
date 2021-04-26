@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
@@ -454,7 +453,7 @@ namespace System.Collections.Specialized
         /// OrderedDictionaryEnumerator works just like any other IDictionaryEnumerator, but it retrieves DictionaryEntries
         /// in the order by index.
         /// </devdoc>
-        private class OrderedDictionaryEnumerator : IDictionaryEnumerator
+        private sealed class OrderedDictionaryEnumerator : IDictionaryEnumerator
         {
             private readonly int _objectReturnType;
             internal const int Keys = 1;
@@ -546,7 +545,7 @@ namespace System.Collections.Specialized
         /// that is "live"- it will reflect changes to the OrderedDictionary on the collection made after the getter
         /// was called.
         /// </devdoc>
-        private class OrderedDictionaryKeyValueCollection : ICollection
+        private sealed class OrderedDictionaryKeyValueCollection : ICollection
         {
             private readonly ArrayList _objects;
             private readonly bool _isKeys;

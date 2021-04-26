@@ -1,20 +1,34 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Security.Cryptography.Dsa.Tests;
 using Xunit;
 
 namespace System.Security.Cryptography.Algorithms.Tests
 {
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public static class DSACreateTests
     {
         public static bool SupportsKeyGeneration => DSAFactory.SupportsKeyGeneration;
         public static bool SupportsFips186_3 => DSAFactory.SupportsFips186_3;
 
         [ConditionalTheory(nameof(SupportsKeyGeneration))]
+        [SkipOnPlatform(TestPlatforms.Android, "Android only supports key sizes that are a multiple of 1024")]
         [InlineData(512)]
         [InlineData(960)]
+        public static void CreateWithKeysize_SmallKeys(int keySizeInBits)
+        {
+            using (DSA dsa = DSA.Create(keySizeInBits))
+            {
+                Assert.Equal(keySizeInBits, dsa.KeySize);
+
+                DSAParameters parameters = dsa.ExportParameters(false);
+                Assert.Equal(keySizeInBits, parameters.Y.Length << 3);
+                Assert.Equal(keySizeInBits, dsa.KeySize);
+            }
+        }
+
+        [ConditionalTheory(nameof(SupportsKeyGeneration))]
         [InlineData(1024)]
         public static void CreateWithKeysize(int keySizeInBits)
         {
@@ -29,6 +43,7 @@ namespace System.Security.Cryptography.Algorithms.Tests
         }
 
         [ConditionalTheory(nameof(SupportsKeyGeneration), nameof(SupportsFips186_3))]
+        [SkipOnPlatform(TestPlatforms.Android, "Android only supports key sizes that are a multiple of 1024")]
         [InlineData(1088)]
         public static void CreateWithKeysize_BigKeys(int keySizeInBits)
         {

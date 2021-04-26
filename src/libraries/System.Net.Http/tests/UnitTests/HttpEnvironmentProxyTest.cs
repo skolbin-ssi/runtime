@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,6 +10,7 @@ using Xunit.Abstractions;
 
 namespace System.Net.Http.Tests
 {
+    [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
     public class HttpEnvironmentProxyTest
     {
         private readonly ITestOutputHelper _output;
@@ -41,7 +41,7 @@ namespace System.Net.Http.Tests
             CleanEnv();
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public void HttpProxy_EnvironmentProxy_Loaded()
         {
             RemoteExecutor.Invoke(() =>
@@ -128,16 +128,16 @@ namespace System.Net.Http.Tests
             }).Dispose();
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [InlineData("1.1.1.5", "1.1.1.5", "80", null, null)]
         [InlineData("http://1.1.1.5:3005", "1.1.1.5", "3005", null, null)]
         [InlineData("http://foo@1.1.1.5", "1.1.1.5", "80", "foo", "")]
         [InlineData("http://[::1]:80", "[::1]", "80", null, null)]
-        [InlineData("foo:bar@[::1]:3128", "[::1]", "3128", "foo", "bar")]
+        [InlineData("foo:PLACEHOLDER@[::1]:3128", "[::1]", "3128", "foo", "PLACEHOLDER")]
         [InlineData("foo:Pass$!#\\.$@127.0.0.1:3128", "127.0.0.1", "3128", "foo", "Pass$!#\\.$")]
         [InlineData("[::1]", "[::1]", "80", null, null)]
-        [InlineData("domain\\foo:bar@1.1.1.1", "1.1.1.1", "80", "foo", "bar")]
-        [InlineData("domain%5Cfoo:bar@1.1.1.1", "1.1.1.1", "80", "foo", "bar")]
+        [InlineData("domain\\foo:PLACEHOLDER@1.1.1.1", "1.1.1.1", "80", "foo", "PLACEHOLDER")]
+        [InlineData("domain%5Cfoo:PLACEHOLDER@1.1.1.1", "1.1.1.1", "80", "foo", "PLACEHOLDER")]
         [InlineData("HTTP://ABC.COM/", "abc.com", "80", null, null)]
         [InlineData("http://10.30.62.64:7890/", "10.30.62.64", "7890", null, null)]
         [InlineData("http://1.2.3.4:8888/foo", "1.2.3.4", "8888", null, null)]
@@ -178,14 +178,14 @@ namespace System.Net.Http.Tests
             }, _input, _host, _port, _user ?? "null", _password ?? "null").Dispose();
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public void HttpProxy_CredentialParsing_Basic()
         {
             RemoteExecutor.Invoke(() =>
             {
                 IWebProxy p;
 
-                Environment.SetEnvironmentVariable("all_proxy", "http://foo:bar@1.1.1.1:3000");
+                Environment.SetEnvironmentVariable("all_proxy", "http://foo:PLACEHOLDER@1.1.1.1:3000");
                 Assert.True(HttpEnvironmentProxy.TryCreate(out p));
                 Assert.NotNull(p);
                 Assert.NotNull(p.Credentials);
@@ -197,7 +197,7 @@ namespace System.Net.Http.Tests
                 Assert.NotNull(p.Credentials);
 
                 // Use different user for http and https
-                Environment.SetEnvironmentVariable("https_proxy", "http://foo1:bar1@1.1.1.1:3000");
+                Environment.SetEnvironmentVariable("https_proxy", "http://foo1:PLACEHOLDER1@1.1.1.1:3000");
                 Assert.True(HttpEnvironmentProxy.TryCreate(out p));
                 Assert.NotNull(p);
                 Uri u = p.GetProxy(fooHttp);
@@ -210,7 +210,7 @@ namespace System.Net.Http.Tests
             }).Dispose();
         }
 
-        [Fact]
+        [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public void HttpProxy_Exceptions_Match()
         {
             RemoteExecutor.Invoke(() =>
@@ -218,7 +218,7 @@ namespace System.Net.Http.Tests
                 IWebProxy p;
 
                 Environment.SetEnvironmentVariable("no_proxy", ".test.com,, foo.com");
-                Environment.SetEnvironmentVariable("all_proxy", "http://foo:bar@1.1.1.1:3000");
+                Environment.SetEnvironmentVariable("all_proxy", "http://foo:PLACEHOLDER@1.1.1.1:3000");
                 Assert.True(HttpEnvironmentProxy.TryCreate(out p));
                 Assert.NotNull(p);
 
@@ -238,11 +238,11 @@ namespace System.Net.Http.Tests
             yield return new object[] { "HTTP_PROXY", "NO_PROXY" };
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [MemberData(nameof(HttpProxyNoProxyEnvVarMemberData))]
         public void HttpProxy_TryCreate_CaseInsensitiveVariables(string proxyEnvVar, string noProxyEnvVar)
         {
-            string proxy = "http://foo:bar@1.1.1.1:3000";
+            string proxy = "http://foo:PLACEHOLDER@1.1.1.1:3000";
 
             var options = new RemoteInvokeOptions();
             options.StartInfo.EnvironmentVariables.Add(proxyEnvVar, proxy);
@@ -270,12 +270,12 @@ namespace System.Net.Http.Tests
             }
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [MemberData(nameof(HttpProxyCgiEnvVarMemberData))]
         public void HttpProxy_TryCreateAndPossibleCgi_HttpProxyUpperCaseDisabledInCgi(
             string proxyEnvVar, bool cgi, bool expectedProxyUse)
         {
-            string proxy = "http://foo:bar@1.1.1.1:3000";
+            string proxy = "http://foo:PLACEHOLDER@1.1.1.1:3000";
 
             var options = new RemoteInvokeOptions();
             options.StartInfo.EnvironmentVariables.Add(proxyEnvVar, proxy);

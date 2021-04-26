@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -42,7 +41,7 @@ namespace Microsoft.Internal.Collections
             return (ICollection<object>)Activator.CreateInstance(collectionType, collectionObject)!;
         }
 
-        private class CollectionOfObjectList : ICollection<object>
+        private sealed class CollectionOfObjectList : ICollection<object>
         {
             private readonly IList _list;
 
@@ -97,7 +96,7 @@ namespace Microsoft.Internal.Collections
             }
         }
 
-        private class CollectionOfObject<T> : ICollection<object>
+        private sealed class CollectionOfObject<T> : ICollection<object>
         {
             private readonly ICollection<T> _collectionOfT;
 

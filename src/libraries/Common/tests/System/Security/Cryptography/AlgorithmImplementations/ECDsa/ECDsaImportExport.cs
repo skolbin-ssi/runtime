@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Xunit;
 using System.Security.Cryptography.Tests;
@@ -8,8 +7,12 @@ using Test.Cryptography;
 
 namespace System.Security.Cryptography.EcDsa.Tests
 {
+    [SkipOnPlatform(TestPlatforms.Browser, "Not supported on Browser")]
     public class ECDsaImportExportTests : ECDsaTestsBase
     {
+        internal static bool CanDeriveNewPublicKey { get; }
+            = EcDiffieHellman.Tests.ECDiffieHellmanFactory.CanDeriveNewPublicKey;
+
 #if NETCOREAPP
         [Fact]
         public static void DiminishedCoordsRoundtrip()
@@ -185,6 +188,7 @@ namespace System.Security.Cryptography.EcDsa.Tests
         }
 
         [ConditionalFact(nameof(ECExplicitCurvesSupported))]
+        [SkipOnPlatform(TestPlatforms.Android, "Android does not validate curve parameters")]
         public static void TestExplicitImportValidationNegative()
         {
             unchecked
@@ -320,7 +324,7 @@ namespace System.Security.Cryptography.EcDsa.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact(nameof(CanDeriveNewPublicKey))]
         public static void ImportFromPrivateOnlyKey()
         {
             byte[] expectedX = "00d45615ed5d37fde699610a62cd43ba76bedd8f85ed31005fe00d6450fbbd101291abd96d4945a8b57bc73b3fe9f4671105309ec9b6879d0551d930dac8ba45d255".HexToByteArray();

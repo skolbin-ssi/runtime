@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -123,20 +122,27 @@ namespace System.ComponentModel.Design.Serialization
         {
             if (!relationship.IsEmpty && !SupportsRelationship(source, relationship))
             {
-                string sourceName = TypeDescriptor.GetComponentName(source.Owner);
-                string relName = TypeDescriptor.GetComponentName(relationship.Owner);
-                if (sourceName == null)
-                {
-                    sourceName = source.Owner.ToString();
-                }
-                if (relName == null)
-                {
-                    relName = relationship.Owner.ToString();
-                }
-                throw new ArgumentException(SR.Format(SR.MemberRelationshipService_RelationshipNotSupported, sourceName, source.Member.Name, relName, relationship.Member.Name));
+                ThrowRelationshipNotSupported(source, relationship);
             }
 
             _relationships[new RelationshipEntry(source)] = new RelationshipEntry(relationship);
+        }
+
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "GetComponentName is only used to create a nice exception message, and has a fallback when null is returned.")]
+        private static void ThrowRelationshipNotSupported(MemberRelationship source, MemberRelationship relationship)
+        {
+            string sourceName = TypeDescriptor.GetComponentName(source.Owner);
+            string relName = TypeDescriptor.GetComponentName(relationship.Owner);
+            if (sourceName == null)
+            {
+                sourceName = source.Owner.ToString();
+            }
+            if (relName == null)
+            {
+                relName = relationship.Owner.ToString();
+            }
+            throw new ArgumentException(SR.Format(SR.MemberRelationshipService_RelationshipNotSupported, sourceName, source.Member.Name, relName, relationship.Member.Name));
         }
 
         /// <summary>

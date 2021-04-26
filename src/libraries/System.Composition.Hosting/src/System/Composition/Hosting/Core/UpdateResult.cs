@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +9,7 @@ namespace System.Composition.Hosting.Core
     // Update results ensure that providers can query reentrantly for the contract that
     // they are being queried for. The UpdateResult type keeps a list of remaining
     // providers, with providers being removed from the list before querying.
-    internal class UpdateResult
+    internal sealed class UpdateResult
     {
         private static readonly ExportDescriptorPromise[] s_noPromises = Array.Empty<ExportDescriptorPromise>();
 

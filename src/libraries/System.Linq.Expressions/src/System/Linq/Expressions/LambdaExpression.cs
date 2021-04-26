@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -76,31 +75,64 @@ namespace System.Linq.Expressions
 
         internal virtual bool TailCallCore => false;
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual ReadOnlyCollection<ParameterExpression> GetOrMakeParameters()
         {
             throw ContractUtils.Unreachable;
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         ParameterExpression IParameterProvider.GetParameter(int index) => GetParameter(index);
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual ParameterExpression GetParameter(int index)
         {
             throw ContractUtils.Unreachable;
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         int IParameterProvider.ParameterCount => ParameterCount;
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual int ParameterCount
         {
             get
             {
                 throw ContractUtils.Unreachable;
             }
+        }
+
+        /// <summary>
+        /// Gets the Compile() MethodInfo on the specified LambdaExpression type.
+        /// </summary>
+        /// <remarks>
+        /// Note that Expression{TDelegate} defines a 'new' Compile() method that hides the base
+        /// LambdaExpression.Compile() method.
+        /// </remarks>
+        internal static MethodInfo GetCompileMethod(Type lambdaExpressionType)
+        {
+            Debug.Assert(lambdaExpressionType.IsAssignableTo(typeof(LambdaExpression)));
+
+            if (lambdaExpressionType == typeof(LambdaExpression))
+            {
+                // use a hard-coded type directly so the method doesn't get trimmed
+                return typeof(LambdaExpression).GetMethod("Compile", Type.EmptyTypes)!;
+            }
+
+            return GetDerivedCompileMethod(lambdaExpressionType);
+        }
+
+        [DynamicDependency("Compile()", typeof(Expression<>))]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070:UnrecognizedReflectionPattern",
+            Justification = "The 'Compile' method will be preserved by the DynamicDependency.")]
+        private static MethodInfo GetDerivedCompileMethod(Type lambdaExpressionType)
+        {
+            Debug.Assert(lambdaExpressionType.IsAssignableTo(typeof(LambdaExpression)) && lambdaExpressionType != typeof(LambdaExpression));
+
+            MethodInfo result = lambdaExpressionType.GetMethod("Compile", Type.EmptyTypes)!;
+            Debug.Assert(result.DeclaringType!.IsGenericType && result.DeclaringType.GetGenericTypeDefinition() == typeof(Expression<>));
+
+            return result;
         }
 
         /// <summary>
@@ -220,7 +252,7 @@ namespace System.Linq.Expressions
         /// <param name="body">The <see cref="LambdaExpression.Body" /> property of the result.</param>
         /// <param name="parameters">The <see cref="LambdaExpression.Parameters" /> property of the result.</param>
         /// <returns>This expression if no children changed, or an expression with the updated children.</returns>
-        public Expression<TDelegate>? Update(Expression body, IEnumerable<ParameterExpression>? parameters)
+        public Expression<TDelegate> Update(Expression body, IEnumerable<ParameterExpression>? parameters)
         {
             if (body == Body)
             {
@@ -249,13 +281,13 @@ namespace System.Linq.Expressions
             return Lambda<TDelegate>(body, Name, TailCall, parameters);
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual bool SameParameters(ICollection<ParameterExpression>? parameters)
         {
             throw ContractUtils.Unreachable;
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
+        [ExcludeFromCodeCoverage(Justification = "Unreachable")]
         internal virtual Expression<TDelegate> Rewrite(Expression body, ParameterExpression[]? parameters)
         {
             throw ContractUtils.Unreachable;
@@ -308,7 +340,7 @@ namespace System.Linq.Expressions
     // Separate expression creation class to hide the CreateExpressionFunc function from users reflecting on Expression<T>
     public class ExpressionCreator<TDelegate>
     {
-        public static LambdaExpression CreateExpressionFunc(Expression body, string name, bool tailCall, ReadOnlyCollection<ParameterExpression> parameters)
+        public static Expression<TDelegate> CreateExpressionFunc(Expression body, string? name, bool tailCall, ReadOnlyCollection<ParameterExpression> parameters)
         {
             if (name == null && !tailCall)
             {
@@ -598,7 +630,7 @@ namespace System.Linq.Expressions
 #if FEATURE_COMPILE
                 MethodInfo create = typeof(Expression<>).MakeGenericType(delegateType).GetMethod("Create", BindingFlags.Static | BindingFlags.NonPublic)!;
 #else
-                MethodInfo create = typeof(ExpressionCreator<>).MakeGenericType(delegateType).GetMethod("CreateExpressionFunc", BindingFlags.Static | BindingFlags.Public);
+                MethodInfo create = typeof(ExpressionCreator<>).MakeGenericType(delegateType).GetMethod("CreateExpressionFunc", BindingFlags.Static | BindingFlags.Public)!;
 #endif
                 if (delegateType.IsCollectible)
                 {

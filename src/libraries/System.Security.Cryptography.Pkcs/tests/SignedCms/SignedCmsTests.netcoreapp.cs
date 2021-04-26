@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -203,7 +202,7 @@ namespace System.Security.Cryptography.Pkcs.Tests
         }
 
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)] // Creating DSA keys is not supported on OSX
+        [SkipOnPlatform(TestPlatforms.OSX, "Creating DSA keys is not supported on OSX")]
         public static void SignCmsUsingDSACertWithNotMatchingKeyThrows()
         {
             byte[] content = { 9, 8, 7, 6, 5 };

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 
@@ -16,7 +15,7 @@ internal static partial class Interop
 namespace System.DirectoryServices.Protocols
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    internal class Luid
+    internal sealed class Luid
     {
         private readonly int _lowPart;
         private readonly int _highPart;
@@ -71,9 +70,11 @@ namespace System.DirectoryServices.Protocols
         LDAP_OPT_CLIENT_CONTROLS = 0x13, // Not Supported in Windows
         LDAP_OPT_API_FEATURE_INFO = 0x15,
         LDAP_OPT_HOST_NAME = 0x30,
-        LDAP_OPT_ERROR_NUMBER = 0x31,
-        LDAP_OPT_ERROR_STRING = 0x32,
-        LDAP_OPT_SERVER_ERROR = 0x33,
+        LDAP_OPT_ERROR_NUMBER = 0x31, // aka LDAP_OPT_RESULT_CODE
+        LDAP_OPT_ERROR_STRING = 0x32, // aka LDAP_OPT_DIAGNOSTIC_MESSAGE
+        // This one is overloaded between Windows and Linux servers:
+        // in OpenLDAP, LDAP_OPT_MATCHED_DN = 0x33
+        LDAP_OPT_SERVER_ERROR = 0x33, // Not Supported in Linux
         LDAP_OPT_SERVER_EXT_ERROR = 0x34, // Not Supported in Linux
         LDAP_OPT_HOST_REACHABLE = 0x3E, // Not Supported in Linux
         LDAP_OPT_PING_KEEP_ALIVE = 0x36, // Not Supported in Linux
@@ -97,6 +98,7 @@ namespace System.DirectoryServices.Protocols
         LDAP_OPT_AREC_EXCLUSIVE = 0x98, // Not Supported in Linux
         LDAP_OPT_SECURITY_CONTEXT = 0x99,
         LDAP_OPT_ROOTDSE_CACHE = 0x9a, // Not Supported in Linux
+        LDAP_OPT_DEBUG_LEVEL = 0x5001,
         LDAP_OPT_X_SASL_REALM = 0x6101,
         LDAP_OPT_X_SASL_AUTHCID = 0x6102,
         LDAP_OPT_X_SASL_AUTHZID = 0x6103
@@ -119,7 +121,7 @@ namespace System.DirectoryServices.Protocols
     [StructLayout(LayoutKind.Sequential)]
     internal sealed class berval
     {
-        public int bv_len = 0;
+        public int bv_len;
         public IntPtr bv_val = IntPtr.Zero;
 
         public berval() { }
@@ -129,8 +131,8 @@ namespace System.DirectoryServices.Protocols
     internal sealed class LdapControl
     {
         public IntPtr ldctl_oid = IntPtr.Zero;
-        public berval ldctl_value = null;
-        public bool ldctl_iscritical = false;
+        public berval ldctl_value;
+        public bool ldctl_iscritical;
 
         public LdapControl() { }
     }
@@ -161,7 +163,7 @@ namespace System.DirectoryServices.Protocols
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     internal sealed class LdapMod
     {
-        public int type = 0;
+        public int type;
         public IntPtr attribute = IntPtr.Zero;
         public IntPtr values = IntPtr.Zero;
 

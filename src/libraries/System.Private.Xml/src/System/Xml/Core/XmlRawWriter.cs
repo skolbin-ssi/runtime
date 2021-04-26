@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 using System;
 using System.IO;
 using System.Diagnostics;
@@ -44,10 +42,10 @@ namespace System.Xml
         // Fields
         //
         // base64 converter
-        protected XmlRawWriterBase64Encoder? base64Encoder;
+        protected XmlRawWriterBase64Encoder? _base64Encoder;
 
         // namespace resolver
-        protected IXmlNamespaceResolver? resolver;
+        protected IXmlNamespaceResolver? _resolver;
 
         //
         // XmlWriter implementation
@@ -88,13 +86,13 @@ namespace System.Xml
         // By default, convert base64 value to string and call WriteString.
         public override void WriteBase64(byte[] buffer, int index, int count)
         {
-            if (base64Encoder == null)
+            if (_base64Encoder == null)
             {
-                base64Encoder = new XmlRawWriterBase64Encoder(this);
+                _base64Encoder = new XmlRawWriterBase64Encoder(this);
             }
 
             // Encode will call WriteRaw to write out the encoded characters
-            base64Encoder.Encode(buffer, index, count);
+            _base64Encoder.Encode(buffer, index, count);
         }
 
         // Raw writers do not have to keep track of namespaces.
@@ -162,7 +160,7 @@ namespace System.Xml
         }
 
         // Forward call to WriteString(string).
-        public override void WriteWhitespace(string ws)
+        public override void WriteWhitespace(string? ws)
         {
             WriteString(ws);
         }
@@ -186,14 +184,14 @@ namespace System.Xml
         }
 
         // Override in order to handle Xml simple typed values and to pass resolver for QName values
-        public override void WriteValue(object? value)
+        public override void WriteValue(object value)
         {
             if (value == null)
             {
                 throw new ArgumentNullException(nameof(value));
             }
 
-            WriteString(XmlUntypedConverter.Untyped.ToString(value, resolver));
+            WriteString(XmlUntypedConverter.Untyped.ToString(value, _resolver));
         }
 
         // Override in order to handle Xml simple typed values and to pass resolver for QName values
@@ -234,11 +232,11 @@ namespace System.Xml
         {
             get
             {
-                return resolver;
+                return _resolver;
             }
             set
             {
-                resolver = value;
+                _resolver = value;
             }
         }
 
@@ -271,7 +269,7 @@ namespace System.Xml
             WriteEndElement(prefix, localName, ns);
         }
 
-        internal virtual void WriteQualifiedName(string prefix, string localName, string ns)
+        internal virtual void WriteQualifiedName(string prefix, string localName, string? ns)
         {
             if (prefix.Length != 0)
             {
@@ -315,8 +313,8 @@ namespace System.Xml
         internal virtual void WriteEndBase64()
         {
             // The Flush will call WriteRaw to write out the rest of the encoded characters
-            Debug.Assert(base64Encoder != null);
-            base64Encoder.Flush();
+            Debug.Assert(_base64Encoder != null);
+            _base64Encoder.Flush();
         }
 
         internal virtual void Close(WriteState currentState)

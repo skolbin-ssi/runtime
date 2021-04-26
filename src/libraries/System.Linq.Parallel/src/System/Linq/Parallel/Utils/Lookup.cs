@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -35,11 +34,11 @@ namespace System.Linq.Parallel
     /// </summary>
     /// <typeparam name="TKey"></typeparam>
     /// <typeparam name="TElement"></typeparam>
-    internal class Lookup<TKey, TElement> : ILookup<TKey, TElement> where TKey: notnull
+    internal sealed class Lookup<TKey, TElement> : ILookup<TKey, TElement> where TKey: notnull
     {
         private readonly IDictionary<TKey, IGrouping<TKey, TElement>> _dict;
         private readonly IEqualityComparer<TKey> _comparer;
-        private IGrouping<TKey, TElement>? _defaultKeyGrouping = null;
+        private IGrouping<TKey, TElement>? _defaultKeyGrouping;
 
         internal Lookup(IEqualityComparer<TKey> comparer)
         {

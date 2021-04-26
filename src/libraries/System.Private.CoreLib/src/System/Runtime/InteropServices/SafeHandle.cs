@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
 using System.Runtime.ConstrainedExecution;
@@ -75,7 +74,7 @@ namespace System.Runtime.InteropServices
         }
 #endif
 
-        protected void SetHandle(IntPtr handle) => this.handle = handle;
+        protected internal void SetHandle(IntPtr handle) => this.handle = handle;
 
         public IntPtr DangerousGetHandle() => handle;
 
@@ -162,6 +161,13 @@ namespace System.Runtime.InteropServices
             success = true;
         }
 
+        // Used by internal callers to avoid declaring a bool to pass by ref
+        internal void DangerousAddRef()
+        {
+            bool success = false;
+            DangerousAddRef(ref success);
+        }
+
         public void DangerousRelease() => InternalRelease(disposeOrFinalizeOperation: false);
 
         private void InternalRelease(bool disposeOrFinalizeOperation)
@@ -237,9 +243,9 @@ namespace System.Runtime.InteropServices
                 // Save last error from P/Invoke in case the implementation of ReleaseHandle
                 // trashes it (important because this ReleaseHandle could occur implicitly
                 // as part of unmarshaling another P/Invoke).
-                int lastError = Marshal.GetLastWin32Error();
+                int lastError = Marshal.GetLastPInvokeError();
                 ReleaseHandle();
-                Marshal.SetLastWin32Error(lastError);
+                Marshal.SetLastPInvokeError(lastError);
             }
         }
     }

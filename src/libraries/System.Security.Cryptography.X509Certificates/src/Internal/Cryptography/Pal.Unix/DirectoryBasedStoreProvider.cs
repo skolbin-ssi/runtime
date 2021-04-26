@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -119,6 +118,7 @@ namespace Internal.Cryptography.Pal
             try
             {
                 AddCertToStore(certPal);
+                ChainPal.FlushStores();
             }
             catch (CryptographicException)
             {
@@ -224,6 +224,7 @@ namespace Internal.Cryptography.Pal
                         }
 
                         File.Delete(currentFilename);
+                        ChainPal.FlushStores();
                     }
                 } while (currentFilename != null);
             }
@@ -422,70 +423,27 @@ namespace Internal.Cryptography.Pal
             }
         }
 
-        internal sealed class UnsupportedDisallowedStore : IStorePal
+        internal static IStorePal OpenDisallowedStore(OpenFlags openFlags)
         {
-            private readonly bool _readOnly;
-
-            internal UnsupportedDisallowedStore(OpenFlags openFlags)
+            string storePath = GetStorePath(X509Store.DisallowedStoreName);
+            try
             {
-                // ReadOnly is 0x00, so it is implicit unless either ReadWrite or MaxAllowed
-                // was requested.
-                OpenFlags writeFlags = openFlags & (OpenFlags.ReadWrite | OpenFlags.MaxAllowed);
-
-                if (writeFlags == OpenFlags.ReadOnly)
+                if (Directory.Exists(storePath))
                 {
-                    _readOnly = true;
-                }
-
-                string storePath = GetStorePath(X509Store.DisallowedStoreName);
-
-                try
-                {
-                    if (Directory.Exists(storePath))
+                    // If it has no files, leave it alone.
+                    foreach (string filePath in Directory.EnumerateFiles(storePath))
                     {
-                        // If it has no files, leave it alone.
-                        foreach (string filePath in Directory.EnumerateFiles(storePath))
-                        {
-                            string msg = SR.Format(SR.Cryptography_Unix_X509_DisallowedStoreNotEmpty, storePath);
-                            throw new CryptographicException(msg, new PlatformNotSupportedException(msg));
-                        }
+                        string msg = SR.Format(SR.Cryptography_Unix_X509_DisallowedStoreNotEmpty, storePath);
+                        throw new CryptographicException(msg, new PlatformNotSupportedException(msg));
                     }
                 }
-                catch (IOException)
-                {
-                    // Suppress the exception, treat the store as empty.
-                }
             }
-
-            public void Dispose()
+            catch (IOException)
             {
-                // Nothing to do.
+                // Suppress the exception, treat the store as empty.
             }
 
-            public void CloneTo(X509Certificate2Collection collection)
-            {
-                // Never show any data.
-            }
-
-            public void Add(ICertificatePal cert)
-            {
-                if (_readOnly)
-                {
-                    throw new CryptographicException(SR.Cryptography_X509_StoreReadOnly);
-                }
-
-                throw new CryptographicException(
-                    SR.Cryptography_Unix_X509_NoDisallowedStore,
-                    new PlatformNotSupportedException(SR.Cryptography_Unix_X509_NoDisallowedStore));
-            }
-
-            public void Remove(ICertificatePal cert)
-            {
-                // Remove never throws if it does no measurable work.
-                // Since CloneTo always says the store is empty, no measurable work is ever done.
-            }
-
-            SafeHandle? IStorePal.SafeHandle { get; } = null;
+            return new UnsupportedDisallowedStore(openFlags);
         }
     }
 }

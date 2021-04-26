@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 
@@ -10,7 +9,7 @@ namespace System.DirectoryServices.ActiveDirectory
     {
         internal AttributeMetadataCollection() { }
 
-        public AttributeMetadata this[int index] => (AttributeMetadata)InnerList[index];
+        public AttributeMetadata this[int index] => (AttributeMetadata)InnerList[index]!;
 
         public bool Contains(AttributeMetadata metadata)
         {
@@ -19,7 +18,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                AttributeMetadata tmp = (AttributeMetadata)InnerList[i];
+                AttributeMetadata tmp = (AttributeMetadata)InnerList[i]!;
                 string name = tmp.Name;
 
                 if (Utils.Compare(name, metadata.Name) == 0)
@@ -37,7 +36,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                AttributeMetadata tmp = (AttributeMetadata)InnerList[i];
+                AttributeMetadata tmp = (AttributeMetadata)InnerList[i]!;
 
                 if (Utils.Compare(tmp.Name, metadata.Name) == 0)
                 {

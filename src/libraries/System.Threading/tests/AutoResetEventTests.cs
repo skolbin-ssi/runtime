@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Threading.Tasks;
 using Xunit;
@@ -37,7 +36,7 @@ namespace System.Threading.Tests
         }
 
         [Fact]
-        public void WaitHandleWait_Invalid()
+        public void WaitHandleWaitAll_Invalid()
         {
             Assert.Throws<ArgumentNullException>(() => WaitHandle.WaitAll(null));
             Assert.Throws<ArgumentNullException>(() => WaitHandle.WaitAll(null, 100));
@@ -45,6 +44,15 @@ namespace System.Threading.Tests
         }
 
         [Fact]
+        public void WaitHandleWaitAny_Invalid()
+        {
+            Assert.Throws<ArgumentNullException>(() => WaitHandle.WaitAny(null));
+            Assert.Throws<ArgumentNullException>(() => WaitHandle.WaitAny(null, 100));
+            Assert.Throws<ArgumentNullException>(() => WaitHandle.WaitAny(null, TimeSpan.Zero));
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49890", TestPlatforms.Android)]
         public void WaitHandleWaitAll()
         {
             AutoResetEvent[] handles = new AutoResetEvent[10];
@@ -62,7 +70,8 @@ namespace System.Threading.Tests
             Assert.False(Task.Run(() => WaitHandle.WaitAll(handles, 0)).Result); // Task.Run used to ensure MTA thread (necessary for desktop)
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49890", TestPlatforms.Android)]
         public void WaitHandleWaitAny()
         {
             AutoResetEvent[] handles = new AutoResetEvent[10];
@@ -76,7 +85,8 @@ namespace System.Threading.Tests
             Assert.Equal(WaitHandle.WaitTimeout, WaitHandle.WaitAny(handles, 0));
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49890", TestPlatforms.Android)]
         public void PingPong()
         {
             using (AutoResetEvent are1 = new AutoResetEvent(true), are2 = new AutoResetEvent(false))

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -10,18 +9,18 @@ using System.DirectoryServices;
 
 namespace System.DirectoryServices.AccountManagement
 {
-    internal class ADEntriesSet : ResultSet
+    internal sealed class ADEntriesSet : ResultSet
     {
         private readonly SearchResultCollection _searchResults;
         private readonly ADStoreCtx _storeCtx;
 
         private readonly IEnumerator _enumerator;
-        private SearchResult _current = null;
-        private bool _endReached = false;
+        private SearchResult _current;
+        private bool _endReached;
 
-        private bool _disposed = false;
+        private bool _disposed;
 
-        private readonly object _discriminant = null;
+        private readonly object _discriminant;
 
         internal ADEntriesSet(SearchResultCollection src, ADStoreCtx storeCtx)
         {

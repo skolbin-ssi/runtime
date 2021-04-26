@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Text.Unicode;
@@ -13,6 +12,7 @@ namespace System.Text.Encodings.Web.Tests
         [Theory]
         [InlineData(-1, 16)]
         [InlineData(0x10000, 16)]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
         public void Ctor_FailureCase_FirstCodePoint(int firstCodePoint, int rangeSize)
         {
             AssertExtensions.Throws<ArgumentOutOfRangeException>("firstCodePoint", () => new UnicodeRange(firstCodePoint, rangeSize));
@@ -21,6 +21,7 @@ namespace System.Text.Encodings.Web.Tests
         [Theory]
         [InlineData(0x0100, -1)]
         [InlineData(0x0100, 0x10000)]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
         public void Ctor_FailureCase_RangeSize(int firstCodePoint, int rangeSize)
         {
             AssertExtensions.Throws<ArgumentOutOfRangeException>("length", () => new UnicodeRange(firstCodePoint, rangeSize));

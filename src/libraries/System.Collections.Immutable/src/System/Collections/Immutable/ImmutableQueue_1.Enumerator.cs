@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -102,7 +101,7 @@ namespace System.Collections.Immutable
         /// <summary>
         /// A memory allocation-free enumerator of <see cref="ImmutableQueue{T}"/>.
         /// </summary>
-        private class EnumeratorObject : IEnumerator<T>
+        private sealed class EnumeratorObject : IEnumerator<T>
         {
             /// <summary>
             /// The original queue being enumerated.

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +12,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
     /// This list is usually attached as a custom data for RCW object and
     /// is finalized whenever RCW is finalized.
     /// </summary>
-    internal class ComEventSinksContainer : List<ComEventsSink>, IDisposable
+    internal sealed class ComEventSinksContainer : List<ComEventsSink>, IDisposable
     {
         private ComEventSinksContainer()
         {
@@ -24,7 +23,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
         public static ComEventSinksContainer FromRuntimeCallableWrapper(object rcw, bool createIfNotFound)
         {
             object data = Marshal.GetComObjectData(rcw, s_comObjectEventSinksKey);
-            if (data != null || createIfNotFound == false)
+            if (data != null || !createIfNotFound)
             {
                 return (ComEventSinksContainer)data;
             }

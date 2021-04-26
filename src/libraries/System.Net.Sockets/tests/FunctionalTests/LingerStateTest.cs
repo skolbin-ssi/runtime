@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Threading;
 using Xunit;
@@ -19,7 +18,7 @@ namespace System.Net.Sockets.Tests
 
         private void TestLingerState_ArgumentException(Socket sock, bool enabled, int lingerTime)
         {
-            AssertExtensions.Throws<ArgumentException>("optionValue.LingerTime", () =>
+            AssertExtensions.Throws<ArgumentException>("optionValue", () =>
             {
                 sock.LingerState = new LingerOption(enabled, lingerTime);
             });
@@ -44,7 +43,7 @@ namespace System.Net.Sockets.Tests
 
         [OuterLoop]
         [Fact]
-        [PlatformSpecific(~TestPlatforms.OSX)]  // The upper bound for linger time is drastically different on OS X.
+        [SkipOnPlatform(TestPlatforms.OSX, "The upper bound for linger time is drastically different on OS X.")]
         public void Socket_LingerState_Upper_Boundaries_CorrectBehavior()
         {
             Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);

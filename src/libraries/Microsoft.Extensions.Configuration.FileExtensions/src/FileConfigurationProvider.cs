@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -8,6 +7,7 @@ using System.IO;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Extensions.Configuration
@@ -35,7 +35,8 @@ namespace Microsoft.Extensions.Configuration
             {
                 _changeTokenRegistration = ChangeToken.OnChange(
                     () => Source.FileProvider.Watch(Source.Path),
-                    () => {
+                    () =>
+                    {
                         Thread.Sleep(Source.ReloadDelay);
                         Load(reload: true);
                     });
@@ -46,7 +47,7 @@ namespace Microsoft.Extensions.Configuration
         /// The source settings for this provider.
         /// </summary>
         public FileConfigurationSource Source { get; }
-        
+
         /// <summary>
         /// Generates a string representing this provider name and relevant details.
         /// </summary>
@@ -56,7 +57,7 @@ namespace Microsoft.Extensions.Configuration
 
         private void Load(bool reload)
         {
-            var file = Source.FileProvider?.GetFileInfo(Source.Path);
+            IFileInfo file = Source.FileProvider?.GetFileInfo(Source.Path);
             if (file == null || !file.Exists)
             {
                 if (Source.Optional || reload) // Always optional on reload
@@ -75,21 +76,37 @@ namespace Microsoft.Extensions.Configuration
             }
             else
             {
-                // Always create new Data on reload to drop old keys
-                if (reload)
+                static Stream OpenRead(IFileInfo fileInfo)
                 {
-                    Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    if (fileInfo.PhysicalPath != null)
+                    {
+                        // The default physical file info assumes asynchronous IO which results in unnecessary overhead
+                        // especially since the configuration system is synchronous. This uses the same settings
+                        // and disables async IO.
+                        return new FileStream(
+                            fileInfo.PhysicalPath,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.ReadWrite,
+                            bufferSize: 1,
+                            FileOptions.SequentialScan);
+                    }
+
+                    return fileInfo.CreateReadStream();
                 }
-                using (var stream = file.CreateReadStream())
+
+                using Stream stream = OpenRead(file);
+                try
                 {
-                    try
+                    Load(stream);
+                }
+                catch (Exception e)
+                {
+                    if (reload)
                     {
-                        Load(stream);
+                        Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     }
-                    catch (Exception e)
-                    {
-                        HandleException(ExceptionDispatchInfo.Capture(e));
-                    }
+                    HandleException(ExceptionDispatchInfo.Capture(e));
                 }
             }
             // REVIEW: Should we raise this in the base as well / instead?

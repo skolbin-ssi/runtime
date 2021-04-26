@@ -1,11 +1,11 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #pragma warning disable 618 // CurrencyWrapper is obsolete
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -38,6 +38,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
             return mo.Expression is ParameterExpression pe && pe.IsByRef;
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal static bool IsStrongBoxArg(DynamicMetaObject o)
         {
             Type t = o.LimitType;
@@ -46,6 +47,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
 
         // This helper prepares arguments for COM binding by transforming ByVal StrongBox arguments
         // into ByRef expressions that represent the argument's Value fields.
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         internal static bool[] ProcessArgumentsForCom(ref DynamicMetaObject[] args)
         {
             Debug.Assert(args != null);

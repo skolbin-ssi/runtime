@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -15,6 +14,8 @@ namespace System.IO.Enumeration
 {
     public unsafe abstract partial class FileSystemEnumerator<TResult> : CriticalFinalizerObject, IEnumerator<TResult>
     {
+        private int _remainingRecursionDepth;
+
         /// <summary>
         /// Encapsulates a find operation.
         /// </summary>
@@ -38,6 +39,7 @@ namespace System.IO.Enumeration
             string path = isNormalized ? directory : Path.GetFullPath(directory);
             _rootDirectory = Path.TrimEndingDirectorySeparator(path);
             _options = options ?? EnumerationOptions.Default;
+            _remainingRecursionDepth = _options.MaxRecursionDepth;
 
             Init();
         }
@@ -70,7 +72,7 @@ namespace System.IO.Enumeration
         /// <param name="error">The native error code.</param>
         protected virtual bool ContinueOnError(int error) => false;
 
-        public TResult Current => _current;
+        public TResult Current => _current!;
 
         object? IEnumerator.Current => Current;
 

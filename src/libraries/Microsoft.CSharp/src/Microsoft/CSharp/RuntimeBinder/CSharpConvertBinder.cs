@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -18,7 +17,7 @@ namespace Microsoft.CSharp.RuntimeBinder
     /// </summary>
     internal sealed class CSharpConvertBinder : ConvertBinder, ICSharpBinder
     {
-        [ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage(Justification = "Name should not be called for this binder")]
         public string Name
         {
             get
@@ -30,6 +29,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         public BindingFlag BindingFlags => 0;
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public Expr DispatchPayload(RuntimeBinder runtimeBinder, ArgumentObject[] arguments, LocalVariableSymbol[] locals)
         {
             Debug.Assert(arguments.Length == 1);
@@ -38,6 +38,7 @@ namespace Microsoft.CSharp.RuntimeBinder
                 : runtimeBinder.BindImplicitConversion(arguments, Type, locals, ConversionKind == CSharpConversionKind.ArrayCreationConversion);
         }
 
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public void PopulateSymbolTableWithName(Type callingType, ArgumentObject[] arguments)
         {
             // Conversions don't need to do anything, since they're just conversions!
@@ -64,6 +65,7 @@ namespace Microsoft.CSharp.RuntimeBinder
         /// <param name="conversionKind">The kind of conversion for this operation.</param>
         /// <param name="isChecked">True if the operation is defined in a checked context; otherwise, false.</param>
         /// <param name="callingContext">The <see cref="Type"/> that indicates where this operation is defined.</param>
+        [RequiresUnreferencedCode(Binder.TrimmerWarning)]
         public CSharpConvertBinder(
             Type type,
             CSharpConversionKind conversionKind,
@@ -114,11 +116,13 @@ namespace Microsoft.CSharp.RuntimeBinder
         /// <param name="target">The target of the dynamic convert operation.</param>
         /// <param name="errorSuggestion">The binding result to use if binding fails, or null.</param>
         /// <returns>The <see cref="DynamicMetaObject"/> representing the result of the binding.</returns>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This whole class is unsafe. Constructors are marked as such.")]
         public override DynamicMetaObject FallbackConvert(DynamicMetaObject target, DynamicMetaObject errorSuggestion)
         {
 #if ENABLECOMBINDER
             DynamicMetaObject com;
-            if (!BinderHelper.IsWindowsRuntimeObject(target) && ComInterop.ComBinder.TryConvert(this, target, out com))
+            if (ComInterop.ComBinder.TryConvert(this, target, out com))
             {
                 return com;
             }

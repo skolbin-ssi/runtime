@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -13,19 +12,16 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Security;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Runtime.Serialization
 {
-#if USE_REFEMIT
-    public class XmlObjectSerializerWriteContextComplex : XmlObjectSerializerWriteContext
-#else
     internal class XmlObjectSerializerWriteContextComplex : XmlObjectSerializerWriteContext
-#endif
     {
-        private readonly ISerializationSurrogateProvider _serializationSurrogateProvider;
+        private readonly ISerializationSurrogateProvider? _serializationSurrogateProvider;
         private readonly SerializationMode _mode;
 
-        internal XmlObjectSerializerWriteContextComplex(DataContractSerializer serializer, DataContract rootTypeDataContract, DataContractResolver dataContractResolver)
+        internal XmlObjectSerializerWriteContextComplex(DataContractSerializer serializer, DataContract rootTypeDataContract, DataContractResolver? dataContractResolver)
             : base(serializer, rootTypeDataContract, dataContractResolver)
         {
             _mode = SerializationMode.SharedContract;
@@ -48,7 +44,7 @@ namespace System.Runtime.Serialization
             return false;
         }
 
-        internal override bool WriteClrTypeInfo(XmlWriterDelegator xmlWriter, Type dataContractType, string clrTypeName, string clrAssemblyName)
+        internal override bool WriteClrTypeInfo(XmlWriterDelegator xmlWriter, Type dataContractType, string? clrTypeName, string? clrAssemblyName)
         {
             return false;
         }
@@ -65,7 +61,8 @@ namespace System.Runtime.Serialization
                 xmlWriter.WriteString(value);
         }
 
-        internal override void WriteString(XmlWriterDelegator xmlWriter, string value, XmlDictionaryString name, XmlDictionaryString ns)
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
+        internal override void WriteString(XmlWriterDelegator xmlWriter, string? value, XmlDictionaryString name, XmlDictionaryString? ns)
         {
             if (value == null)
                 WriteNull(xmlWriter, typeof(string), true/*isMemberTypeSerializable*/, name, ns);
@@ -84,6 +81,7 @@ namespace System.Runtime.Serialization
                 xmlWriter.WriteBase64(value);
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         internal override void WriteBase64(XmlWriterDelegator xmlWriter, byte[] value, XmlDictionaryString name, XmlDictionaryString ns)
         {
             if (value == null)
@@ -103,6 +101,7 @@ namespace System.Runtime.Serialization
                 xmlWriter.WriteUri(value);
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         internal override void WriteUri(XmlWriterDelegator xmlWriter, Uri value, XmlDictionaryString name, XmlDictionaryString ns)
         {
             if (value == null)
@@ -122,7 +121,8 @@ namespace System.Runtime.Serialization
                 xmlWriter.WriteQName(value);
         }
 
-        internal override void WriteQName(XmlWriterDelegator xmlWriter, XmlQualifiedName value, XmlDictionaryString name, XmlDictionaryString ns)
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
+        internal override void WriteQName(XmlWriterDelegator xmlWriter, XmlQualifiedName? value, XmlDictionaryString name, XmlDictionaryString? ns)
         {
             if (value == null)
                 WriteNull(xmlWriter, typeof(XmlQualifiedName), true/*isMemberTypeSerializable*/, name, ns);
@@ -138,6 +138,7 @@ namespace System.Runtime.Serialization
             }
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         internal override void InternalSerialize(XmlWriterDelegator xmlWriter, object obj, bool isDeclaredType, bool writeXsiType, int declaredTypeID, RuntimeTypeHandle declaredTypeHandle)
         {
             if (_serializationSurrogateProvider == null)
@@ -175,12 +176,13 @@ namespace System.Runtime.Serialization
             base.OnEndHandleReference(xmlWriter, obj, canContainCyclicReference);
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         internal override void CheckIfTypeSerializable(Type memberType, bool isMemberTypeSerializable)
         {
             if (_serializationSurrogateProvider != null)
             {
                 while (memberType.IsArray)
-                    memberType = memberType.GetElementType();
+                    memberType = memberType.GetElementType()!;
                 memberType = DataContractSurrogateCaller.GetDataContractType(_serializationSurrogateProvider, memberType);
                 if (!DataContract.IsTypeSerializable(memberType))
                     throw System.Runtime.Serialization.DiagnosticUtility.ExceptionUtility.ThrowHelperError(new InvalidDataContractException(SR.Format(SR.TypeNotSerializable, memberType)));
@@ -190,6 +192,7 @@ namespace System.Runtime.Serialization
             base.CheckIfTypeSerializable(memberType, isMemberTypeSerializable);
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         internal override Type GetSurrogatedType(Type type)
         {
             if (_serializationSurrogateProvider == null)
@@ -212,6 +215,7 @@ namespace System.Runtime.Serialization
             }
         }
 
+        [RequiresUnreferencedCode(DataContract.SerializerTrimmerWarning)]
         private void InternalSerializeWithSurrogate(XmlWriterDelegator xmlWriter, object obj, bool isDeclaredType, bool writeXsiType, int declaredTypeID, RuntimeTypeHandle declaredTypeHandle)
         {
             RuntimeTypeHandle objTypeHandle = isDeclaredType ? declaredTypeHandle : obj.GetType().TypeHandle;
@@ -222,7 +226,7 @@ namespace System.Runtime.Serialization
 
             declaredTypeHandle = declaredType.TypeHandle;
 
-            obj = DataContractSerializer.SurrogateToDataContractType(_serializationSurrogateProvider, obj, declaredType, ref objType);
+            obj = DataContractSerializer.SurrogateToDataContractType(_serializationSurrogateProvider!, obj, declaredType, ref objType);
             objTypeHandle = objType.TypeHandle;
             if (oldObj != obj)
                 objOldId = SerializedObjects.ReassignId(0, oldObj, obj);

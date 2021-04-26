@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -12,14 +11,14 @@ namespace System.Diagnostics
 {
     public class TraceSource
     {
-        private static readonly List<WeakReference> s_tracesources = new List<WeakReference>();
+        private static readonly List<WeakReference<TraceSource>> s_tracesources = new List<WeakReference<TraceSource>>();
         private static int s_LastCollectionCount;
 
         private volatile SourceSwitch? _internalSwitch;
         private volatile TraceListenerCollection? _listeners;
         private readonly SourceLevels _switchLevel;
         private readonly string _sourceName;
-        internal volatile bool _initCalled = false;   // Whether we've called Initialize already.
+        internal volatile bool _initCalled;   // Whether we've called Initialize already.
         private StringDictionary? _attributes;
 
         public TraceSource(string name)
@@ -41,7 +40,7 @@ namespace System.Diagnostics
             lock (s_tracesources)
             {
                 _pruneCachedTraceSources();
-                s_tracesources.Add(new WeakReference(this));
+                s_tracesources.Add(new WeakReference<TraceSource>(this));
             }
         }
 
@@ -51,11 +50,10 @@ namespace System.Diagnostics
             {
                 if (s_LastCollectionCount != GC.CollectionCount(2))
                 {
-                    List<WeakReference> buffer = new List<WeakReference>(s_tracesources.Count);
+                    List<WeakReference<TraceSource>> buffer = new List<WeakReference<TraceSource>>(s_tracesources.Count);
                     for (int i = 0; i < s_tracesources.Count; i++)
                     {
-                        TraceSource? tracesource = ((TraceSource?)s_tracesources[i].Target);
-                        if (tracesource != null)
+                        if (s_tracesources[i].TryGetTarget(out _))
                         {
                             buffer.Add(s_tracesources[i]);
                         }
@@ -154,8 +152,7 @@ namespace System.Diagnostics
                 _pruneCachedTraceSources();
                 for (int i = 0; i < s_tracesources.Count; i++)
                 {
-                    TraceSource? tracesource = ((TraceSource?)s_tracesources[i].Target);
-                    if (tracesource != null)
+                    if (s_tracesources[i].TryGetTarget(out TraceSource? tracesource))
                     {
                         tracesource.Refresh();
                     }
@@ -263,7 +260,7 @@ namespace System.Diagnostics
         }
 
         [Conditional("TRACE")]
-        public void TraceEvent(TraceEventType eventType, int id, string format, params object?[]? args)
+        public void TraceEvent(TraceEventType eventType, int id, string? format, params object?[]? args)
         {
             Initialize();
 
@@ -398,14 +395,14 @@ namespace System.Diagnostics
         }
 
         [Conditional("TRACE")]
-        public void TraceInformation(string message)
+        public void TraceInformation(string? message)
         { // eventType= TraceEventType.Info, id=0
             // No need to call Initialize()
             TraceEvent(TraceEventType.Information, 0, message, null);
         }
 
         [Conditional("TRACE")]
-        public void TraceInformation(string format, params object?[]? args)
+        public void TraceInformation(string? format, params object?[]? args)
         {
             // No need to call Initialize()
             TraceEvent(TraceEventType.Information, 0, format, args);

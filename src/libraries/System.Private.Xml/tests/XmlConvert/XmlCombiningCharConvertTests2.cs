@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using OLEDB.Test.ModuleCore;
+using System.Buffers.Binary;
 
 namespace System.Xml.Tests
 {
@@ -27,7 +27,8 @@ namespace System.Xml.Tests
             int i = ((CurVariation.id) - 1) * 2;
             string strEnVal = string.Empty;
 
-            strEnVal = XmlConvert.EncodeNmToken((BitConverter.ToChar(_byte_CombiningChar, i)).ToString());
+            char c = (char)BinaryPrimitives.ReadUInt16LittleEndian(new Span<byte>(_byte_CombiningChar, i, 2));
+            strEnVal = XmlConvert.EncodeNmToken(c.ToString());
             if (_Expbyte_CombiningChar[i / 2] != "_x0A6F_" && _Expbyte_CombiningChar[i / 2] != "_x0E46_")
             {
                 CError.Compare(strEnVal, _Expbyte_CombiningChar[i / 2], "Comparison failed at " + i);

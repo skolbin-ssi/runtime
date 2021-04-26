@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -411,7 +410,7 @@ namespace System.ComponentModel
 
         bool IList.IsFixedSize => _readOnly;
 
-        private class ArraySubsetEnumerator : IEnumerator
+        private sealed class ArraySubsetEnumerator : IEnumerator
         {
             private readonly Array _array;
             private readonly int _total;

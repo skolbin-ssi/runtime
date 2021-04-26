@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 /*============================================================
 **
@@ -13,6 +12,7 @@
 **
 ===========================================================*/
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Internal.Runtime.CompilerServices;
 
@@ -33,7 +33,6 @@ namespace System.IO
 
         protected UnmanagedMemoryAccessor()
         {
-            _isOpen = false;
         }
 
         public UnmanagedMemoryAccessor(SafeBuffer buffer, long offset, long capacity)
@@ -491,24 +490,22 @@ namespace System.IO
         {
             EnsureSafeToWrite(position, sizeof(decimal));
 
+            Span<int> bits = stackalloc int[4];
+            decimal.TryGetBits(value, bits, out int intsWritten);
+            Debug.Assert(intsWritten == 4);
+
             unsafe
             {
-                int* valuePtr = (int*)(&value);
-                int flags = *valuePtr;
-                int hi = *(valuePtr + 1);
-                int lo = *(valuePtr + 2);
-                int mid = *(valuePtr + 3);
-
                 byte* pointer = null;
                 try
                 {
                     _buffer.AcquirePointer(ref pointer);
                     pointer += (_offset + position);
 
-                    Unsafe.WriteUnaligned<int>(pointer, lo);
-                    Unsafe.WriteUnaligned<int>(pointer + 4, mid);
-                    Unsafe.WriteUnaligned<int>(pointer + 8, hi);
-                    Unsafe.WriteUnaligned<int>(pointer + 12, flags);
+                    Unsafe.WriteUnaligned<int>(pointer, bits[0]);
+                    Unsafe.WriteUnaligned<int>(pointer + 4, bits[1]);
+                    Unsafe.WriteUnaligned<int>(pointer + 8, bits[2]);
+                    Unsafe.WriteUnaligned<int>(pointer + 12, bits[3]);
                 }
                 finally
                 {

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Diagnostics;
@@ -25,7 +24,7 @@ namespace System.Configuration
 
         private int _removedItemCount; // Number of items removed for this collection (not including parent)
         private string _removeElement = DefaultRemoveItemName;
-        internal bool InternalAddToEnd = false;
+        internal bool InternalAddToEnd;
         internal string InternalElementTagName = string.Empty;
 
         protected ConfigurationElementCollection() { }
@@ -1238,7 +1237,7 @@ namespace System.Configuration
             Added,
         }
 
-        private class Entry
+        private sealed class Entry
         {
             private readonly object _key;
             internal EntryType EntryType;
@@ -1258,7 +1257,7 @@ namespace System.Configuration
             }
         }
 
-        private class Enumerator : IDictionaryEnumerator
+        private sealed class Enumerator : IDictionaryEnumerator
         {
             private readonly IEnumerator _itemsEnumerator;
             private readonly ConfigurationElementCollection _thisCollection;

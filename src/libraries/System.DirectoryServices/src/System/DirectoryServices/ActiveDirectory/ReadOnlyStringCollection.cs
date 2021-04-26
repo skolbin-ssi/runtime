@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 
@@ -23,7 +22,7 @@ namespace System.DirectoryServices.ActiveDirectory
         {
             get
             {
-                object returnValue = InnerList[index];
+                object returnValue = InnerList[index]!;
 
                 if (returnValue is Exception)
                     throw (Exception)returnValue;
@@ -41,7 +40,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                string tmp = (string)InnerList[i];
+                string tmp = (string)InnerList[i]!;
                 if (Utils.Compare(tmp, value) == 0)
                 {
                     return true;
@@ -59,7 +58,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                string tmp = (string)InnerList[i];
+                string tmp = (string)InnerList[i]!;
                 if (Utils.Compare(tmp, value) == 0)
                 {
                     return i;

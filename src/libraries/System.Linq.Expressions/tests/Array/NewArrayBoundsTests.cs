@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -11,8 +10,6 @@ namespace System.Linq.Expressions.Tests
 {
     public static class ArrayBoundsTests
     {
-        private const int MaxArraySize = 0X7FEFFFFF;
-
         private class BogusCollection<T> : IList<T>
         {
             public T this[int index]
@@ -169,7 +166,7 @@ namespace System.Linq.Expressions.Tests
             {
                 Assert.Throws<OverflowException>(() => func());
             }
-            else if (size > MaxArraySize)
+            else if (size > Array.MaxLength)
             {
                 Assert.Throws<OutOfMemoryException>(() => func());
             }

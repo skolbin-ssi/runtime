@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 using System.Collections;
@@ -15,7 +14,7 @@ namespace System.DirectoryServices
     public class PropertyCollection : IDictionary
     {
         private readonly DirectoryEntry _entry;
-        internal readonly Hashtable valueTable = null;
+        internal readonly Hashtable valueTable;
 
         internal PropertyCollection(DirectoryEntry entry)
         {
@@ -36,7 +35,7 @@ namespace System.DirectoryServices
 
                 string name = propertyName.ToLowerInvariant();
                 if (valueTable.Contains(name))
-                    return (PropertyValueCollection)valueTable[name];
+                    return (PropertyValueCollection)valueTable[name]!;
                 else
                 {
                     PropertyValueCollection value = new PropertyValueCollection(_entry, propertyName);
@@ -70,7 +69,7 @@ namespace System.DirectoryServices
 
         public bool Contains(string propertyName)
         {
-            object var;
+            object? var;
             int unmanagedResult = _entry.AdsObject.GetEx(propertyName, out var);
             if (unmanagedResult != 0)
             {
@@ -116,7 +115,7 @@ namespace System.DirectoryServices
             return new PropertyEnumerator(_entry, entryToUse);
         }
 
-        object IDictionary.this[object key]
+        object? IDictionary.this[object key]
         {
             get => this[(string)key];
             set => throw new NotSupportedException(SR.DSPropertySetSupported);
@@ -128,7 +127,7 @@ namespace System.DirectoryServices
 
         ICollection IDictionary.Keys => new KeysCollection(this);
 
-        void IDictionary.Add(object key, object value)
+        void IDictionary.Add(object key, object? value)
         {
             throw new NotSupportedException(SR.DSAddNotSupported);
         }
@@ -172,11 +171,11 @@ namespace System.DirectoryServices
             }
         }
 
-        private class PropertyEnumerator : IDictionaryEnumerator, IDisposable
+        private sealed class PropertyEnumerator : IDictionaryEnumerator, IDisposable
         {
             private readonly DirectoryEntry _entry;               // clone (to be disposed)
             private readonly DirectoryEntry _parentEntry;         // original entry to pass to PropertyValueCollection
-            private string _currentPropName = null;
+            private string? _currentPropName;
 
             public PropertyEnumerator(DirectoryEntry parent, DirectoryEntry clone)
             {
@@ -192,7 +191,7 @@ namespace System.DirectoryServices
                 GC.SuppressFinalize(this);
             }
 
-            protected virtual void Dispose(bool disposing)
+            private void Dispose(bool disposing)
             {
                 if (disposing)
                 {
@@ -200,7 +199,7 @@ namespace System.DirectoryServices
                 }
             }
 
-            public object Current => Entry.Value;
+            public object Current => Entry.Value!;
 
             public DictionaryEntry Entry
             {
@@ -215,11 +214,11 @@ namespace System.DirectoryServices
 
             public object Key => Entry.Key;
 
-            public object Value => Entry.Value;
+            public object Value => Entry.Value!;
 
             public bool MoveNext()
             {
-                object prop;
+                object? prop;
                 int hr = 0;
                 try
                 {
@@ -279,7 +278,7 @@ namespace System.DirectoryServices
             public virtual IEnumerator GetEnumerator() => new ValuesEnumerator(props);
         }
 
-        private class KeysCollection : ValuesCollection
+        private sealed class KeysCollection : ValuesCollection
         {
             public KeysCollection(PropertyCollection props) : base(props)
             {
@@ -336,7 +335,7 @@ namespace System.DirectoryServices
             public void Reset() => _currentIndex = -1;
         }
 
-        private class KeysEnumerator : ValuesEnumerator
+        private sealed class KeysEnumerator : ValuesEnumerator
         {
             public KeysEnumerator(PropertyCollection collection) : base(collection)
             {

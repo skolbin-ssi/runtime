@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Runtime.InteropServices;
@@ -18,5 +17,8 @@ internal static partial class Interop
         // and pass in an address for the numBytesRead parameter.
         [DllImport(Libraries.Kernel32, SetLastError = true)]
         internal static extern unsafe int WriteFile(SafeHandle handle, byte* bytes, int numBytesToWrite, IntPtr numBytesWritten_mustBeZero, NativeOverlapped* lpOverlapped);
+
+        [DllImport(Libraries.Kernel32, SetLastError = true)]
+        internal static extern unsafe int WriteFile(SafeHandle handle, byte* bytes, int numBytesToWrite, out int numBytesWritten, NativeOverlapped* lpOverlapped);
     }
 }

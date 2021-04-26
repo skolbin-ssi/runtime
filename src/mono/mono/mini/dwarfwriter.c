@@ -759,7 +759,7 @@ emit_all_line_number_info (MonoDwarfWriter *w)
 		MethodLineNumberInfo *info = (MethodLineNumberInfo *)l->data;
 		MonoDebugMethodJitInfo *dmji;
 
-		dmji = mono_debug_find_method (info->method, mono_domain_get ());
+		dmji = mono_debug_find_method (info->method, NULL);
 		if (!dmji)
 			continue;
 		emit_line_number_info (w, info->method, info->start_symbol, info->end_symbol, info->code, info->code_size, dmji);
@@ -849,7 +849,11 @@ mono_dwarf_writer_emit_base_info (MonoDwarfWriter *w, const char *cu_name, GSLis
 	emit_symbol_diff (w, ".Ldebug_info_end", ".Ldebug_info_begin", 0); /* length */
 	emit_label (w, ".Ldebug_info_begin");
 	emit_int16 (w, 0x2); /* DWARF version 2 */
+#if !defined(TARGET_MACH)
 	emit_symbol (w, ".Ldebug_abbrev_start"); /* .debug_abbrev offset */
+#else
+	emit_int32 (w, 0); /* .debug_abbrev offset */
+#endif
 	emit_byte (w, sizeof (target_mgreg_t)); /* address size */
 
 	/* Compilation unit */
@@ -1895,7 +1899,7 @@ mono_dwarf_writer_emit_method (MonoDwarfWriter *w, MonoCompile *cfg, MonoMethod 
 	g_free (names);
 
 	/* Locals */
-	locals_info = mono_debug_lookup_locals (method);
+	locals_info = mono_debug_lookup_locals (method, FALSE);
 
 	for (i = 0; i < header->num_locals; ++i) {
 		MonoInst *ins = locals [i];

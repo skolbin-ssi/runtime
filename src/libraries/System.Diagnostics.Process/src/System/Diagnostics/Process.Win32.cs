@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -47,17 +46,7 @@ namespace System.Diagnostics
             if (startInfo._environmentVariables != null)
                 throw new InvalidOperationException(SR.CantUseEnvVars);
 
-            string arguments;
-            if (startInfo.ArgumentList.Count > 0)
-            {
-                StringBuilder sb = new StringBuilder();
-                Process.AppendArguments(sb, startInfo.ArgumentList);
-                arguments = sb.ToString();
-            }
-            else
-            {
-                arguments = startInfo.Arguments;
-            }
+            string arguments = startInfo.BuildArguments();
 
             fixed (char* fileName = startInfo.FileName.Length > 0 ? startInfo.FileName : null)
             fixed (char* verb = startInfo.Verb.Length > 0 ? startInfo.Verb : null)
@@ -176,7 +165,11 @@ namespace System.Diagnostics
                 if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
                 {
                     ThreadStart threadStart = new ThreadStart(ShellExecuteFunction);
-                    Thread executionThread = new Thread(threadStart) { IsBackground = true };
+                    Thread executionThread = new Thread(threadStart)
+                    {
+                        IsBackground = true,
+                        Name = ".NET Process STA"
+                    };
                     executionThread.SetApartmentState(ApartmentState.STA);
                     executionThread.Start();
                     executionThread.Join();
@@ -337,9 +330,17 @@ namespace System.Diagnostics
         /// <remarks>
         /// A child process is a process which has this process's id as its parent process id and which started after this process did.
         /// </remarks>
-        private bool IsParentOf(Process possibleChild) =>
-            StartTime < possibleChild.StartTime
-            && Id == possibleChild.ParentProcessId;
+        private bool IsParentOf(Process possibleChild)
+        {
+            try
+            {
+                return StartTime < possibleChild.StartTime && Id == possibleChild.ParentProcessId;
+            }
+            catch (Exception e) when (IsProcessInvalidException(e))
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// Get the process's parent process id.
@@ -360,9 +361,17 @@ namespace System.Diagnostics
             }
         }
 
-        private bool Equals(Process process) =>
-            Id == process.Id
-            && StartTime == process.StartTime;
+        private bool Equals(Process process)
+        {
+            try
+            {
+                return Id == process.Id && StartTime == process.StartTime;
+            }
+            catch (Exception e) when (IsProcessInvalidException(e))
+            {
+                return false;
+            }
+        }
 
         private List<Exception>? KillTree()
         {
@@ -396,7 +405,7 @@ namespace System.Diagnostics
                 (exceptions ??= new List<Exception>()).Add(e);
             }
 
-            List<(Process Process, SafeProcessHandle Handle)> children = GetProcessHandlePairs(p => SafePredicateTest(() => IsParentOf(p)));
+            List<(Process Process, SafeProcessHandle Handle)> children = GetProcessHandlePairs((thisProcess, otherProcess) => thisProcess.IsParentOf(otherProcess));
             try
             {
                 foreach ((Process Process, SafeProcessHandle Handle) child in children)
@@ -420,7 +429,7 @@ namespace System.Diagnostics
             return exceptions;
         }
 
-        private List<(Process Process, SafeProcessHandle Handle)> GetProcessHandlePairs(Func<Process, bool> predicate)
+        private List<(Process Process, SafeProcessHandle Handle)> GetProcessHandlePairs(Func<Process, Process, bool> predicate)
         {
             var results = new List<(Process Process, SafeProcessHandle Handle)>();
 
@@ -429,7 +438,7 @@ namespace System.Diagnostics
                 SafeProcessHandle h = SafeGetHandle(p);
                 if (!h.IsInvalid)
                 {
-                    if (predicate(p))
+                    if (predicate(this, p))
                     {
                         results.Add((p, h));
                     }

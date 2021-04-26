@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Threading.Tasks;
 using Xunit;
@@ -26,13 +25,13 @@ namespace System.Threading.Tests
             countdownEvent.Dispose();
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsThreadingSupported))]
         public static void CancelAfterWait()
         {
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-            CountdownEvent countdownEvent = new CountdownEvent(2); ;  // countdownEvent that will block all waiters
+            CountdownEvent countdownEvent = new CountdownEvent(2); // countdownEvent that will block all waiters
 
             Task.Run(() =>
             {

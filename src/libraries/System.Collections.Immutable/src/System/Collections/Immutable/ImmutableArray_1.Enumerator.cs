@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 
@@ -69,7 +68,7 @@ namespace System.Collections.Immutable
         /// <summary>
         /// An array enumerator that implements <see cref="IEnumerator{T}"/> pattern (including <see cref="IDisposable"/>).
         /// </summary>
-        private class EnumeratorObject : IEnumerator<T>
+        private sealed class EnumeratorObject : IEnumerator<T>
         {
             /// <summary>
             /// A shareable singleton for enumerating empty arrays.

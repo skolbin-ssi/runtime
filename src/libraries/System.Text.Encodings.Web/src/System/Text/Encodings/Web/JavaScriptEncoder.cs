@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Text.Unicode;
 
@@ -14,7 +13,7 @@ namespace System.Text.Encodings.Web
         /// <summary>
         /// Returns a default built-in instance of <see cref="JavaScriptEncoder"/>.
         /// </summary>
-        public static JavaScriptEncoder Default => DefaultJavaScriptEncoderBasicLatin.s_singleton;
+        public static JavaScriptEncoder Default => DefaultJavaScriptEncoder.BasicLatinSingleton;
 
         /// <summary>
         /// Returns a built-in instance of <see cref="JavaScriptEncoder"/> that is less strict about what gets encoded.
@@ -34,7 +33,7 @@ namespace System.Text.Encodings.Web
         /// Unlike the <see cref="Default"/>, this encoder instance allows some other characters to go through unescaped (for example, '+'), and hence must be used cautiously.
         /// </para>
         /// </remarks>
-        public static JavaScriptEncoder UnsafeRelaxedJsonEscaping => UnsafeRelaxedJavaScriptEncoder.s_singleton;
+        public static JavaScriptEncoder UnsafeRelaxedJsonEscaping => DefaultJavaScriptEncoder.UnsafeRelaxedEscapingSingleton;
 
         /// <summary>
         /// Creates a new instance of JavaScriptEncoder with provided settings.
@@ -54,7 +53,7 @@ namespace System.Text.Encodings.Web
         /// <remarks>Some characters in <paramref name="allowedRanges"/> might still get encoded, i.e. this parameter is just telling the encoder what ranges it is allowed to not encode, not what characters it must not encode.</remarks>
         public static JavaScriptEncoder Create(params UnicodeRange[] allowedRanges)
         {
-            return new DefaultJavaScriptEncoder(allowedRanges);
+            return new DefaultJavaScriptEncoder(new TextEncoderSettings(allowedRanges));
         }
     }
 }

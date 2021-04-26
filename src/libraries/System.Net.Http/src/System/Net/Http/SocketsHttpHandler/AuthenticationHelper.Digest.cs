@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,12 +12,13 @@ using System.Threading.Tasks;
 
 namespace System.Net.Http
 {
-    internal partial class AuthenticationHelper
+    internal static partial class AuthenticationHelper
     {
         // Define digest constants
         private const string Qop = "qop";
         private const string Auth = "auth";
         private const string AuthInt = "auth-int";
+        private const string Domain = "domain";
         private const string Nonce = "nonce";
         private const string NC = "nc";
         private const string Realm = "realm";
@@ -55,7 +55,7 @@ namespace System.Net.Http
                     !algorithm.Equals(Sha256Sess, StringComparison.OrdinalIgnoreCase) &&
                     !algorithm.Equals(MD5Sess, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (NetEventSource.IsEnabled) NetEventSource.Error(digestResponse, $"Algorithm not supported: {algorithm}");
+                    if (NetEventSource.Log.IsEnabled()) NetEventSource.Error(digestResponse, $"Algorithm not supported: {algorithm}");
                     return null;
                 }
             }
@@ -68,7 +68,7 @@ namespace System.Net.Http
             string? nonce;
             if (!digestResponse.Parameters.TryGetValue(Nonce, out nonce))
             {
-                if (NetEventSource.IsEnabled) NetEventSource.Error(digestResponse, "Nonce missing");
+                if (NetEventSource.Log.IsEnabled()) NetEventSource.Error(digestResponse, "Nonce missing");
                 return null;
             }
 
@@ -79,7 +79,7 @@ namespace System.Net.Http
             string? realm;
             if (!digestResponse.Parameters.TryGetValue(Realm, out realm))
             {
-                if (NetEventSource.IsEnabled) NetEventSource.Error(digestResponse, "Realm missing");
+                if (NetEventSource.Log.IsEnabled()) NetEventSource.Error(digestResponse, "Realm missing");
                 return null;
             }
 
@@ -237,21 +237,11 @@ namespace System.Net.Http
                 bool hashComputed = hash.TryComputeHash(Encoding.UTF8.GetBytes(data), result, out int bytesWritten);
                 Debug.Assert(hashComputed && bytesWritten == result.Length);
 
-                StringBuilder sb = StringBuilderCache.Acquire(result.Length * 2);
-
-                Span<char> byteX2 = stackalloc char[2];
-                for (int i = 0; i < result.Length; i++)
-                {
-                    bool formatted = result[i].TryFormat(byteX2, out int charsWritten, "x2");
-                    Debug.Assert(formatted && charsWritten == 2);
-                    sb.Append(byteX2);
-                }
-
-                return StringBuilderCache.GetStringAndRelease(sb);
+                return HexConverter.ToString(result, HexConverter.Casing.Lower);
             }
         }
 
-        internal class DigestResponse
+        internal sealed class DigestResponse
         {
             internal readonly Dictionary<string, string> Parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             internal const string NonceCount = "00000001";
@@ -400,7 +390,7 @@ namespace System.Net.Http
                 return StringBuilderCache.GetStringAndRelease(sb);
             }
 
-            private unsafe void Parse(string challenge)
+            private void Parse(string challenge)
             {
                 int parsedIndex = 0;
                 while (parsedIndex < challenge.Length)
@@ -413,9 +403,13 @@ namespace System.Net.Http
 
                     // Get the value.
                     string? value = GetNextValue(challenge, parsedIndex, MustValueBeQuoted(key), out parsedIndex);
+                    if (value == null)
+                        break;
+
                     // Ensure value is valid.
-                    if (string.IsNullOrEmpty(value)
-                        && (value == null || !key.Equals(Opaque, StringComparison.OrdinalIgnoreCase)))
+                    // Opaque and Domain can have empty string
+                    if (value == string.Empty &&
+                       (!key.Equals(Opaque, StringComparison.OrdinalIgnoreCase) && !key.Equals(Domain, StringComparison.OrdinalIgnoreCase)))
                         break;
 
                     // Add the key-value pair to Parameters.

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,8 +21,9 @@ namespace System.Tests
             yield return new object[] { new string[] { "arg1", @"\\\\\" + "\"alpha", @"\" + "\"arg3" } };
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         [MemberData(nameof(GetCommandLineArgs_TestData))]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/49568", typeof(PlatformDetection), nameof(PlatformDetection.IsMacOsAppleSilicon))]
         public void GetCommandLineArgs_Invoke_ReturnsExpected(string[] args)
         {
             switch (args.Length)

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using Microsoft.Win32.SafeHandles;
 using System.Collections.Generic;
@@ -135,7 +134,7 @@ namespace System.IO.Pipes
         {
             CheckWriteOperations();
 
-            SafeHandle? handle = InternalHandle?.NamedPipeSocketHandle;
+            SafeHandle? handle = InternalHandle?.PipeSocketHandle;
             if (handle == null)
             {
                 throw new InvalidOperationException(SR.InvalidOperation_PipeHandleNotSet);
@@ -156,7 +155,7 @@ namespace System.IO.Pipes
             {
                 CheckPipePropertyOperations();
                 if (!CanRead) throw new NotSupportedException(SR.NotSupported_UnreadableStream);
-                return InternalHandle?.NamedPipeSocket?.ReceiveBufferSize ?? _inBufferSize;
+                return InternalHandle?.PipeSocket.ReceiveBufferSize ?? _inBufferSize;
             }
         }
 
@@ -166,19 +165,15 @@ namespace System.IO.Pipes
             {
                 CheckPipePropertyOperations();
                 if (!CanWrite) throw new NotSupportedException(SR.NotSupported_UnwritableStream);
-                return InternalHandle?.NamedPipeSocket?.SendBufferSize ?? _outBufferSize;
+                return InternalHandle?.PipeSocket.SendBufferSize ?? _outBufferSize;
             }
         }
-
-        // -----------------------------
-        // ---- PAL layer ends here ----
-        // -----------------------------
 
         // This method calls a delegate while impersonating the client.
         public void RunAsClient(PipeStreamImpersonationWorker impersonationWorker)
         {
             CheckWriteOperations();
-            SafeHandle? handle = InternalHandle?.NamedPipeSocketHandle;
+            SafeHandle? handle = InternalHandle?.PipeSocketHandle;
             if (handle == null)
             {
                 throw new InvalidOperationException(SR.InvalidOperation_PipeHandleNotSet);

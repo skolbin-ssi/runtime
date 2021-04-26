@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Net.Sockets;
 
@@ -10,11 +9,11 @@ namespace System.Net.NetworkInformation
     // Note: Provides information specific to a network interface. A network interface can have more
     // than one IPAddress associated with it. We call the native GetAdaptersAddresses API to
     // pre-populate all of the interface instances and most of their associated information.
-    internal class SystemIPInterfaceProperties : IPInterfaceProperties
+    internal sealed class SystemIPInterfaceProperties : IPInterfaceProperties
     {
         // These are valid for all interfaces.
-        private readonly bool _dnsEnabled = false;
-        private readonly bool _dynamicDnsEnabled = false;
+        private readonly bool _dnsEnabled;
+        private readonly bool _dynamicDnsEnabled;
         private readonly InternalIPAddressCollection _dnsAddresses;
         private readonly UnicastIPAddressInformationCollection _unicastAddresses;
         private readonly MulticastIPAddressInformationCollection _multicastAddresses;

@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #include "pal_compiler.h"
 #include <stdint.h>
@@ -49,6 +48,22 @@ EvpDigestFinalEx
 Direct shim to EVP_DigestFinal_ex.
 */
 PALEXPORT int32_t CryptoNative_EvpDigestFinalEx(EVP_MD_CTX* ctx, uint8_t* md, uint32_t* s);
+
+/*
+Function:
+EvpDigestCurrent
+
+Shims EVP_DigestFinal_ex on a duplicated value of ctx.
+*/
+PALEXPORT int32_t CryptoNative_EvpDigestCurrent(const EVP_MD_CTX* ctx, uint8_t* md, uint32_t* s);
+
+/*
+Function:
+EvpDigestOneShot
+
+Combines EVP_MD_CTX_create, EVP_DigestUpdate, and EVP_DigestFinal_ex in to a single operation.
+*/
+PALEXPORT int32_t CryptoNative_EvpDigestOneShot(const EVP_MD* type, const void* source, int32_t sourceSize, uint8_t* md, uint32_t* mdSize);
 
 /*
 Function:
@@ -102,6 +117,29 @@ PALEXPORT const EVP_MD* CryptoNative_EvpSha512(void);
 Function:
 GetMaxMdSize
 
-Returns the maxium bytes for a message digest.
+Returns the maximum bytes for a message digest.
 */
 PALEXPORT int32_t CryptoNative_GetMaxMdSize(void);
+
+/*
+Filled the destination buffer with PBKDF2 derived data.
+
+Implemented by:
+1) Validating input
+2) Calling PKCS5_PBKDF2_HMAC
+
+password and salt may be NULL if their respective length parameters
+are zero. When null, it will be replaced with a pointer to an empty
+location.
+
+Returns -1 on invalid input. On valid input, the return value
+is the return value of PKCS5_PBKDF2_HMAC.
+*/
+PALEXPORT int32_t CryptoNative_Pbkdf2(const char* password,
+                                      int32_t passwordLength,
+                                      const unsigned char* salt,
+                                      int32_t saltLength,
+                                      int32_t iterations,
+                                      const EVP_MD* digest,
+                                      unsigned char* destination,
+                                      int32_t destinationLength);

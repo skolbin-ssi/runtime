@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #include "pal_config.h"
 #include "pal_networking.h"
 #include "pal_io.h"
 #include "pal_safecrt.h"
 #include "pal_utilities.h"
+#include <pal_networking_common.h>
 #include <fcntl.h>
 
 #include <stdlib.h>
@@ -170,6 +170,80 @@ c_static_assert(offsetof(IOVector, Count) == offsetof(iovec, iov_len));
 
 #define Min(left,right) (((left) < (right)) ? (left) : (right))
 
+static bool TryConvertAddressFamilyPlatformToPal(sa_family_t platformAddressFamily, int32_t* palAddressFamily)
+{
+    assert(palAddressFamily != NULL);
+
+    switch (platformAddressFamily)
+    {
+        case AF_UNSPEC:
+            *palAddressFamily = AddressFamily_AF_UNSPEC;
+            return true;
+
+        case AF_UNIX:
+            *palAddressFamily = AddressFamily_AF_UNIX;
+            return true;
+
+        case AF_INET:
+            *palAddressFamily = AddressFamily_AF_INET;
+            return true;
+
+        case AF_INET6:
+            *palAddressFamily = AddressFamily_AF_INET6;
+            return true;
+#ifdef AF_PACKET
+        case AF_PACKET:
+            *palAddressFamily = AddressFamily_AF_PACKET;
+            return true;
+#endif
+#ifdef AF_CAN
+        case AF_CAN:
+            *palAddressFamily = AddressFamily_AF_CAN;
+            return true;
+#endif
+        default:
+            *palAddressFamily = platformAddressFamily;
+            return false;
+    }
+}
+
+static bool TryConvertAddressFamilyPalToPlatform(int32_t palAddressFamily, sa_family_t* platformAddressFamily)
+{
+    assert(platformAddressFamily != NULL);
+
+    switch (palAddressFamily)
+    {
+        case AddressFamily_AF_UNSPEC:
+            *platformAddressFamily = AF_UNSPEC;
+            return true;
+
+        case AddressFamily_AF_UNIX:
+            *platformAddressFamily = AF_UNIX;
+            return true;
+
+        case AddressFamily_AF_INET:
+            *platformAddressFamily = AF_INET;
+            return true;
+
+        case AddressFamily_AF_INET6:
+            *platformAddressFamily = AF_INET6;
+            return true;
+#ifdef AF_PACKET
+        case AddressFamily_AF_PACKET:
+            *platformAddressFamily = AF_PACKET;
+            return true;
+#endif
+#ifdef AF_CAN
+        case AddressFamily_AF_CAN:
+            *platformAddressFamily = AF_CAN;
+            return true;
+#endif
+        default:
+            *platformAddressFamily = (sa_family_t)palAddressFamily;
+            return false;
+    }
+}
+
 static void ConvertByteArrayToIn6Addr(struct in6_addr* addr, const uint8_t* buffer, int32_t bufferLength)
 {
     assert(bufferLength == NUM_BYTES_IN_IPV6_ADDRESS);
@@ -261,7 +335,7 @@ static int32_t CopySockAddrToIPAddress(sockaddr* addr, sa_family_t family, IPAdd
     return -1;
 }
 
-int32_t SystemNative_GetHostEntryForName(const uint8_t* address, HostEntry* entry)
+int32_t SystemNative_GetHostEntryForName(const uint8_t* address, int32_t addressFamily, HostEntry* entry)
 {
     if (address == NULL || entry == NULL)
     {
@@ -275,11 +349,16 @@ int32_t SystemNative_GetHostEntryForName(const uint8_t* address, HostEntry* entr
     struct ifaddrs* addrs = NULL;
 #endif
 
-    // Get all address families and the canonical name
+    sa_family_t platformFamily;
+    if (!TryConvertAddressFamilyPalToPlatform(addressFamily, &platformFamily))
+    {
+        return GetAddrInfoErrorFlags_EAI_FAMILY;
+    }
+
     struct addrinfo hint;
     memset(&hint, 0, sizeof(struct addrinfo));
-    hint.ai_family = AF_UNSPEC;
     hint.ai_flags = AI_CANONNAME;
+    hint.ai_family = platformFamily;
 
     int result = getaddrinfo((const char*)address, NULL, &hint, &info);
     if (result != 0)
@@ -476,13 +555,13 @@ static inline NativeFlagsType ConvertGetNameInfoFlagsToNative(int32_t flags)
 }
 
 int32_t SystemNative_GetNameInfo(const uint8_t* address,
-                               int32_t addressLength,
-                               int8_t isIPv6,
-                               uint8_t* host,
-                               int32_t hostLength,
-                               uint8_t* service,
-                               int32_t serviceLength,
-                               int32_t flags)
+                                 int32_t addressLength,
+                                 int8_t isIPv6,
+                                 uint8_t* host,
+                                 int32_t hostLength,
+                                 uint8_t* service,
+                                 int32_t serviceLength,
+                                 int32_t flags)
 {
     assert(address != NULL);
     assert(addressLength > 0);
@@ -591,80 +670,6 @@ int32_t SystemNative_GetIPSocketAddressSizes(int32_t* ipv4SocketAddressSize, int
     *ipv4SocketAddressSize = sizeof(struct sockaddr_in);
     *ipv6SocketAddressSize = sizeof(struct sockaddr_in6);
     return Error_SUCCESS;
-}
-
-static bool TryConvertAddressFamilyPlatformToPal(sa_family_t platformAddressFamily, int32_t* palAddressFamily)
-{
-    assert(palAddressFamily != NULL);
-
-    switch (platformAddressFamily)
-    {
-        case AF_UNSPEC:
-            *palAddressFamily = AddressFamily_AF_UNSPEC;
-            return true;
-
-        case AF_UNIX:
-            *palAddressFamily = AddressFamily_AF_UNIX;
-            return true;
-
-        case AF_INET:
-            *palAddressFamily = AddressFamily_AF_INET;
-            return true;
-
-        case AF_INET6:
-            *palAddressFamily = AddressFamily_AF_INET6;
-            return true;
-#ifdef AF_PACKET
-        case AF_PACKET:
-            *palAddressFamily = AddressFamily_AF_PACKET;
-            return true;
-#endif
-#ifdef AF_CAN
-        case AF_CAN:
-            *palAddressFamily = AddressFamily_AF_CAN;
-            return true;
-#endif
-        default:
-            *palAddressFamily = platformAddressFamily;
-            return false;
-    }
-}
-
-static bool TryConvertAddressFamilyPalToPlatform(int32_t palAddressFamily, sa_family_t* platformAddressFamily)
-{
-    assert(platformAddressFamily != NULL);
-
-    switch (palAddressFamily)
-    {
-        case AddressFamily_AF_UNSPEC:
-            *platformAddressFamily = AF_UNSPEC;
-            return true;
-
-        case AddressFamily_AF_UNIX:
-            *platformAddressFamily = AF_UNIX;
-            return true;
-
-        case AddressFamily_AF_INET:
-            *platformAddressFamily = AF_INET;
-            return true;
-
-        case AddressFamily_AF_INET6:
-            *platformAddressFamily = AF_INET6;
-            return true;
-#ifdef AF_PACKET
-        case AddressFamily_AF_PACKET:
-            *platformAddressFamily = AF_PACKET;
-            return true;
-#endif
-#ifdef AF_CAN
-        case AddressFamily_AF_CAN:
-            *platformAddressFamily = AF_CAN;
-            return true;
-#endif
-        default:
-            *platformAddressFamily = (sa_family_t)palAddressFamily;
-            return false;
-    }
 }
 
 int32_t SystemNative_GetAddressFamily(const uint8_t* socketAddress, int32_t socketAddressLen, int32_t* addressFamily)
@@ -1347,6 +1352,34 @@ static int32_t ConvertSocketFlagsPlatformToPal(int platformFlags)
            ((platformFlags & MSG_CTRUNC) == 0 ? 0 : SocketFlags_MSG_CTRUNC);
 }
 
+int32_t SystemNative_Receive(intptr_t socket, void* buffer, int32_t bufferLen, int32_t flags, int32_t* received)
+{
+    if (buffer == NULL || bufferLen < 0 || received == NULL)
+    {
+        return Error_EFAULT;
+    }
+
+    int fd = ToFileDescriptor(socket);
+
+    int socketFlags;
+    if (!ConvertSocketFlagsPalToPlatform(flags, &socketFlags))
+    {
+        return Error_ENOTSUP;
+    }
+
+    ssize_t res;
+    while ((res = recv(fd, buffer, (size_t)bufferLen, socketFlags)) < 0 && errno == EINTR);
+
+    if (res != -1)
+    {
+        *received = (int32_t)res;
+        return Error_SUCCESS;
+    }
+
+    *received = 0;
+    return SystemNative_ConvertErrorPlatformToPal(errno);
+}
+
 int32_t SystemNative_ReceiveMessage(intptr_t socket, MessageHeader* messageHeader, int32_t flags, int64_t* received)
 {
     if (messageHeader == NULL || received == NULL || messageHeader->SocketAddressLen < 0 ||
@@ -1390,6 +1423,38 @@ int32_t SystemNative_ReceiveMessage(intptr_t socket, MessageHeader* messageHeade
     return SystemNative_ConvertErrorPlatformToPal(errno);
 }
 
+int32_t SystemNative_Send(intptr_t socket, void* buffer, int32_t bufferLen, int32_t flags, int32_t* sent)
+{
+    if (buffer == NULL || bufferLen < 0 || sent == NULL)
+    {
+        return Error_EFAULT;
+    }
+
+    int fd = ToFileDescriptor(socket);
+
+    int socketFlags;
+    if (!ConvertSocketFlagsPalToPlatform(flags, &socketFlags))
+    {
+        return Error_ENOTSUP;
+    }
+
+    ssize_t res;
+#if defined(__APPLE__) && __APPLE__
+    // possible OSX kernel bug: https://github.com/dotnet/runtime/issues/27221
+    while ((res = send(fd, buffer, (size_t)bufferLen, socketFlags)) < 0 && (errno == EINTR || errno == EPROTOTYPE));
+#else
+    while ((res = send(fd, buffer, (size_t)bufferLen, socketFlags)) < 0 && errno == EINTR);
+#endif
+    if (res != -1)
+    {
+        *sent = (int32_t)res;
+        return Error_SUCCESS;
+    }
+
+    *sent = 0;
+    return SystemNative_ConvertErrorPlatformToPal(errno);
+}
+
 int32_t SystemNative_SendMessage(intptr_t socket, MessageHeader* messageHeader, int32_t flags, int64_t* sent)
 {
     if (messageHeader == NULL || sent == NULL || messageHeader->SocketAddressLen < 0 ||
@@ -1411,7 +1476,7 @@ int32_t SystemNative_SendMessage(intptr_t socket, MessageHeader* messageHeader, 
 
     ssize_t res;
 #if defined(__APPLE__) && __APPLE__
-    // possible OSX kernel bug:  #31927
+    // possible OSX kernel bug: https://github.com/dotnet/runtime/issues/27221
     while ((res = sendmsg(fd, &header, socketFlags)) < 0 && (errno == EINTR || errno == EPROTOTYPE));
 #else
     while ((res = sendmsg(fd, &header, socketFlags)) < 0 && errno == EINTR);
@@ -1566,29 +1631,7 @@ int32_t SystemNative_Listen(intptr_t socket, int32_t backlog)
 
 int32_t SystemNative_Shutdown(intptr_t socket, int32_t socketShutdown)
 {
-    int fd = ToFileDescriptor(socket);
-
-    int how;
-    switch (socketShutdown)
-    {
-        case SocketShutdown_SHUT_READ:
-            how = SHUT_RD;
-            break;
-
-        case SocketShutdown_SHUT_WRITE:
-            how = SHUT_WR;
-            break;
-
-        case SocketShutdown_SHUT_BOTH:
-            how = SHUT_RDWR;
-            break;
-
-        default:
-            return Error_EINVAL;
-    }
-
-    int err = shutdown(fd, how);
-    return err == 0 ? Error_SUCCESS : SystemNative_ConvertErrorPlatformToPal(errno);
+    return Common_Shutdown(socket, socketShutdown);
 }
 
 int32_t SystemNative_GetSocketErrorOption(intptr_t socket, int32_t* error)
@@ -1613,14 +1656,14 @@ int32_t SystemNative_GetSocketErrorOption(intptr_t socket, int32_t* error)
     return Error_SUCCESS;
 }
 
-static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketOptionLevel, int* optLevel, int* optName)
+static bool TryGetPlatformSocketOption(int32_t socketOptionLevel, int32_t socketOptionName, int* optLevel, int* optName)
 {
-    switch (socketOptionName)
+    switch (socketOptionLevel)
     {
         case SocketOptionLevel_SOL_SOCKET:
             *optLevel = SOL_SOCKET;
 
-            switch (socketOptionLevel)
+            switch (socketOptionName)
             {
                 case SocketOptionName_SO_DEBUG:
                     *optName = SO_DEBUG;
@@ -1701,7 +1744,7 @@ static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketO
         case SocketOptionLevel_SOL_IP:
             *optLevel = IPPROTO_IP;
 
-            switch (socketOptionLevel)
+            switch (socketOptionName)
             {
                 case SocketOptionName_SO_IP_OPTIONS:
                     *optName = IP_OPTIONS;
@@ -1780,7 +1823,7 @@ static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketO
         case SocketOptionLevel_SOL_IPV6:
             *optLevel = IPPROTO_IPV6;
 
-            switch (socketOptionLevel)
+            switch (socketOptionName)
             {
                 case SocketOptionName_SO_IPV6_HOPLIMIT:
                     *optName = IPV6_HOPLIMIT;
@@ -1814,7 +1857,7 @@ static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketO
         case SocketOptionLevel_SOL_TCP:
             *optLevel = IPPROTO_TCP;
 
-            switch (socketOptionLevel)
+            switch (socketOptionName)
             {
                 case SocketOptionName_SO_TCP_NODELAY:
                     *optName = TCP_NODELAY;
@@ -1846,7 +1889,7 @@ static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketO
         case SocketOptionLevel_SOL_UDP:
             *optLevel = IPPROTO_UDP;
 
-            switch (socketOptionLevel)
+            switch (socketOptionName)
             {
                 // case SocketOptionName_SO_UDP_NOCHECKSUM:
 
@@ -1988,7 +2031,14 @@ int32_t SystemNative_GetSockOpt(
     {
         if (socketOptionName == SocketOptionName_SO_IP_DONTFRAGMENT)
         {
-            *optionValue = *optionValue == IP_PMTUDISC_DO ? 1 : 0;
+            if (optLen >= (socklen_t)sizeof(int))
+            {
+                *(int*)optionValue = *(int*)optionValue == IP_PMTUDISC_DO ? 1 : 0;
+            }
+            else
+            {
+                *optionValue = *optionValue == IP_PMTUDISC_DO ? 1 : 0;
+            }
         }
     }
 #endif
@@ -2096,7 +2146,14 @@ SystemNative_SetSockOpt(intptr_t socket, int32_t socketOptionLevel, int32_t sock
     {
         if (socketOptionName == SocketOptionName_SO_IP_DONTFRAGMENT)
         {
-            *optionValue = *optionValue != 0 ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT;
+            if ((socklen_t)optionLen >= (socklen_t)sizeof(int))
+            {
+                *(int*)optionValue = *(int*)optionValue != 0 ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT;
+            }
+            else
+            {
+                *optionValue = *optionValue != 0 ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT;
+            }
         }
     }
 #endif
@@ -3047,6 +3104,11 @@ int32_t SystemNative_Disconnect(intptr_t socket)
     addr.sa_family = AF_UNSPEC;
 
     err = connect(fd, &addr, sizeof(addr));
+    if (err != 0) 
+    {
+        // On some older kernels connect(AF_UNSPEC) may fail. Fall back to shutdown in these cases:
+        err = shutdown(fd, SHUT_RDWR);
+    } 
 #elif HAVE_DISCONNECTX
     // disconnectx causes a FIN close on OSX. It's the best we can do.
     err = disconnectx(fd, SAE_ASSOCID_ANY, SAE_CONNID_ANY);

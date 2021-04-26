@@ -1,24 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Globalization;
 using System.Threading;
 using System.Collections;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace System.DirectoryServices.Protocols
 {
-    internal class LdapPartialResultsProcessor
+    internal sealed class LdapPartialResultsProcessor
     {
         private readonly ArrayList _resultList = new ArrayList();
-        private readonly ManualResetEvent _workThreadWaitHandle = null;
-        private bool _workToDo = false;
-        private int _currentIndex = 0;
+        private readonly ManualResetEvent _workThreadWaitHandle;
+        private bool _workToDo;
+        private int _currentIndex;
 
         internal LdapPartialResultsProcessor(ManualResetEvent eventHandle)
         {
             _workThreadWaitHandle = eventHandle;
+            _ = new PartialResultsRetriever(eventHandle, this);
         }
 
         public void Add(LdapPartialAsyncResult asyncResult)
@@ -135,7 +136,9 @@ namespace System.DirectoryServices.Protocols
 
             try
             {
-                SearchResponse response = (SearchResponse)connection.ConstructResponse(asyncResult._messageID, LdapOperation.LdapSearch, resultType, asyncResult._requestTimeout, false);
+                ValueTask<DirectoryResponse> vt = connection.ConstructResponseAsync(asyncResult._messageID, LdapOperation.LdapSearch, resultType, asyncResult._requestTimeout, false, sync: true);
+                Debug.Assert(vt.IsCompleted);
+                SearchResponse response = (SearchResponse)vt.GetAwaiter().GetResult();
 
                 // This should only happen in the polling thread case.
                 if (response == null)
@@ -330,10 +333,10 @@ namespace System.DirectoryServices.Protocols
         }
     }
 
-    internal class PartialResultsRetriever
+    internal sealed class PartialResultsRetriever
     {
-        private readonly ManualResetEvent _workThreadWaitHandle = null;
-        private readonly LdapPartialResultsProcessor _processor = null;
+        private readonly ManualResetEvent _workThreadWaitHandle;
+        private readonly LdapPartialResultsProcessor _processor;
 
         internal PartialResultsRetriever(ManualResetEvent eventHandle, LdapPartialResultsProcessor processor)
         {
@@ -343,7 +346,8 @@ namespace System.DirectoryServices.Protocols
             // Start the thread.
             var thread = new Thread(new ThreadStart(ThreadRoutine))
             {
-                IsBackground = true
+                IsBackground = true,
+                Name = ".NET LDAP Results Retriever"
             };
             thread.Start();
         }

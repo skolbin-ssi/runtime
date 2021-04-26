@@ -1,6 +1,5 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -133,6 +132,8 @@ namespace System.Net.Mail.Tests
             yield return new object[] { "invalid@unicode\uD800.com" }; // D800 is a high surrogate
             yield return new object[] { "invalid\uD800@unicode.com" }; // D800 is a high surrogate
             yield return new object[] { "\uD800 invalid@unicode.com" }; // D800 is a high surrogate
+            yield return new object[] { null };
+            yield return new object[] { "" };
         }
 
         [Theory]
@@ -164,7 +165,19 @@ namespace System.Net.Mail.Tests
         [MemberData(nameof(GetInvalidEmailTestData))]
         public void TestInvalidEmailAddresses(string address)
         {
-            Assert.Throws<FormatException>(() => { new MailAddress(address); });
+            Action act = () => new MailAddress(address);
+            if (address is null)
+            {
+                Assert.Throws<ArgumentNullException>(act);
+            }
+            else if (address == string.Empty)
+            {
+                Assert.Throws<ArgumentException>(act);
+            }
+            else
+            {
+                Assert.Throws<FormatException>(act);
+            }
         }
     }
 }

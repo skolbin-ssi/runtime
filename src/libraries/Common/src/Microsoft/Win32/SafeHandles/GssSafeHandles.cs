@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-#nullable enable
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -62,7 +60,7 @@ namespace Microsoft.Win32.SafeHandles
             return status == Interop.NetSecurityNative.Status.GSS_S_COMPLETE;
         }
 
-        private SafeGssNameHandle()
+        public SafeGssNameHandle()
             : base(IntPtr.Zero, true)
         {
         }
@@ -71,7 +69,7 @@ namespace Microsoft.Win32.SafeHandles
     /// <summary>
     /// Wrapper around a gss_cred_id_t_desc_struct*
     /// </summary>
-    internal class SafeGssCredHandle : SafeHandle
+    internal sealed class SafeGssCredHandle : SafeHandle
     {
         private static readonly Lazy<bool> s_IsNtlmInstalled = new Lazy<bool>(InitIsNtlmInstalled);
 
@@ -133,7 +131,7 @@ namespace Microsoft.Win32.SafeHandles
             return retHandle;
         }
 
-        private SafeGssCredHandle()
+        public SafeGssCredHandle()
             : base(IntPtr.Zero, true)
         {
         }

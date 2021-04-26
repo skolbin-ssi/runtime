@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
 using System.Collections;
@@ -10,10 +9,10 @@ namespace System.DirectoryServices.ActiveDirectory
 {
     public class ActiveDirectorySubnetCollection : CollectionBase
     {
-        internal readonly Hashtable changeList = null;
-        internal bool initialized = false;
-        private readonly string _siteDN = null;
-        private readonly DirectoryContext _context = null;
+        internal readonly Hashtable changeList;
+        internal bool initialized;
+        private readonly string _siteDN;
+        private readonly DirectoryContext _context;
         private readonly ArrayList _copyList = new ArrayList();
 
         internal ActiveDirectorySubnetCollection(DirectoryContext context, string siteDN)
@@ -27,7 +26,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
         public ActiveDirectorySubnet this[int index]
         {
-            get => (ActiveDirectorySubnet)InnerList[index];
+            get => (ActiveDirectorySubnet)InnerList[index]!;
             set
             {
                 ActiveDirectorySubnet subnet = (ActiveDirectorySubnet)value;
@@ -94,12 +93,12 @@ namespace System.DirectoryServices.ActiveDirectory
             if (!subnet.existing)
                 throw new InvalidOperationException(SR.Format(SR.SubnetNotCommitted, subnet.Name));
 
-            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName);
+            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName)!;
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                ActiveDirectorySubnet tmp = (ActiveDirectorySubnet)InnerList[i];
-                string tmpDn = (string)PropertyManager.GetPropertyValue(tmp.context, tmp.cachedEntry, PropertyManager.DistinguishedName);
+                ActiveDirectorySubnet tmp = (ActiveDirectorySubnet)InnerList[i]!;
+                string tmpDn = (string)PropertyManager.GetPropertyValue(tmp.context, tmp.cachedEntry, PropertyManager.DistinguishedName)!;
 
                 if (Utils.Compare(tmpDn, dn) == 0)
                 {
@@ -122,12 +121,12 @@ namespace System.DirectoryServices.ActiveDirectory
             if (!subnet.existing)
                 throw new InvalidOperationException(SR.Format(SR.SubnetNotCommitted, subnet.Name));
 
-            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName);
+            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName)!;
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                ActiveDirectorySubnet tmp = (ActiveDirectorySubnet)InnerList[i];
-                string tmpDn = (string)PropertyManager.GetPropertyValue(tmp.context, tmp.cachedEntry, PropertyManager.DistinguishedName);
+                ActiveDirectorySubnet tmp = (ActiveDirectorySubnet)InnerList[i]!;
+                string tmpDn = (string)PropertyManager.GetPropertyValue(tmp.context, tmp.cachedEntry, PropertyManager.DistinguishedName)!;
 
                 if (Utils.Compare(tmpDn, dn) == 0)
                 {
@@ -159,12 +158,12 @@ namespace System.DirectoryServices.ActiveDirectory
             if (!subnet.existing)
                 throw new InvalidOperationException(SR.Format(SR.SubnetNotCommitted, subnet.Name));
 
-            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName);
+            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName)!;
 
             for (int i = 0; i < InnerList.Count; i++)
             {
-                ActiveDirectorySubnet tmp = (ActiveDirectorySubnet)InnerList[i];
-                string tmpDn = (string)PropertyManager.GetPropertyValue(tmp.context, tmp.cachedEntry, PropertyManager.DistinguishedName);
+                ActiveDirectorySubnet tmp = (ActiveDirectorySubnet)InnerList[i]!;
+                string tmpDn = (string)PropertyManager.GetPropertyValue(tmp.context, tmp.cachedEntry, PropertyManager.DistinguishedName)!;
 
                 if (Utils.Compare(tmpDn, dn) == 0)
                 {
@@ -196,23 +195,25 @@ namespace System.DirectoryServices.ActiveDirectory
             {
                 for (int i = 0; i < _copyList.Count; i++)
                 {
-                    OnRemoveComplete(i, _copyList[i]);
+                    OnRemoveComplete(i, _copyList[i]!);
                 }
             }
         }
 
+#pragma warning disable CS8765 // Nullability doesn't match overriden member
         protected override void OnInsertComplete(int index, object value)
+#pragma warning restore CS8765
         {
             if (initialized)
             {
                 ActiveDirectorySubnet subnet = (ActiveDirectorySubnet)value;
-                string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName);
+                string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName)!;
 
                 try
                 {
                     if (changeList.Contains(dn))
                     {
-                        ((DirectoryEntry)changeList[dn]).Properties["siteObject"].Value = _siteDN;
+                        ((DirectoryEntry)changeList[dn]!).Properties["siteObject"].Value = _siteDN;
                     }
                     else
                     {
@@ -228,16 +229,18 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
+#pragma warning disable CS8765 // Nullability doesn't match overriden member
         protected override void OnRemoveComplete(int index, object value)
+#pragma warning restore CS8765
         {
             ActiveDirectorySubnet subnet = (ActiveDirectorySubnet)value;
-            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName);
+            string dn = (string)PropertyManager.GetPropertyValue(subnet.context, subnet.cachedEntry, PropertyManager.DistinguishedName)!;
 
             try
             {
                 if (changeList.Contains(dn))
                 {
-                    ((DirectoryEntry)changeList[dn]).Properties["siteObject"].Clear();
+                    ((DirectoryEntry)changeList[dn]!).Properties["siteObject"].Clear();
                 }
                 else
                 {
@@ -252,7 +255,9 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
+#pragma warning disable CS8765 // Nullability doesn't match overriden member
         protected override void OnSetComplete(int index, object oldValue, object newValue)
+#pragma warning restore CS8765
         {
             OnRemoveComplete(index, oldValue);
             OnInsertComplete(index, newValue);
