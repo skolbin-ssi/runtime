@@ -268,6 +268,7 @@ namespace System.Reflection.Tests
         }
 
         [Fact]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/50715", typeof(PlatformDetection), nameof(PlatformDetection.IsBuiltWithAggressiveTrimming), nameof(PlatformDetection.IsBrowser))]
         public void GetType_DefaultsToItself()
         {
             Assembly a = typeof(AssemblyTests).Assembly;
@@ -651,6 +652,7 @@ namespace System.Reflection.Tests
         }
 
         [Theory]
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/51673", typeof(PlatformDetection), nameof(PlatformDetection.IsBrowser), nameof(PlatformDetection.IsMonoAOT))]
         [MemberData(nameof(GetCallingAssembly_TestData))]
         public void GetCallingAssembly(Assembly assembly1, Assembly assembly2, bool expected)
         {

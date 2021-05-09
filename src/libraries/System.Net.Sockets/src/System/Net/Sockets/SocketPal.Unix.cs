@@ -1881,9 +1881,6 @@ namespace System.Net.Sockets
             return GetSocketErrorForErrorCode(err);
         }
 
-        public static SocketError SendFileAsync(SafeSocketHandle handle, FileStream fileStream, Action<long, SocketError> callback) =>
-            SendFileAsync(handle, fileStream, 0, fileStream.Length, callback);
-
         private static SocketError SendFileAsync(SafeSocketHandle handle, FileStream fileStream, long offset, long count, Action<long, SocketError> callback)
         {
             long bytesSent;
@@ -1966,23 +1963,6 @@ namespace System.Net.Sockets
             {
                 callback(bytesTransferred, error);
             }
-        }
-
-        public static SocketError AcceptAsync(Socket socket, SafeSocketHandle handle, SafeSocketHandle? acceptHandle, int receiveSize, int socketAddressSize, AcceptOverlappedAsyncResult asyncResult)
-        {
-            Debug.Assert(acceptHandle == null, $"Unexpected acceptHandle: {acceptHandle}");
-            Debug.Assert(receiveSize == 0, $"Unexpected receiveSize: {receiveSize}");
-
-            byte[] socketAddressBuffer = new byte[socketAddressSize];
-
-            IntPtr acceptedFd;
-            SocketError socketError = handle.AsyncContext.AcceptAsync(socketAddressBuffer, ref socketAddressSize, out acceptedFd, asyncResult.CompletionCallback);
-            if (socketError == SocketError.Success)
-            {
-                asyncResult.CompletionCallback(acceptedFd, socketAddressBuffer, socketAddressSize, SocketError.Success);
-            }
-
-            return socketError;
         }
 
         internal static SocketError Disconnect(Socket socket, SafeSocketHandle handle, bool reuseSocket)

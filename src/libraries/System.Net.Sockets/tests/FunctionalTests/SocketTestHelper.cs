@@ -139,7 +139,10 @@ namespace System.Net.Sockets.Tests
             return (socket, buffer);
         }
         public override Task<Socket> AcceptAsync(Socket s, Socket acceptSocket) =>
-            Task.Factory.FromAsync(s.BeginAccept, s.EndAccept, acceptSocket, 0, null);
+            Task.Factory.FromAsync(
+                (callback, state) => s.BeginAccept(acceptSocket, 0, callback, state),
+                result => s.EndAccept(out _, out _, result),
+                null);
         public override Task ConnectAsync(Socket s, EndPoint endPoint) =>
             Task.Factory.FromAsync(s.BeginConnect, s.EndConnect, endPoint, null);
         public override Task MultiConnectAsync(Socket s, IPAddress[] addresses, int port) =>
@@ -243,8 +246,10 @@ namespace System.Net.Sockets.Tests
             s.SendAsync(bufferList, SocketFlags.None);
         public override Task<int> SendToAsync(Socket s, ArraySegment<byte> buffer, EndPoint endPoint) =>
             s.SendToAsync(buffer, SocketFlags.None, endPoint);
-        public override Task SendFileAsync(Socket s, string fileName) => throw new NotSupportedException();
-        public override Task SendFileAsync(Socket s, string fileName, ArraySegment<byte> preBuffer, ArraySegment<byte> postBuffer, TransmitFileOptions flags) => throw new NotSupportedException();
+        public override Task SendFileAsync(Socket s, string fileName) =>
+            s.SendFileAsync(fileName).AsTask();
+        public override Task SendFileAsync(Socket s, string fileName, ArraySegment<byte> preBuffer, ArraySegment<byte> postBuffer, TransmitFileOptions flags) =>
+            s.SendFileAsync(fileName, preBuffer, postBuffer, flags).AsTask();
         public override Task DisconnectAsync(Socket s, bool reuseSocket) =>
             s.DisconnectAsync(reuseSocket).AsTask();
     }
@@ -281,8 +286,10 @@ namespace System.Net.Sockets.Tests
             s.SendAsync(bufferList, SocketFlags.None);
         public override Task<int> SendToAsync(Socket s, ArraySegment<byte> buffer, EndPoint endPoint) =>
             s.SendToAsync(buffer, SocketFlags.None, endPoint, _cts.Token).AsTask() ;
-        public override Task SendFileAsync(Socket s, string fileName) => throw new NotSupportedException();
-        public override Task SendFileAsync(Socket s, string fileName, ArraySegment<byte> preBuffer, ArraySegment<byte> postBuffer, TransmitFileOptions flags) => throw new NotSupportedException();
+        public override Task SendFileAsync(Socket s, string fileName) =>
+            s.SendFileAsync(fileName, _cts.Token).AsTask();
+        public override Task SendFileAsync(Socket s, string fileName, ArraySegment<byte> preBuffer, ArraySegment<byte> postBuffer, TransmitFileOptions flags) =>
+            s.SendFileAsync(fileName, preBuffer, postBuffer, flags, _cts.Token).AsTask();
         public override Task DisconnectAsync(Socket s, bool reuseSocket) =>
             s.DisconnectAsync(reuseSocket, _cts.Token).AsTask();
     }
@@ -291,7 +298,7 @@ namespace System.Net.Sockets.Tests
     {
         public override bool UsesEap => true;
         public override bool ValidatesArrayArguments => false;
-        public override bool SupportsAcceptReceive => true;
+        public override bool SupportsAcceptReceive => PlatformDetection.IsWindows;
 
         public override Task<Socket> AcceptAsync(Socket s) =>
             InvokeAsync(s, e => e.AcceptSocket, e => s.AcceptAsync(e));

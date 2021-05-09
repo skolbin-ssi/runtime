@@ -984,7 +984,7 @@ public:
     var_types lvaArgType();
 
     // Returns true if this variable contains GC pointers (including being a GC pointer itself).
-    bool HasGCPtr()
+    bool HasGCPtr() const
     {
         return varTypeIsGC(lvType) || ((lvType == TYP_STRUCT) && m_layout->HasGCPtr());
     }
@@ -1014,33 +1014,15 @@ public:
         return lvPerSsaData.GetSsaDef(ssaNum);
     }
 
-    //------------------------------------------------------------------------
-    // GetRegisterType: Determine register type for that local var.
-    //
-    // Arguments:
-    //    tree - node that uses the local, its type is checked first.
-    //
-    // Return Value:
-    //    TYP_UNDEF if the layout is enregistrable, register type otherwise.
-    //
-    var_types GetRegisterType(const GenTreeLclVarCommon* tree) const
+    var_types GetRegisterType(const GenTreeLclVarCommon* tree) const;
+
+    var_types GetRegisterType() const;
+
+    var_types GetActualRegisterType() const;
+
+    bool IsEnregisterable() const
     {
-        var_types targetType = tree->gtType;
-
-#ifdef DEBUG
-        // Ensure that lclVar nodes are typed correctly.
-        if (tree->OperIs(GT_STORE_LCL_VAR) && lvNormalizeOnStore())
-        {
-            // TODO: update that assert to work with TypeGet() == TYP_STRUCT case.
-            // assert(targetType == genActualType(TypeGet()));
-        }
-#endif
-
-        if (targetType != TYP_STRUCT)
-        {
-            return targetType;
-        }
-        return GetLayout()->GetRegisterType();
+        return GetRegisterType() != TYP_UNDEF;
     }
 
     bool CanBeReplacedWithItsField(Compiler* comp) const;
@@ -5416,7 +5398,8 @@ public:
 
     void fgRemoveEmptyBlocks();
 
-    void fgRemoveStmt(BasicBlock* block, Statement* stmt);
+    void fgRemoveStmt(BasicBlock* block, Statement* stmt DEBUGARG(bool isUnlink = false));
+    void fgUnlinkStmt(BasicBlock* block, Statement* stmt);
 
     bool fgCheckRemoveStmt(BasicBlock* block, Statement* stmt);
 
@@ -6245,11 +6228,11 @@ public:
     PhaseStatus optOptimizeLayout(); // Optimize the BasicBlock layout of the method
     PhaseStatus optFindLoops();      // Finds loops and records them in the loop table
 
-    void optCloneLoops();
+    PhaseStatus optCloneLoops();
     void optCloneLoop(unsigned loopInd, LoopCloneContext* context);
     void optEnsureUniqueHead(unsigned loopInd, BasicBlock::weight_t ambientWeight);
-    void optUnrollLoops(); // Unrolls loops (needs to have cost info)
-    void optRemoveRedundantZeroInits();
+    PhaseStatus optUnrollLoops(); // Unrolls loops (needs to have cost info)
+    void        optRemoveRedundantZeroInits();
 
 protected:
     // This enumeration describes what is killed by a call.
@@ -6533,10 +6516,7 @@ protected:
     // loop nested in "loopInd" that shares the same head as "loopInd".
     void optUpdateLoopHead(unsigned loopInd, BasicBlock* from, BasicBlock* to);
 
-    // Updates the successors of "blk": if "blk2" is a successor of "blk", and there is a mapping for "blk2->blk3" in
-    // "redirectMap", change "blk" so that "blk3" is this successor. If `addPreds` is true, add predecessor edges
-    // for the block based on its new target, whether redirected or not.
-    void optRedirectBlock(BasicBlock* blk, BlockToBlockMap* redirectMap, const bool addPreds = false);
+    void optRedirectBlock(BasicBlock* blk, BlockToBlockMap* redirectMap, const bool updatePreds = false);
 
     // Marks the containsCall information to "lnum" and any parent loops.
     void AddContainsCallAllContainingLoops(unsigned lnum);
@@ -6580,7 +6560,11 @@ protected:
 
     static fgWalkResult optInvertCountTreeInfo(GenTree** pTree, fgWalkData* data);
 
-    void optInvertWhileLoop(BasicBlock* block);
+    bool optInvertWhileLoop(BasicBlock* block);
+
+private:
+    static bool optIterSmallOverflow(int iterAtExit, var_types incrType);
+    static bool optIterSmallUnderflow(int iterAtExit, var_types decrType);
 
     bool optComputeLoopRep(int        constInit,
                            int        constLimit,
@@ -6592,7 +6576,6 @@ protected:
                            bool       dupCond,
                            unsigned*  iterCount);
 
-private:
     static fgWalkPreFn optIsVarAssgCB;
 
 protected:
@@ -8299,6 +8282,8 @@ private:
         CORINFO_CLASS_HANDLE Vector64LongHandle;
         CORINFO_CLASS_HANDLE Vector64UIntHandle;
         CORINFO_CLASS_HANDLE Vector64ULongHandle;
+        CORINFO_CLASS_HANDLE Vector64NIntHandle;
+        CORINFO_CLASS_HANDLE Vector64NUIntHandle;
 #endif // defined(TARGET_ARM64)
         CORINFO_CLASS_HANDLE Vector128FloatHandle;
         CORINFO_CLASS_HANDLE Vector128DoubleHandle;
@@ -8310,6 +8295,8 @@ private:
         CORINFO_CLASS_HANDLE Vector128LongHandle;
         CORINFO_CLASS_HANDLE Vector128UIntHandle;
         CORINFO_CLASS_HANDLE Vector128ULongHandle;
+        CORINFO_CLASS_HANDLE Vector128NIntHandle;
+        CORINFO_CLASS_HANDLE Vector128NUIntHandle;
 #if defined(TARGET_XARCH)
         CORINFO_CLASS_HANDLE Vector256FloatHandle;
         CORINFO_CLASS_HANDLE Vector256DoubleHandle;
@@ -8321,6 +8308,8 @@ private:
         CORINFO_CLASS_HANDLE Vector256LongHandle;
         CORINFO_CLASS_HANDLE Vector256UIntHandle;
         CORINFO_CLASS_HANDLE Vector256ULongHandle;
+        CORINFO_CLASS_HANDLE Vector256NIntHandle;
+        CORINFO_CLASS_HANDLE Vector256NUIntHandle;
 #endif // defined(TARGET_XARCH)
 #endif // FEATURE_HW_INTRINSICS
 
@@ -9493,7 +9482,7 @@ public:
 #endif // defined(DEBUG) || defined(LATE_DISASM) || DUMP_FLOWGRAPHS
 
 #if defined(DEBUG) || defined(INLINE_DATA)
-        // Method hash is logcally const, but computed
+        // Method hash is logically const, but computed
         // on first demand.
         mutable unsigned compMethodHashPrivate;
         unsigned         compMethodHash() const;
@@ -9675,6 +9664,11 @@ public:
         return false;
 
 #endif // FEATURE_MULTIREG_RET
+    }
+
+    bool compEnregStructLocals()
+    {
+        return (JitConfig.JitEnregStructLocals() != 0);
     }
 
     // Returns true if the method returns a value in more than one return register,
@@ -11408,11 +11402,6 @@ extern const BYTE genTypeAlignments[];
 extern const BYTE genTypeStSzs[];
 extern const BYTE genActualTypes[];
 
-/*****************************************************************************/
-
-extern BasicBlock dummyBB;
-
-/*****************************************************************************/
 /*****************************************************************************/
 
 // foreach_block: An iterator over all blocks in the function.
